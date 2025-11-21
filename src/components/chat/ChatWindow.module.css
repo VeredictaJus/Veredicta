@@ -1,0 +1,29 @@
+/* Estilos para quebra de linha forçada em mensagens longas */
+.messageBubble {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.messageText {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.chatContainer {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.messageContainer {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  word-break: break-all !important;
+}

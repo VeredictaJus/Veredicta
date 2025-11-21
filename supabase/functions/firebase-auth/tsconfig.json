@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "types": ["deno-types"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+
+
+
+
+
+
+
+
+

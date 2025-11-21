@@ -1,0 +1,34 @@
+name: Check Plan Expiry Daily
+
+on:
+  schedule:
+    # Executar todos os dias às 9h UTC (6h BRT)
+    - cron: '0 9 * * *'
+  # Permitir execução manual
+  workflow_dispatch:
+
+jobs:
+  check-plans:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          curl -X POST \
+            ${{ secrets.VITE_SUPABASE_URL }}/functions/v1/check-plan-expiry \
+            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+        
+      - name: Log result
+        run: echo "✅ Plan expiry check completed"
+
+
+
+
+
+
+
+
+
+

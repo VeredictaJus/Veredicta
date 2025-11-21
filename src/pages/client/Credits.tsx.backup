@@ -1,0 +1,41 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { ClientProfile } from '@/types';
+
+export default function Credits() {
+  console.log('Credits component starting...');
+  
+  const { profile } = useAuth();
+  console.log('Profile from useAuth:', profile);
+  
+  if (!profile) {
+    console.log('No profile, showing loading...');
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Créditos</h1>
+        <p>Carregando perfil...</p>
+      </div>
+    );
+  }
+  
+  console.log('Profile found, rendering content...');
+  const clientProfile = profile as ClientProfile;
+  
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Créditos</h1>
+      
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-2">Saldo Atual</h2>
+        <p className="text-3xl font-bold text-orange-600">
+          {clientProfile.credits_balance || 0} créditos
+        </p>
+      </div>
+      
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold mb-2">Informações</h2>
+        <p>Empresa: {clientProfile.company_name}</p>
+        <p>Plano: {clientProfile.plan_id}</p>
+      </div>
+    </div>
+  );
+}

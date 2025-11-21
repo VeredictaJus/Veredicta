@@ -1,0 +1,65 @@
+# Arquivos e pastas a ignorar no deploy do Vercel
+
+# Dependências (serão instaladas pelo Vercel)
+node_modules/
+.pnpm-store/
+
+# Arquivos de desenvolvimento
+.env.local
+.env.development
+keys.local.ts
+*.local.*
+
+# Arquivos de build antigos
+dist/
+build/
+
+# Arquivos de teste
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+coverage/
+
+# Documentação
+*.md
+!README.md
+
+# Arquivos SQL (não precisam no deploy)
+*.sql
+
+# Arquivos de configuração local
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos temporários
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Arquivos do Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Arquivos de backup
+*.backup
+*.bak
+
+# Arquivos de upload local
+workspace/uploads/
+cover/
+
+# Arquivos de build antigos
+build/v*/
+

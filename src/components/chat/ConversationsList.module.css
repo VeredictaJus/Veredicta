@@ -1,0 +1,39 @@
+/* Estilos para quebra de linha na lista de conversas */
+
+.conversationItem {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.conversationContent {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  display: block !important;
+}
+
+.conversationContainer {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+}
+
+.conversationList {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  word-break: break-all !important;
+  width: 100% !important;
+}
+
+/* Forçar quebra em qualquer elemento com texto longo na lista */
+[class*="conversation"] {
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}

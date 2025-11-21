@@ -440,7 +440,15 @@ class ProductionAuthService {
           const lang = parsed.searchParams.get('lang')
           const continueUrl = parsed.searchParams.get('continueUrl')
 
-          const appBaseUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '')
+          // Garantir que appBaseUrl seja uma URL válida
+          let appBaseUrl = import.meta.env.VITE_APP_URL || window.location.origin
+          appBaseUrl = appBaseUrl.replace(/\/$/, '')
+          
+          // Validar se é uma URL válida antes de usar
+          if (!appBaseUrl || !isValidUrl(appBaseUrl)) {
+            appBaseUrl = window.location.origin
+          }
+          
           const customUrl = new URL(`${appBaseUrl}/#/auth/reset-password`)
 
           if (oobCode) customUrl.searchParams.set('oobCode', oobCode)

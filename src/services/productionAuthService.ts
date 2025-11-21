@@ -434,6 +434,11 @@ class ProductionAuthService {
       // Converter o link do Firebase para a rota personalizada da aplicação
       const buildCustomResetLink = (firebaseLink: string): string => {
         try {
+          // Validar firebaseLink antes de usar
+          if (!firebaseLink || !isValidUrl(firebaseLink)) {
+            throw new Error('Link do Firebase inválido')
+          }
+          
           const parsed = new URL(firebaseLink)
           const oobCode = parsed.searchParams.get('oobCode')
           const mode = parsed.searchParams.get('mode') || 'resetPassword'
@@ -441,11 +446,17 @@ class ProductionAuthService {
           const continueUrl = parsed.searchParams.get('continueUrl')
 
           // Garantir que appBaseUrl seja uma URL válida
-          let appBaseUrl = import.meta.env.VITE_APP_URL || window.location.origin
-          appBaseUrl = appBaseUrl.replace(/\/$/, '')
+          // Sempre usar window.location.origin como fallback seguro
+          let appBaseUrl = window.location.origin
           
-          // Validar se é uma URL válida antes de usar
-          if (!appBaseUrl || !isValidUrl(appBaseUrl)) {
+          // Tentar usar VITE_APP_URL se for válida
+          const envAppUrl = import.meta.env.VITE_APP_URL
+          if (envAppUrl && typeof envAppUrl === 'string' && envAppUrl.trim() !== '' && isValidUrl(envAppUrl)) {
+            appBaseUrl = envAppUrl.replace(/\/$/, '')
+          }
+          
+          // Garantir que appBaseUrl seja válida antes de construir URL
+          if (!isValidUrl(appBaseUrl)) {
             appBaseUrl = window.location.origin
           }
           

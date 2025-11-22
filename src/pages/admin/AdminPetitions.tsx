@@ -304,10 +304,10 @@ export default function AdminPetitions() {
 
   const stats = useMemo(() => ({
     total: petitions.length,
-    pending: petitions.filter(p => p.status === 'pending' || !p.writer_name).length, // Sem atribuição
+    pending: petitions.filter(p => p.status === 'pending').length, // Sem atribuição (já mapeado corretamente no mapRow)
     review: petitions.filter(p => p.status === 'review').length, // Em revisão
     approved: petitions.filter(p => p.status === 'approved').length, // Aprovada
-    in_progress: petitions.filter(p => p.status === 'in_progress' && p.writer_name).length, // Em andamento (com redator)
+    in_progress: petitions.filter(p => p.status === 'in_progress').length, // Em andamento (já mapeado corretamente no mapRow)
   }), [petitions]);
 
   const updateStatus = async (petitionId: string, newStatus: PetitionStatus) => {

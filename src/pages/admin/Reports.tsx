@@ -276,12 +276,18 @@ export default function Reports() {
 
     const avgPetitionValue = totalPetitions ? Math.round(totalRevenue / totalPetitions) : 0;
 
-    // Taxa de conclusão: considerar 'completed', 'approved' e 'delivered' como concluídas
+    // Taxa de conclusão: considerar apenas 'completed', 'approved' e 'delivered' como concluídas
+    // IMPORTANTE: 'in_progress', 'pending', 'review', 'revision', etc. NÃO são considerados concluídos
+    const completedStatuses = ['completed', 'approved', 'delivered'];
     const completed = petitions.filter(p => {
-      const status = String(p.status || '').toLowerCase();
-      return status === 'completed' || status === 'approved' || status === 'delivered';
+      if (!p.status) return false;
+      const status = String(p.status).toLowerCase().trim();
+      return completedStatuses.includes(status);
     }).length;
-    const completionRate = totalPetitions ? Math.round((completed / totalPetitions) * 1000) / 10 : 0;
+    
+    const completionRate = totalPetitions > 0 
+      ? Math.round((completed / totalPetitions) * 100 * 10) / 10 
+      : 0;
 
     return { totalRevenue, totalPetitions, totalUsers, avgPetitionValue, completionRate };
   }, [profiles, petitions, payments]);

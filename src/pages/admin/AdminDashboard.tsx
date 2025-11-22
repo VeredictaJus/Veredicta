@@ -210,50 +210,72 @@ export default function AdminDashboard() {
       const completionRate = totalPetitions ? (completedCount / totalPetitions) * 100 : 0;
 
       // 🚀 CALCULAR TEMPO MÉDIO DE CONCLUSÃO (baseado em dados reais)
-      // Buscar petições completadas com seus arquivos entregues para calcular tempo real
-      const completedPetitionIds = petitionsArray
-        .filter(p => (p.status || '').toLowerCase() === 'completed')
-        .map(p => p.id);
+      // Filtrar petições completadas que têm created_at
+      const completedPetitionsWithTimes = petitionsArray.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status === 'completed' && p.created_at;
+      });
 
       let averageCompletionTime = 0;
-      if (completedPetitionIds.length > 0) {
+      if (completedPetitionsWithTimes.length > 0) {
+        const completedPetitionIds = completedPetitionsWithTimes.map(p => p.id);
+        
         // Buscar data de entrega do primeiro arquivo de cada petição completada
-        const { data: deliveredFiles, error: filesError } = await supabase
-          .from('petition_files')
-          .select('petition_id, created_at')
-          .in('petition_id', completedPetitionIds)
-          .order('created_at', { ascending: true });
+        let deliveryDates = new Map<string, Date>();
+        
+        if (completedPetitionIds.length > 0) {
+          const { data: deliveredFiles, error: filesError } = await supabase
+            .from('petition_files')
+            .select('petition_id, created_at')
+            .in('petition_id', completedPetitionIds)
+            .order('created_at', { ascending: true });
 
-        if (filesError && import.meta.env.DEV) {
-          console.warn('⚠️ Erro ao buscar arquivos entregues:', filesError);
-        }
+          if (filesError && import.meta.env.DEV) {
+            console.warn('⚠️ Erro ao buscar arquivos entregues:', filesError);
+          }
 
-        // Criar mapa de petição -> data de entrega (primeiro arquivo)
-        const deliveryDates = new Map<string, Date>();
-        if (deliveredFiles) {
-          deliveredFiles.forEach(file => {
-            if (!deliveryDates.has(file.petition_id)) {
-              deliveryDates.set(file.petition_id, new Date(file.created_at));
-            }
-          });
+          // Criar mapa de petição -> data de entrega (primeiro arquivo)
+          if (deliveredFiles && deliveredFiles.length > 0) {
+            deliveredFiles.forEach(file => {
+              if (file.petition_id && file.created_at && !deliveryDates.has(file.petition_id)) {
+                deliveryDates.set(file.petition_id, new Date(file.created_at));
+              }
+            });
+          }
         }
 
         // Calcular tempo médio usando data de entrega real ou fallback para updated_at
-        const completedPetitionsWithTimes = petitionsArray.filter(p => {
-          const status = (p.status || '').toLowerCase();
-          return status === 'completed' && p.created_at;
-        });
-
-        if (completedPetitionsWithTimes.length > 0) {
-          const totalDays = completedPetitionsWithTimes.reduce((acc, p) => {
+        const validTimes: number[] = [];
+        
+        completedPetitionsWithTimes.forEach(p => {
+          try {
             const start = new Date(p.created_at);
+            if (isNaN(start.getTime())) return; // Data inválida
+            
             // Usar data de entrega do arquivo se disponível, senão usar updated_at como fallback
             const deliveryDate = deliveryDates.get(p.id);
-            const end = deliveryDate || new Date(p.updated_at);
+            const end = deliveryDate || (p.updated_at ? new Date(p.updated_at) : null);
+            
+            if (!end || isNaN(end.getTime())) return; // Data inválida
+            
             const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-            return acc + daysDiff;
-          }, 0);
-          averageCompletionTime = Math.round((totalDays / completedPetitionsWithTimes.length) * 10) / 10;
+            
+            // Validar que o tempo é positivo e razoável (não mais que 1 ano)
+            if (daysDiff >= 0 && daysDiff <= 365) {
+              validTimes.push(daysDiff);
+            }
+          } catch (e) {
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ Erro ao calcular tempo para petição:', p.id, e);
+            }
+          }
+        });
+
+        if (validTimes.length > 0) {
+          const totalDays = validTimes.reduce((acc, days) => acc + days, 0);
+          averageCompletionTime = Math.round((totalDays / validTimes.length) * 10) / 10;
+        } else if (import.meta.env.DEV) {
+          console.warn('⚠️ Nenhum tempo válido calculado para petições completadas');
         }
       }
 

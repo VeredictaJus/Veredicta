@@ -292,6 +292,21 @@ export class DatabaseService {
     if (data) {
       this.sendNewPetitionEmail(data, normalized.client_id);
       this.queuePetitionAvailableNotifications(data);
+      
+      // Notificar admins sobre nova petição pendente
+      this.notifyAllAdmins({
+        title: '📋 Nova Petição Criada',
+        message: `Nova petição "${data.title || 'Sem título'}" foi criada e está aguardando atribuição.`,
+        type: 'petition',
+        priority: 'normal',
+        is_read: false,
+        related_entity_type: 'petition',
+        related_entity_id: data.id,
+      }).catch(err => {
+        if (import.meta.env.DEV) {
+          console.error('Erro ao notificar admins sobre nova petição:', err);
+        }
+      });
     }
 
     return data;
@@ -528,15 +543,11 @@ export class DatabaseService {
           user_id: writer.firebase_uid,
           type: 'petition_available',
           title: 'Nova petição disponível',
-          message: `A petição "${petition.title || 'Sem título'}" está aguardando um redator.`,
+          body: `A petição "${petition.title || 'Sem título'}" está aguardando um redator.`, // Banco usa 'body'
           priority: 'normal' as const,
           is_read: false,
           related_entity_type: 'petition',
           related_entity_id: petition.id,
-          meta: {
-            petitionId: petition.id,
-            deadline: petition.deadline || null
-          }
         });
 
         if (writer.email) {
@@ -587,7 +598,7 @@ export class DatabaseService {
           user_id: writerId,
           type: 'petition',
           title: 'Nova petição atribuída',
-          message: `Você foi designado para a petição "${petition.title || 'Sem título'}".`,
+          body: `Você foi designado para a petição "${petition.title || 'Sem título'}".`, // Banco usa 'body'
           priority: 'normal',
           is_read: false,
           related_entity_type: 'petition',
@@ -761,16 +772,79 @@ export class DatabaseService {
   static async getUserNotifications(userId: string): Promise<Notification[]> {
     const { data, error } = await supabase
       .from('app_2d8133c678_notifications')
-      .select('*')
+      .select('id, user_id, title, body, type, priority, is_read, related_entity_type, related_entity_id, created_at')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100); // Limitar a 100 notificações mais recentes para performance
 
     if (error) {
       console.error('Error fetching notifications:', error);
       return [];
     }
 
-    return data || [];
+    // Mapear 'body' do banco para 'message' da interface
+    return (data || []).map((n: any) => ({
+      ...n,
+      message: n.body || n.message || '', // Suporta ambos os campos
+    }));
+  }
+
+  /**
+   * Notificar todos os administradores sobre um evento importante
+   */
+  static async notifyAllAdmins(notification: Omit<Notification, 'id' | 'created_at' | 'user_id'>): Promise<boolean> {
+    try {
+      // Buscar todos os admins ativos
+      const { data: admins, error: adminsError } = await supabase
+        .from('user_profiles')
+        .select('firebase_uid')
+        .eq('role', 'admin')
+        .eq('is_active', true)
+        .limit(50); // Limitar para performance
+
+      if (adminsError) {
+        console.error('Error fetching admins for notification:', adminsError);
+        return false;
+      }
+
+      if (!admins || admins.length === 0) {
+        if (import.meta.env.DEV) {
+          console.warn('No active admins found to notify');
+        }
+        return true; // Não é erro se não houver admins
+      }
+
+      // Criar notificação para cada admin (mapear 'message' para 'body' no banco)
+      const notifications = admins.map(admin => ({
+        user_id: admin.firebase_uid,
+        title: notification.title,
+        body: notification.message, // Banco usa 'body', interface usa 'message'
+        type: notification.type,
+        priority: notification.priority,
+        is_read: notification.is_read,
+        related_entity_type: notification.related_entity_type,
+        related_entity_id: notification.related_entity_id,
+      }));
+
+      // Inserir todas as notificações de uma vez (mais eficiente)
+      const { error: insertError } = await supabase
+        .from('app_2d8133c678_notifications')
+        .insert(notifications);
+
+      if (insertError) {
+        console.error('Error creating admin notifications:', insertError);
+        return false;
+      }
+
+      if (import.meta.env.DEV) {
+        console.log(`✅ Notificações criadas para ${admins.length} admin(s):`, notification.title);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in notifyAllAdmins:', error);
+      return false;
+    }
   }
 
   static async markNotificationAsRead(notificationId: string): Promise<boolean> {

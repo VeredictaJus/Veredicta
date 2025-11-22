@@ -210,20 +210,51 @@ export default function AdminDashboard() {
       const completionRate = totalPetitions ? (completedCount / totalPetitions) * 100 : 0;
 
       // 🚀 CALCULAR TEMPO MÉDIO DE CONCLUSÃO (baseado em dados reais)
-      const completedPetitionsWithTimes = petitionsArray.filter(p => {
-        const status = (p.status || '').toLowerCase();
-        return status === 'completed' && p.created_at && p.updated_at;
-      });
+      // Buscar petições completadas com seus arquivos entregues para calcular tempo real
+      const completedPetitionIds = petitionsArray
+        .filter(p => (p.status || '').toLowerCase() === 'completed')
+        .map(p => p.id);
 
       let averageCompletionTime = 0;
-      if (completedPetitionsWithTimes.length > 0) {
-        const totalDays = completedPetitionsWithTimes.reduce((acc, p) => {
-          const start = new Date(p.created_at);
-          const end = new Date(p.updated_at);
-          const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-          return acc + daysDiff;
-        }, 0);
-        averageCompletionTime = Math.round((totalDays / completedPetitionsWithTimes.length) * 10) / 10;
+      if (completedPetitionIds.length > 0) {
+        // Buscar data de entrega do primeiro arquivo de cada petição completada
+        const { data: deliveredFiles, error: filesError } = await supabase
+          .from('petition_files')
+          .select('petition_id, created_at')
+          .in('petition_id', completedPetitionIds)
+          .order('created_at', { ascending: true });
+
+        if (filesError && import.meta.env.DEV) {
+          console.warn('⚠️ Erro ao buscar arquivos entregues:', filesError);
+        }
+
+        // Criar mapa de petição -> data de entrega (primeiro arquivo)
+        const deliveryDates = new Map<string, Date>();
+        if (deliveredFiles) {
+          deliveredFiles.forEach(file => {
+            if (!deliveryDates.has(file.petition_id)) {
+              deliveryDates.set(file.petition_id, new Date(file.created_at));
+            }
+          });
+        }
+
+        // Calcular tempo médio usando data de entrega real ou fallback para updated_at
+        const completedPetitionsWithTimes = petitionsArray.filter(p => {
+          const status = (p.status || '').toLowerCase();
+          return status === 'completed' && p.created_at;
+        });
+
+        if (completedPetitionsWithTimes.length > 0) {
+          const totalDays = completedPetitionsWithTimes.reduce((acc, p) => {
+            const start = new Date(p.created_at);
+            // Usar data de entrega do arquivo se disponível, senão usar updated_at como fallback
+            const deliveryDate = deliveryDates.get(p.id);
+            const end = deliveryDate || new Date(p.updated_at);
+            const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+            return acc + daysDiff;
+          }, 0);
+          averageCompletionTime = Math.round((totalDays / completedPetitionsWithTimes.length) * 10) / 10;
+        }
       }
 
       // 🚀 CALCULAR SATISFAÇÃO (baseado em avaliações reais)

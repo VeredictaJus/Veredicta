@@ -29,6 +29,29 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // Otimizações de build para melhor performance
+    minify: 'esbuild',
+    sourcemap: false, // Desabilitar sourcemaps em produção para reduzir tamanho
+    target: 'es2015',
+    rollupOptions: {
+      output: {
+        // Code splitting para reduzir bundle inicial
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase-vendor': ['@supabase/supabase-js'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+        },
+      },
+    },
+    // Aumentar chunk size warning para 1000kb
+    chunkSizeWarningLimit: 1000,
+  },
+  esbuild: {
+    // Configurar esbuild para remover console.logs em produção
+    drop: isProduction ? ['console', 'debugger'] : [],
+    pure: isProduction ? ['console.log', 'console.info', 'console.debug', 'console.trace'] : [],
+  },
   define: isProduction ? {
     // Em produção, usa variáveis de ambiente do Vercel ou valores padrão SEMPRE definidos
     // IMPORTANTE: Tratar strings vazias como undefined para que o fallback funcione

@@ -1,6 +1,5 @@
 /* @ts-nocheck */
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from '@/components/ui/card';
@@ -27,7 +26,6 @@ import { WriterService, Writer } from '@/services/writerService';
 import { DatabaseService } from '@/services/databaseService';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -521,117 +519,6 @@ export default function AdminDashboard() {
   useEffect(() => { loadDashboardData(); }, []);
   const fmtPct = (n) => `${n >= 0 ? '+' : ''}${n}%`;
 
-  const handleExportData = useCallback(async () => {
-    try {
-      const toastId = toast.loading('Exportando dados...');
-      
-      // Preparar dados para exportação
-      const exportData = {
-        resumo: {
-          clientesAtivos: stats.totalClients,
-          redatoresAtivos: stats.totalWriters,
-          peticoesAtivas: stats.totalPetitions,
-          receitaMensal: stats.monthlyRevenue,
-          peticoesPendentes: stats.pendingPetitions,
-          peticoesConcluidas: stats.completedPetitions,
-          taxaConclusao: `${stats.completionRate}%`,
-          tempoMedioConclusao: `${stats.averageCompletionTime} dias`,
-          satisfacaoCliente: `${stats.clientSatisfaction}/5.0`,
-        },
-        variacoes: {
-          clientes: `${deltas.clients >= 0 ? '+' : ''}${deltas.clients}%`,
-          redatores: `${deltas.writers >= 0 ? '+' : ''}${deltas.writers}%`,
-          peticoes: `${deltas.petitions >= 0 ? '+' : ''}${deltas.petitions}%`,
-          receita: `${deltas.revenue >= 0 ? '+' : ''}${deltas.revenue}%`,
-        },
-        dadosMensais: monthlyData,
-        tiposPeticoes: petitionTypeData,
-        peticoesPendentes: pendingPetitions,
-        dataExportacao: new Date().toISOString(),
-      };
-
-      // Converter para CSV
-      const csvRows = [];
-      
-      // Cabeçalho
-      csvRows.push('Relatório de Dados - Dashboard Veredicta');
-      csvRows.push(`Data de Exportação: ${new Date().toLocaleString('pt-BR')}`);
-      csvRows.push('');
-      
-      // Resumo
-      csvRows.push('=== RESUMO ===');
-      Object.entries(exportData.resumo).forEach(([key, value]) => {
-        const label = key
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase())
-          .trim();
-        csvRows.push(`${label},${value}`);
-      });
-      csvRows.push('');
-      
-      // Variações
-      csvRows.push('=== VARIAÇÕES (vs mês anterior) ===');
-      Object.entries(exportData.variacoes).forEach(([key, value]) => {
-        const label = key
-          .replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase())
-          .trim();
-        csvRows.push(`${label},${value}`);
-      });
-      csvRows.push('');
-      
-      // Dados Mensais
-      if (exportData.dadosMensais.length > 0) {
-        csvRows.push('=== EVOLUÇÃO MENSAL ===');
-        csvRows.push('Mês,Petições,Receita');
-        exportData.dadosMensais.forEach(item => {
-          csvRows.push(`${item.name},${item.petitions},${item.revenue}`);
-        });
-        csvRows.push('');
-      }
-      
-      // Tipos de Petições
-      if (exportData.tiposPeticoes.length > 0) {
-        csvRows.push('=== DISTRIBUIÇÃO POR TIPO ===');
-        csvRows.push('Tipo,Percentual');
-        exportData.tiposPeticoes.forEach(item => {
-          csvRows.push(`${item.name},${item.value}%`);
-        });
-        csvRows.push('');
-      }
-      
-      // Petições Pendentes
-      if (exportData.peticoesPendentes.length > 0) {
-        csvRows.push('=== PETIÇÕES PENDENTES ===');
-        csvRows.push('ID,Título,Cliente,Status,Prazo,Valor');
-        exportData.peticoesPendentes.forEach(p => {
-          csvRows.push(`${p.id},"${p.title || ''}","${p.client_id || 'N/A'}",${p.status || ''},"${p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 'N/A'}",${p.price || 0}`);
-        });
-      }
-
-      // Criar arquivo e fazer download
-      const csvContent = csvRows.join('\n');
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      link.href = url;
-      link.download = `veredicta_dashboard_${timestamp}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast.success('Dados exportados com sucesso!', { id: toastId });
-    } catch (err) {
-      console.error('Erro ao exportar dados:', err);
-      toast.error('Erro ao exportar dados. Tente novamente.');
-    }
-  }, [stats, deltas, monthlyData, petitionTypeData, pendingPetitions]);
-
-  const handleViewDetailedReport = () => {
-    navigate('/admin/relatorios');
-  };
 
   return (
     <div className="space-y-6">
@@ -640,23 +527,6 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel Administrativo</h1>
           <p className="text-sm text-muted-foreground">Visão geral da plataforma Veredicta</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleExportData}
-            disabled={loading}
-          >
-            Exportar Dados
-          </Button>
-          <Button 
-            size="sm" 
-            className="bg-orange-500 hover:bg-orange-600"
-            onClick={handleViewDetailedReport}
-          >
-            Relatório Detalhado
-          </Button>
         </div>
       </div>
 

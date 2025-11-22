@@ -274,8 +274,6 @@ export default function Reports() {
     const totalPetitions  = petitions.length;
     const totalUsers      = profiles.length;
 
-    const avgPetitionValue = totalPetitions ? Math.round(totalRevenue / totalPetitions) : 0;
-
     // Taxa de conclusão: considerar APENAS 'completed' e 'approved' como concluídas
     // IMPORTANTE: 
     // - 'delivered' = entregue, mas ainda aguardando aprovação do cliente (NÃO é concluída)
@@ -316,7 +314,7 @@ export default function Reports() {
       console.log(`[Reports] Taxa de conclusão calculada: ${completed} concluídas de ${totalPetitions} total = ${completionRate}%`);
     }
 
-    return { totalRevenue, totalPetitions, totalUsers, avgPetitionValue, completionRate };
+    return { totalRevenue, totalPetitions, totalUsers, completionRate };
   }, [profiles, petitions, payments]);
 
   /* ---------- Séries ---------- */
@@ -517,7 +515,6 @@ export default function Reports() {
       csvRows.push(`Receita Total,R$ ${stats.totalRevenue.toLocaleString()}`);
       csvRows.push(`Petições,${stats.totalPetitions}`);
       csvRows.push(`Usuários,${stats.totalUsers}`);
-      csvRows.push(`Valor Médio por Petição,R$ ${stats.avgPetitionValue}`);
       csvRows.push(`Taxa de Conclusão,${stats.completionRate}%`);
       if (mom.revenueMoM !== null) {
         csvRows.push(`Variação Receita vs Mês Anterior,${mom.revenueMoM > 0 ? '+' : ''}${mom.revenueMoM}%`);
@@ -681,7 +678,7 @@ export default function Reports() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
@@ -726,21 +723,6 @@ export default function Reports() {
                 <p className="text-sm text-muted-foreground">Usuários</p>
                 <p className="text-2xl font-bold">{stats.totalUsers}</p>
                 <p className="text-xs text-muted-foreground">novos no período</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-muted-foreground">Valor Médio</p>
-                <p className="text-2xl font-bold">R$ {stats.avgPetitionValue}</p>
-                <p className="text-xs text-muted-foreground">por petição</p>
               </div>
             </div>
           </CardContent>

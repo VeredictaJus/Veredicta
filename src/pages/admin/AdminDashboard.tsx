@@ -7,6 +7,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Users, FileText, DollarSign, AlertTriangle, CheckCircle, Clock,
 } from 'lucide-react';
 import {
@@ -17,6 +23,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { AlertBanner } from '@/components/analytics/AlertBanner';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import { toast } from 'sonner';
+import { WriterService, Writer } from '@/services/writerService';
+import { DatabaseService } from '@/services/databaseService';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -32,6 +40,12 @@ export default function AdminDashboard() {
   const [petitionTypeData, setPetitionTypeData] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [deltas, setDeltas] = useState({ clients: 0, writers: 0, petitions: 0, revenue: 0 });
+  // Estados para diálogo de atribuição
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedPetitionId, setSelectedPetitionId] = useState<string | null>(null);
+  const [availableWriters, setAvailableWriters] = useState<Writer[]>([]);
+  const [selectedWriterId, setSelectedWriterId] = useState<string>('');
+  const [assigning, setAssigning] = useState(false);
 
   const addAlert = useCallback((a) => setAlerts(prev => [a, ...prev]), []);
   const dismissAlert = useCallback((id) => setAlerts(prev => prev.filter(a => a.id !== id)), []);
@@ -41,11 +55,63 @@ export default function AdminDashboard() {
     return (_: string, i = 0) => colors[i % colors.length];
   }, []);
 
-  const handleAssignPetition = (petitionId: string, method: 'manual' | 'auto') => {
-    if (import.meta.env.DEV) {
-      console.log('Assigning petition:', petitionId, 'Method:', method);
+  const handleAssignPetition = async (petitionId: string) => {
+    try {
+      setSelectedPetitionId(petitionId);
+      setSelectedWriterId('');
+      
+      // Buscar redatores disponíveis
+      const writers = await WriterService.getActiveWriters();
+      setAvailableWriters(writers);
+      
+      if (writers.length === 0) {
+        toast.error('Nenhum redator disponível no momento');
+        return;
+      }
+      
+      setShowAssignDialog(true);
+    } catch (error: any) {
+      console.error('Erro ao abrir diálogo de atribuição:', error);
+      toast.error(`Erro ao carregar redatores: ${error.message || 'Erro desconhecido'}`);
     }
-    // TODO: Implement petition assignment logic
+  };
+
+  const handleConfirmAssign = async () => {
+    if (!selectedPetitionId || !selectedWriterId) {
+      toast.error('Selecione um redator para atribuir a petição');
+      return;
+    }
+
+    setAssigning(true);
+    try {
+      // Buscar informações do redator selecionado
+      const selectedWriter = availableWriters.find(w => w.firebase_uid === selectedWriterId);
+      if (!selectedWriter) {
+        throw new Error('Redator não encontrado');
+      }
+
+      // Atribuir petição usando o DatabaseService (que já faz tudo necessário)
+      const success = await DatabaseService.acceptPetition(selectedPetitionId, selectedWriterId);
+
+      if (success) {
+        toast.success(`Petição atribuída a ${selectedWriter.full_name || selectedWriter.email}`);
+        setShowAssignDialog(false);
+        setSelectedPetitionId(null);
+        setSelectedWriterId('');
+        
+        // Recarregar dados após um pequeno delay
+        setTimeout(() => {
+          loadDashboardData();
+        }, 500);
+      } else {
+        throw new Error('Falha ao atribuir petição');
+      }
+    } catch (error: any) {
+      console.error('Erro ao atribuir petição:', error);
+      toast.error(`Erro ao atribuir petição: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const loadDashboardData = async () => {
@@ -56,13 +122,13 @@ export default function AdminDashboard() {
       const { supabase } = await import('@/lib/supabaseClient');
       
       if (import.meta.env.DEV) {
-        console.log('📊 Dashboard - Iniciando carregamento de dados...');
+      console.log('📊 Dashboard - Iniciando carregamento de dados...');
       }
 
       // Buscar de AMBAS as tabelas em paralelo (otimização)
       const [result1a, result1b] = await Promise.all([
         supabase
-          .from('user_profiles')
+        .from('user_profiles')
           .select('id, firebase_uid, email, full_name, role, created_at, updated_at')
           .limit(2000),
         supabase
@@ -109,7 +175,7 @@ export default function AdminDashboard() {
       // Buscar petitions e payments em paralelo (otimização com filtro de data)
       const [result2, result3] = await Promise.all([
         supabase
-          .from('petitions')
+        .from('petitions')
           .select('id, status, assigned_writer_id, client_id, title, priority, deadline, type, price, created_at, updated_at')
           .gte('created_at', threeMonthsAgo.toISOString())
           .order('created_at', { ascending: false })
@@ -124,7 +190,7 @@ export default function AdminDashboard() {
 
       const { data: petitions, error: e2 } = result2;
       const { data: payments, error: e3 } = result3;
-
+      
       if (e2) {
         console.error('❌ Erro ao carregar petitions:', e2);
         throw e2;
@@ -328,7 +394,7 @@ export default function AdminDashboard() {
       const monthMap: Record<string, { petitions: number; revenue: number; label: string; date: Date }> = {};
       const allMonths = new Set<string>();
       const typeCounts: Record<string, number> = {};
-
+      
       // LOOP 1: Processar petitions + coletar meses + contar tipos (tudo de uma vez)
       petitionsArray.forEach(p => {
         // Contar tipos
@@ -338,9 +404,9 @@ export default function AdminDashboard() {
         // Coletar meses das petições
         if (p.created_at) {
           try {
-            const date = new Date(p.created_at);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            allMonths.add(key);
+        const date = new Date(p.created_at);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        allMonths.add(key);
           } catch (e) {
             // Ignorar erros de data
           }
@@ -352,9 +418,9 @@ export default function AdminDashboard() {
         const dateStr = p.payment_date || p.created_at;
         if (dateStr) {
           try {
-            const date = new Date(dateStr);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            allMonths.add(key);
+        const date = new Date(dateStr);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        allMonths.add(key);
           } catch (e) {
             // Ignorar erros de data
           }
@@ -682,59 +748,59 @@ export default function AdminDashboard() {
 
       {/* gráficos - renderização condicional para melhor performance */}
       {!loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <Card className="bg-container-secondary border-border">
-            <CardHeader>
-              <CardTitle>Volume de Petições e Receita</CardTitle>
-              <CardDescription>Evolução mensal da plataforma</CardDescription>
-            </CardHeader>
-            <CardContent className="bg-container-inner rounded-b-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <Card className="bg-container-secondary border-border">
+          <CardHeader>
+            <CardTitle>Volume de Petições e Receita</CardTitle>
+            <CardDescription>Evolução mensal da plataforma</CardDescription>
+          </CardHeader>
+          <CardContent className="bg-container-inner rounded-b-lg">
               {monthlyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <ComposedChart data={monthlyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" /><YAxis /><Tooltip />
-                    <Bar dataKey="petitions" name="Petições" fill="#3B82F6" />
-                    <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
-                  </ComposedChart>
-                </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" /><YAxis /><Tooltip />
+                <Bar dataKey="petitions" name="Petições" fill="#3B82F6" />
+                <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
+              </ComposedChart>
+            </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                   Carregando dados do gráfico...
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-container-primary border-border">
-            <CardHeader>
-              <CardTitle>Tipos de Petições</CardTitle>
-              <CardDescription>Distribuição por categoria</CardDescription>
-            </CardHeader>
-            <CardContent className="bg-container-inner rounded-b-lg">
+        <Card className="bg-container-primary border-border">
+          <CardHeader>
+            <CardTitle>Tipos de Petições</CardTitle>
+            <CardDescription>Distribuição por categoria</CardDescription>
+          </CardHeader>
+          <CardContent className="bg-container-inner rounded-b-lg">
               {petitionTypeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
                       data={petitionTypeData}
-                      dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}
-                      label={(e) => `${e.name} : ${e.value}`}
-                    >
+                  dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}
+                  label={(e) => `${e.name} : ${e.value}`}
+                >
                       {petitionTypeData.map((d, i) => (
-                        <Cell key={i} fill={d.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                    <Cell key={i} fill={d.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                   Carregando dados do gráfico...
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
+      </div>
       )}
 
       {/* petições pendentes */}
@@ -769,7 +835,7 @@ export default function AdminDashboard() {
                     <Badge variant="outline" className="text-xs">
                       {p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 's/ prazo'}
                     </Badge>
-                    <Button size="sm" onClick={() => handleAssignPetition(p.id, 'manual')}>Atribuir</Button>
+                    <Button size="sm" onClick={() => handleAssignPetition(p.id)}>Atribuir</Button>
                   </div>
                 </div>
               ))}
@@ -821,6 +887,40 @@ export default function AdminDashboard() {
       </div>
         </>
       )}
+
+      {/* Diálogo para atribuir petição */}
+      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Petição</DialogTitle>
+            <DialogDescription>
+              Selecione um redator para atribuir esta petição
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedWriterId} onValueChange={setSelectedWriterId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um redator" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableWriters.map((writer) => (
+                  <SelectItem key={writer.firebase_uid} value={writer.firebase_uid}>
+                    {writer.full_name || writer.email} {writer.email ? `(${writer.email})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)} disabled={assigning}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmAssign} disabled={!selectedWriterId || assigning}>
+              {assigning ? 'Atribuindo...' : 'Atribuir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

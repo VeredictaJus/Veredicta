@@ -276,9 +276,12 @@ export default function Reports() {
 
     const avgPetitionValue = totalPetitions ? Math.round(totalRevenue / totalPetitions) : 0;
 
-    // Taxa de conclusão: considerar apenas 'completed', 'approved' e 'delivered' como concluídas
-    // IMPORTANTE: 'in_progress', 'pending', 'review', 'revision', etc. NÃO são considerados concluídos
-    const completedStatuses = ['completed', 'approved', 'delivered'];
+    // Taxa de conclusão: considerar APENAS 'completed' e 'approved' como concluídas
+    // IMPORTANTE: 
+    // - 'delivered' = entregue, mas ainda aguardando aprovação do cliente (NÃO é concluída)
+    // - 'in_progress' = em desenvolvimento (NÃO é concluída)
+    // - 'pending', 'review', 'revision', etc. = NÃO são concluídas
+    const completedStatuses = ['completed', 'approved'];
     
     // Debug: verificar todos os status das petições
     if (import.meta.env.DEV && petitions.length > 0) {

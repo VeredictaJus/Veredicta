@@ -298,7 +298,25 @@ export default function Reports() {
       return role === 'writer' || role === 'redator';
     }).length;
     
+    // Contar outros roles (admin, etc.) para debug
+    const otherRoles = profiles.filter(p => {
+      const role = String(p.role || '').toLowerCase().trim();
+      return role !== 'client' && role !== 'cliente' && role !== 'writer' && role !== 'redator' && role !== '';
+    });
+    
     const totalUsers = profiles.length;
+    
+    // Debug: verificar se a soma bate
+    if (import.meta.env.DEV) {
+      console.log('[Reports] Contagem de usuários:', {
+        total: totalUsers,
+        clientes: totalClients,
+        redatores: totalWriters,
+        outros: otherRoles.length,
+        soma: totalClients + totalWriters + otherRoles.length,
+        outrosRoles: otherRoles.map(p => p.role)
+      });
+    }
 
     // Taxa de conclusão: considerar APENAS 'completed' e 'approved' como concluídas
     // IMPORTANTE: 

@@ -276,7 +276,11 @@ export default function Reports() {
 
     const avgPetitionValue = totalPetitions ? Math.round(totalRevenue / totalPetitions) : 0;
 
-    const completed = petitions.filter(p => String(p.status || '').toLowerCase() === 'completed').length;
+    // Taxa de conclusão: considerar 'completed', 'approved' e 'delivered' como concluídas
+    const completed = petitions.filter(p => {
+      const status = String(p.status || '').toLowerCase();
+      return status === 'completed' || status === 'approved' || status === 'delivered';
+    }).length;
     const completionRate = totalPetitions ? Math.round((completed / totalPetitions) * 1000) / 10 : 0;
 
     return { totalRevenue, totalPetitions, totalUsers, avgPetitionValue, completionRate };

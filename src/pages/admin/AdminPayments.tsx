@@ -191,7 +191,6 @@ export default function AdminPayments() {
       totalRevenue: totalRevenue, // Receita cumulativa (recebido - a pagar)
       pendingAmount: approvedInvoicesTotal, // Soma das notas fiscais aprovadas do mês atual
       doneCount: approvedInvoicesCount, // Número de notas fiscais aprovadas do mês atual
-      failedCount: rows.filter(r => r.status === 'failed').length,
     };
   }, [rows, approvedInvoicesTotal, approvedInvoicesTotalCumulative, approvedInvoicesCount]);
 
@@ -235,7 +234,7 @@ export default function AdminPayments() {
       ) : (
         <>
           {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card><CardContent className="pt-6"><div className="flex items-center">
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
             <DollarSign className="h-6 w-6 text-green-600" />
@@ -267,16 +266,6 @@ export default function AdminPayments() {
           <div className="ml-4">
             <p className="text-sm text-muted-foreground">Concluídos</p>
             <p className="text-2xl font-bold text-blue-600">{stats.doneCount}</p>
-          </div>
-        </div></CardContent></Card>
-
-        <Card><CardContent className="pt-6"><div className="flex items-center">
-          <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-muted-foreground">Falhas</p>
-            <p className="text-2xl font-bold text-red-600">{stats.failedCount}</p>
           </div>
         </div></CardContent></Card>
       </div>

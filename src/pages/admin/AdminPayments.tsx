@@ -91,8 +91,8 @@ export default function AdminPayments() {
   const [rows, setRows] = useState<PaymentUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const [approvedInvoicesTotal, setApprovedInvoicesTotal] = useState<number>(0); // Mês atual (valor)
-  const [approvedInvoicesCount, setApprovedInvoicesCount] = useState<number>(0); // Mês atual (quantidade)
+  const [approvedInvoicesTotal, setApprovedInvoicesTotal] = useState<number>(0); // Notas aprovadas (valor)
+  const [paidInvoicesTotal, setPaidInvoicesTotal] = useState<number>(0); // Notas pagas (valor)
   const [approvedInvoicesTotalCumulative, setApprovedInvoicesTotalCumulative] = useState<number>(0); // Cumulativo
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,13 +104,8 @@ export default function AdminPayments() {
     setLoading(true);
     setError(null);
     try {
-      // Obter mês e ano atual para filtrar notas fiscais do mês corrente
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11, então +1
-      const currentYear = now.getFullYear();
-
-      // Buscar pagamentos e notas fiscais aprovadas (mês atual e cumulativo) em paralelo
-      const [paymentsResult, invoicesMonthResult, invoicesCumulativeResult] = await Promise.all([
+      // Buscar pagamentos e notas fiscais (aprovadas e pagas) em paralelo
+      const [paymentsResult, approvedInvoicesResult, paidInvoicesResult, invoicesCumulativeResult] = await Promise.all([
         supabase
           .from('app_2d8133c678_payments')
           .select('id, amount, status, payment_date, created_at, payment_method, reference, petition_id, client_id, writer_id')
@@ -118,10 +113,13 @@ export default function AdminPayments() {
           .limit(1000),
         supabase
           .from('app_2d8133c678_invoices')
-          .select('id, amount, status, period_month, period_year')
+          .select('id, amount, status')
           .eq('status', 'approved')
-          .eq('period_month', currentMonth)
-          .eq('period_year', currentYear)
+          .limit(1000),
+        supabase
+          .from('app_2d8133c678_invoices')
+          .select('id, amount, status')
+          .eq('status', 'paid')
           .limit(1000),
         supabase
           .from('app_2d8133c678_invoices')
@@ -134,17 +132,26 @@ export default function AdminPayments() {
 
       setRows((paymentsResult.data ?? []).map(mapRow));
 
-      // Calcular soma dos valores e quantidade das notas fiscais aprovadas do mês atual
-      if (invoicesMonthResult.data) {
-        const total = invoicesMonthResult.data.reduce((sum, inv) => {
+      // Calcular soma dos valores das notas fiscais aprovadas (Pendentes)
+      if (approvedInvoicesResult.data) {
+        const total = approvedInvoicesResult.data.reduce((sum, inv) => {
           const amount = Number(inv.amount || 0);
           return sum + amount;
         }, 0);
         setApprovedInvoicesTotal(total);
-        setApprovedInvoicesCount(invoicesMonthResult.data.length); // Quantidade de notas aprovadas do mês
       } else {
         setApprovedInvoicesTotal(0);
-        setApprovedInvoicesCount(0);
+      }
+
+      // Calcular soma dos valores das notas fiscais pagas (Concluídos)
+      if (paidInvoicesResult.data) {
+        const total = paidInvoicesResult.data.reduce((sum, inv) => {
+          const amount = Number(inv.amount || 0);
+          return sum + amount;
+        }, 0);
+        setPaidInvoicesTotal(total);
+      } else {
+        setPaidInvoicesTotal(0);
       }
 
       // Calcular soma cumulativa de todas as notas fiscais aprovadas (todos os tempos)
@@ -189,10 +196,10 @@ export default function AdminPayments() {
     
     return {
       totalRevenue: totalRevenue, // Receita cumulativa (recebido - a pagar)
-      pendingAmount: approvedInvoicesTotal, // Soma das notas fiscais aprovadas do mês atual
-      doneCount: approvedInvoicesCount, // Número de notas fiscais aprovadas do mês atual
+      pendingAmount: approvedInvoicesTotal, // Soma dos valores das notas fiscais aprovadas
+      doneAmount: paidInvoicesTotal, // Soma dos valores das notas fiscais pagas
     };
-  }, [rows, approvedInvoicesTotal, approvedInvoicesTotalCumulative, approvedInvoicesCount]);
+  }, [rows, approvedInvoicesTotal, approvedInvoicesTotalCumulative, paidInvoicesTotal]);
 
   const updateStatus = async (paymentId: string, next: PaymentStatus) => {
     try {
@@ -265,7 +272,9 @@ export default function AdminPayments() {
           </div>
           <div className="ml-4">
             <p className="text-sm text-muted-foreground">Concluídos</p>
-            <p className="text-2xl font-bold text-blue-600">{stats.doneCount}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              R$ {stats.doneAmount.toLocaleString()}
+            </p>
           </div>
         </div></CardContent></Card>
       </div>

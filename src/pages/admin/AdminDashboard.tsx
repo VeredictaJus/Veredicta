@@ -273,16 +273,17 @@ export default function AdminDashboard() {
       }, 0);
       const completionRate = totalPetitions ? (completedCount / totalPetitions) * 100 : 0;
 
-      // 🚀 CALCULAR TEMPO MÉDIO DE CONCLUSÃO (baseado em dados reais)
-      // Filtrar petições completadas que têm created_at
-      const completedPetitionsWithTimes = petitionsArray.filter(p => {
+      // 🚀 CALCULAR TEMPO MÉDIO DE ENTREGA (baseado em dados reais)
+      // Incluir petições entregues: 'completed', 'approved' e 'delivered'
+      const deliveredStatuses = ['completed', 'approved', 'delivered'];
+      const deliveredPetitionsWithTimes = petitionsArray.filter(p => {
         const status = (p.status || '').toLowerCase();
-        return status === 'completed' && p.created_at;
+        return deliveredStatuses.includes(status) && p.created_at;
       });
 
       let averageCompletionTime = 0;
-      if (completedPetitionsWithTimes.length > 0) {
-        const completedPetitionIds = completedPetitionsWithTimes.map(p => p.id);
+      if (deliveredPetitionsWithTimes.length > 0) {
+        const deliveredPetitionIds = deliveredPetitionsWithTimes.map(p => p.id);
         
         // Buscar data de entrega do primeiro arquivo de cada petição completada
         let deliveryDates = new Map<string, Date>();
@@ -311,7 +312,7 @@ export default function AdminDashboard() {
         // Calcular tempo médio usando data de entrega real ou fallback para updated_at
         const validTimes: number[] = [];
         
-        completedPetitionsWithTimes.forEach(p => {
+        deliveredPetitionsWithTimes.forEach(p => {
           try {
             const start = new Date(p.created_at);
             if (isNaN(start.getTime())) return; // Data inválida

@@ -247,9 +247,9 @@ export default function AdminPetitions() {
             }
           }
           
-          // Recarregar petições do banco para garantir sincronização completa
-          // Isso atualiza automaticamente as estatísticas também (via useMemo)
-          loadPetitions();
+          // ✅ OTIMIZAÇÃO: Removido loadPetitions() para evitar "piscar"
+          // A atualização local já é suficiente, e o polling de 10s garante sincronização periódica
+          // Isso evita re-renders desnecessários que causam o efeito de "piscar" na tela
         }
       )
       .subscribe((status, err) => {

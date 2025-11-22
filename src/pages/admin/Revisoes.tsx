@@ -85,7 +85,9 @@ const BUCKET = 'petitions_correction_writer'; // Bucket para petições enviadas
 // 🚀 FASE 4: Função para desativar conversa quando petição é concluída
 async function deactivateConversationForCompletedPetition(petitionId: string): Promise<void> {
   try {
-    console.log('🔍 Desativando conversa para petição concluída:', petitionId);
+    if (import.meta.env.DEV) {
+      console.log('🔍 Desativando conversa para petição concluída:', petitionId);
+    }
 
     // 1. Buscar dados da petição
     const { data: petition, error: petitionError } = await supabase
@@ -102,11 +104,15 @@ async function deactivateConversationForCompletedPetition(petitionId: string): P
     const writerId = petition.assigned_writer_id;
 
     if (!clientId || !writerId) {
-      console.log('⚠️ Petição sem cliente ou redator definido, pulando desativação');
+      if (import.meta.env.DEV) {
+        console.log('⚠️ Petição sem cliente ou redator definido, pulando desativação');
+      }
       return;
     }
 
-    console.log('📋 Dados da petição:', { clientId, writerId, title: petition.title });
+    if (import.meta.env.DEV) {
+      console.log('📋 Dados da petição:', { clientId, writerId, title: petition.title });
+    }
 
     // 2. Buscar conversas ativas entre cliente e redator
     const { data: conversations, error: conversationsError } = await supabase
@@ -131,11 +137,15 @@ async function deactivateConversationForCompletedPetition(petitionId: string): P
     }) || [];
 
     if (activeConversations.length === 0) {
-      console.log('⚠️ Nenhuma conversa ativa encontrada para desativar');
+      if (import.meta.env.DEV) {
+        console.log('⚠️ Nenhuma conversa ativa encontrada para desativar');
+      }
       return;
     }
 
-    console.log(`📋 Encontradas ${activeConversations.length} conversas ativas`);
+    if (import.meta.env.DEV) {
+      console.log(`📋 Encontradas ${activeConversations.length} conversas ativas`);
+    }
 
     // 3. Desativar todas as conversas ativas
     for (const conversation of activeConversations) {
@@ -150,13 +160,17 @@ async function deactivateConversationForCompletedPetition(petitionId: string): P
       if (updateError) {
         console.error(`❌ Erro ao desativar conversa ${conversation.id}:`, updateError);
       } else {
-        console.log(`✅ Conversa desativada: ${conversation.id}`);
+        if (import.meta.env.DEV) {
+          console.log(`✅ Conversa desativada: ${conversation.id}`);
+        }
       }
     }
 
     // 4. Mensagem final removida - agora será enviada apenas quando cliente aprovar (RatingModal.tsx)
 
-    console.log('🎉 Desativação automática de conversas concluída!');
+    if (import.meta.env.DEV) {
+      console.log('🎉 Desativação automática de conversas concluída!');
+    }
 
   } catch (error) {
     console.error('❌ Erro ao desativar conversas automaticamente:', error);
@@ -201,10 +215,16 @@ export default function Revisoes() {
         `)
         .eq('status', 'pending')
         .neq('mode', 'client_request') // Excluir correções solicitadas pelo cliente
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500); // ✅ OTIMIZAÇÃO: Limitar a 500 correções pendentes
 
       if (error) throw error;
-      console.log('✅ Pendências carregadas (apenas do redator):', data);
+      
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('✅ Pendências carregadas (apenas do redator):', data);
+      }
+      
       // Processar data para garantir que petitions seja objeto único
       const processedData = (data || []).map((item: any) => ({
         ...item,
@@ -236,52 +256,46 @@ export default function Revisoes() {
 
       const adminClient = getAdminClient();
       
-      // Buscar petição
-      const { data: p, error: petitionError } = await adminClient
-        .from('petitions')
-        .select('id, title, type, status, client_id, assigned_writer_id, client_name, writer_name, price, description, delivered_file, calculation_id, created_at, deadline, updated_at')
-        .eq('id', corr.petition_id)
-        .single();
+      // ✅ OTIMIZAÇÃO: Paralelizar queries (petição, arquivos, correções)
+      const [petitionResult, filesResult, correctionsResult] = await Promise.all([
+        // Buscar petição
+        adminClient
+          .from('petitions')
+          .select('id, title, type, status, client_id, assigned_writer_id, client_name, writer_name, price, description, delivered_file, calculation_id, created_at, deadline, updated_at')
+          .eq('id', corr.petition_id)
+          .single(),
+        
+        // Buscar arquivos via adminClient (bypass RLS)
+        adminClient
+          .from('petition_files')
+          .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
+          .eq('petition_id', corr.petition_id)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        
+        // Buscar observações do redator (histórico completo limitado)
+        adminClient
+          .from('corrections')
+          .select('writer_observation, id, created_at, status')
+          .eq('petition_id', corr.petition_id)
+          .not('writer_observation', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(50) // ✅ OTIMIZAÇÃO: Limitar a 50 correções (mantém histórico recente completo)
+      ]);
+
+      const { data: p, error: petitionError } = petitionResult;
+      const { data: files1, error: error1 } = filesResult;
+      const { data: allCorrections } = correctionsResult;
       
       if (petitionError) {
-        console.error('Erro ao buscar petição:', petitionError);
+        if (import.meta.env.DEV) {
+          console.error('Erro ao buscar petição:', petitionError);
+        }
         toast.error('Erro ao carregar dados da petição');
       }
 
-      // Buscar arquivos - tentar múltiplas abordagens
-      let f: any[] = [];
-      let filesError: any = null;
-      
-      // Tentativa 1: Buscar via adminClient (bypass RLS)
-      const { data: files1, error: error1 } = await adminClient
-        .from('petition_files')
-        .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
-        .eq('petition_id', corr.petition_id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (error1) {
-        console.error('Erro ao buscar arquivos (adminClient):', error1);
-        filesError = error1;
-      } else {
-        f = files1 || [];
-      }
-      
-        // Se não encontrou arquivos, tentar buscar via supabase normal (pode ter RLS)
-        if (f.length === 0) {
-          const { data: files2, error: error2 } = await supabase
-            .from('petition_files')
-            .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
-            .eq('petition_id', corr.petition_id)
-            .order('created_at', { ascending: false })
-            .limit(100);
-        
-        if (error2) {
-          console.error('Erro ao buscar arquivos (supabase normal):', error2);
-        } else {
-          f = files2 || [];
-        }
-      }
+      // ✅ OTIMIZAÇÃO: Usar apenas adminClient (remover query duplicada)
+      let f: any[] = files1 || [];
       
       // Verificar se há delivered_file na petição (formato antigo)
       if (p?.delivered_file && f.length === 0) {
@@ -298,30 +312,26 @@ export default function Revisoes() {
         }];
       }
 
-      // Buscar observações do redator
-      const { data: allCorrections } = await adminClient
-        .from('corrections')
-        .select('writer_observation, id')
-        .eq('petition_id', corr.petition_id)
-        .not('writer_observation', 'is', null)
-        .order('updated_at', { ascending: false });
-
-      if (filesError && f.length === 0) {
-        console.error('Erro ao buscar arquivos:', filesError);
+      if (error1 && f.length === 0) {
+        if (import.meta.env.DEV) {
+          console.error('Erro ao buscar arquivos:', error1);
+        }
         toast.error('Erro ao carregar arquivos da petição');
       }
 
       setPetition(p || null);
       setFiles(f);
 
-      // Buscar observações do redator de qualquer correção relacionada
+      // Buscar observações do redator de qualquer correção relacionada (histórico completo)
       if (allCorrections && allCorrections.length > 0) {
         const correctionWithObservation = allCorrections.find((c: any) => 
           c.writer_observation && c.writer_observation.trim()
         );
         if (correctionWithObservation) {
           setWriterObservation(correctionWithObservation.writer_observation);
-          console.log('✅ Observações do redator encontradas:', correctionWithObservation.writer_observation);
+          if (import.meta.env.DEV) {
+            console.log('✅ Observações do redator encontradas:', correctionWithObservation.writer_observation);
+          }
         } else {
           // Se não encontrou em outras correções, usar a correção ativa
           setWriterObservation(corr.writer_observation || null);
@@ -331,7 +341,7 @@ export default function Revisoes() {
         setWriterObservation(corr.writer_observation || null);
       }
 
-      // 🚀 Buscar cálculo trabalhista se existir
+      // 🚀 Buscar cálculo trabalhista se existir (após ter a petição)
       if (p?.calculation_id) {
         const { data: calc } = await adminClient
           .from('labor_calculations')
@@ -339,7 +349,9 @@ export default function Revisoes() {
           .eq('id', p.calculation_id)
           .single();
         setCalculation(calc || null);
-        console.log('✅ Cálculo trabalhista carregado:', calc);
+        if (import.meta.env.DEV) {
+          console.log('✅ Cálculo trabalhista carregado:', calc);
+        }
       } else {
         setCalculation(null);
       }
@@ -378,8 +390,10 @@ export default function Revisoes() {
       const safeNewFileName = newFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
       const key = `${active.petition_id}_${timestamp}_${safeNewFileName}`;
 
-      console.log('📝 Nome do arquivo corrigido:', newFileName);
-      console.log('🔑 Key gerada:', key);
+      if (import.meta.env.DEV) {
+        console.log('📝 Nome do arquivo corrigido:', newFileName);
+        console.log('🔑 Key gerada:', key);
+      }
 
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(key, correctedFile, {
         upsert: true,
@@ -445,7 +459,9 @@ export default function Revisoes() {
         return;
       }
       
-      console.log('✅ Status da petição atualizado para delivered:', active.petition_id);
+      if (import.meta.env.DEV) {
+        console.log('✅ Status da petição atualizado para delivered:', active.petition_id);
+      }
 
       // 🚀 Conversa continua ativa - será desativada apenas quando cliente aprovar
 
@@ -515,7 +531,9 @@ export default function Revisoes() {
                 emailPetitionId,
                 petitionTitle
               );
-              console.log('📧 Email de revisão final enviada ao cliente:', clientProfile.email);
+              if (import.meta.env.DEV) {
+                console.log('📧 Email de revisão final enviada ao cliente:', clientProfile.email);
+              }
             } else {
               await EmailService.sendClientPetitionReturnedFromRevisionEmail(
                 clientProfile.email,
@@ -524,7 +542,9 @@ export default function Revisoes() {
                 petitionTitle,
                 writerName
               );
-              console.log('📧 Email de correções finalizadas enviado ao cliente:', clientProfile.email);
+              if (import.meta.env.DEV) {
+                console.log('📧 Email de correções finalizadas enviado ao cliente:', clientProfile.email);
+              }
             }
 
             const completedSent = await EmailService.sendPetitionCompletedEmail(
@@ -533,10 +553,12 @@ export default function Revisoes() {
               petitionTitle
             );
 
-            if (completedSent) {
-              console.log('📧 Email de petição concluída enviado ao cliente:', clientProfile.email);
-            } else {
-              console.warn('⚠️ Falha ao enviar email de petição concluída para:', clientProfile.email);
+            if (import.meta.env.DEV) {
+              if (completedSent) {
+                console.log('📧 Email de petição concluída enviado ao cliente:', clientProfile.email);
+              } else {
+                console.warn('⚠️ Falha ao enviar email de petição concluída para:', clientProfile.email);
+              }
             }
           }
         } catch (emailError) {
@@ -601,14 +623,20 @@ export default function Revisoes() {
           const today = new Date();
           const extendedDate = setDeadlineCutoff(addBusinessDays(today, 1));
           newDeadline = extendedDate.toISOString();
-          console.log(`📅 Primeira devolução para correção: Novo prazo = ${newDeadline}`);
-          console.log(`📅 Data formatada: ${extendedDate.toLocaleDateString('pt-BR')} às ${extendedDate.toLocaleTimeString('pt-BR')}`);
-          console.log(`📅 Prazo anterior: ${petition?.deadline || 'N/A'}`);
+          if (import.meta.env.DEV) {
+            console.log(`📅 Primeira devolução para correção: Novo prazo = ${newDeadline}`);
+            console.log(`📅 Data formatada: ${extendedDate.toLocaleDateString('pt-BR')} às ${extendedDate.toLocaleTimeString('pt-BR')}`);
+            console.log(`📅 Prazo anterior: ${petition?.deadline || 'N/A'}`);
+          }
         } catch (deadlineError) {
-          console.warn('⚠️ Não foi possível calcular novo prazo:', deadlineError);
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ Não foi possível calcular novo prazo:', deadlineError);
+          }
         }
       } else {
-        console.log(`📅 Devolução subsequente: Mantendo prazo atual (não adiciona +1 dia)`);
+        if (import.meta.env.DEV) {
+          console.log(`📅 Devolução subsequente: Mantendo prazo atual (não adiciona +1 dia)`);
+        }
         newDeadline = petition?.deadline || null;
       }
 
@@ -625,7 +653,9 @@ export default function Revisoes() {
 
       // Verificar se o prazo foi atualizado corretamente
       if (updatedPetition && updatedPetition.length > 0) {
-        console.log(`✅ Prazo atualizado no banco: ${updatedPetition[0].deadline}`);
+        if (import.meta.env.DEV) {
+          console.log(`✅ Prazo atualizado no banco: ${updatedPetition[0].deadline}`);
+        }
         // Atualizar o estado da petição com o novo prazo
         setPetition(prev => prev ? { ...prev, deadline: updatedPetition[0].deadline } : null);
       }
@@ -691,15 +721,19 @@ export default function Revisoes() {
               revisionNotes
             );
 
-            if (success) {
-              console.log('📧 Email de solicitação de correção enviado ao redator:', writerEmail);
-            } else {
-              console.warn('⚠️ Falha ao enviar email de solicitação de correção para:', writerEmail);
+            if (import.meta.env.DEV) {
+              if (success) {
+                console.log('📧 Email de solicitação de correção enviado ao redator:', writerEmail);
+              } else {
+                console.warn('⚠️ Falha ao enviar email de solicitação de correção para:', writerEmail);
+              }
             }
           } else {
-            console.warn('⚠️ Redator sem email cadastrado; email de correção não enviado.', {
-              writerId: active.user_id,
-            });
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ Redator sem email cadastrado; email de correção não enviado.', {
+                writerId: active.user_id,
+              });
+            }
           }
         } catch (emailError) {
           console.error('⚠️ Erro ao enviar email de solicitação de correção:', emailError);

@@ -283,25 +283,7 @@ export default function Reports() {
       return role === 'writer' || role === 'redator';
     }).length;
     
-    // Contar outros roles (admin, etc.) para debug
-    const otherRoles = profiles.filter(p => {
-      const role = String(p.role || '').toLowerCase().trim();
-      return role !== 'client' && role !== 'cliente' && role !== 'writer' && role !== 'redator' && role !== '';
-    });
-    
     const totalUsers = profiles.length;
-    
-    // Debug: verificar se a soma bate
-    if (import.meta.env.DEV) {
-      console.log('[Reports] Contagem de usuários:', {
-        total: totalUsers,
-        clientes: totalClients,
-        redatores: totalWriters,
-        outros: otherRoles.length,
-        soma: totalClients + totalWriters + otherRoles.length,
-        outrosRoles: otherRoles.map(p => p.role)
-      });
-    }
 
     // Taxa de conclusão: considerar APENAS 'completed' e 'approved' como concluídas
     // IMPORTANTE: 
@@ -309,39 +291,15 @@ export default function Reports() {
     // - 'in_progress' = em desenvolvimento (NÃO é concluída)
     // - 'pending', 'review', 'revision', etc. = NÃO são concluídas
     const completedStatuses = ['completed', 'approved'];
-    
-    // Debug: verificar todos os status das petições
-    if (import.meta.env.DEV && petitions.length > 0) {
-      const statusCounts: Record<string, number> = {};
-      petitions.forEach(p => {
-        const status = String(p.status || 'null').toLowerCase().trim();
-        statusCounts[status] = (statusCounts[status] || 0) + 1;
-      });
-      console.log('[Reports] Status das petições:', statusCounts);
-      console.log('[Reports] Total de petições:', petitions.length);
-    }
-    
     const completed = petitions.filter(p => {
       if (!p.status) return false;
       const status = String(p.status).toLowerCase().trim();
-      const isCompleted = completedStatuses.includes(status);
-      
-      // Debug individual
-      if (import.meta.env.DEV && petitions.length <= 5) {
-        console.log(`[Reports] Petição ID: ${p.id}, Status original: "${p.status}", Status normalizado: "${status}", Concluída: ${isCompleted}`);
-      }
-      
-      return isCompleted;
+      return completedStatuses.includes(status);
     }).length;
     
     const completionRate = totalPetitions > 0 
       ? Math.round((completed / totalPetitions) * 100 * 10) / 10 
       : 0;
-    
-    // Debug final
-    if (import.meta.env.DEV) {
-      console.log(`[Reports] Taxa de conclusão calculada: ${completed} concluídas de ${totalPetitions} total = ${completionRate}%`);
-    }
 
     return { totalRevenue, totalPetitions, totalUsers, totalClients, totalWriters, completionRate };
   }, [profiles, petitions, payments]);

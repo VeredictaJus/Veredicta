@@ -141,29 +141,32 @@ export default function AdminPetitions() {
       if (error) throw error;
       const mapped = (data ?? []).map(mapRow);
       
-      // Log dos status das petições para debug
-      const statusCounts = mapped.reduce((acc, p) => {
-        acc[p.status] = (acc[p.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      // Verificar se há petições com status "approved" que não foram mapeadas corretamente
-      const rawStatusCounts = (data ?? []).reduce((acc: Record<string, number>, p: any) => {
-        const rawStatus = String(p.status ?? '').toLowerCase();
-        acc[rawStatus] = (acc[rawStatus] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      console.log('✅ [ADMIN PETITIONS] Petições carregadas:', {
-        total: mapped.length,
-        statusCounts: statusCounts,
-        rawStatusCounts: rawStatusCounts,
-        hasApproved: rawStatusCounts['approved'] > 0
-      });
-      
-      // Se houver status "approved" no banco mas não mapeado, logar aviso
-      if (rawStatusCounts['approved'] > 0 && !statusCounts['approved']) {
-        console.warn('⚠️ [ADMIN PETITIONS] Petições com status "approved" encontradas mas não mapeadas corretamente!');
+      // ✅ OTIMIZAÇÃO: Console.logs apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        // Log dos status das petições para debug
+        const statusCounts = mapped.reduce((acc, p) => {
+          acc[p.status] = (acc[p.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        // Verificar se há petições com status "approved" que não foram mapeadas corretamente
+        const rawStatusCounts = (data ?? []).reduce((acc: Record<string, number>, p: any) => {
+          const rawStatus = String(p.status ?? '').toLowerCase();
+          acc[rawStatus] = (acc[rawStatus] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        console.log('✅ [ADMIN PETITIONS] Petições carregadas:', {
+          total: mapped.length,
+          statusCounts: statusCounts,
+          rawStatusCounts: rawStatusCounts,
+          hasApproved: rawStatusCounts['approved'] > 0
+        });
+        
+        // Se houver status "approved" no banco mas não mapeado, logar aviso
+        if (rawStatusCounts['approved'] > 0 && !statusCounts['approved']) {
+          console.warn('⚠️ [ADMIN PETITIONS] Petições com status "approved" encontradas mas não mapeadas corretamente!');
+        }
       }
       
       setPetitions(mapped);
@@ -192,14 +195,17 @@ export default function AdminPetitions() {
         (payload) => {
           const statusChanged = payload.new?.status !== payload.old?.status;
           
-          console.log('🔄 [ADMIN PETITIONS] Mudança detectada:', {
-            eventType: payload.eventType,
-            table: payload.table,
-            id: payload.new?.id || payload.old?.id,
-            statusChanged: statusChanged,
-            oldStatus: payload.old?.status,
-            newStatus: payload.new?.status
-          });
+          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.log('🔄 [ADMIN PETITIONS] Mudança detectada:', {
+              eventType: payload.eventType,
+              table: payload.table,
+              id: payload.new?.id || payload.old?.id,
+              statusChanged: statusChanged,
+              oldStatus: payload.old?.status,
+              newStatus: payload.new?.status
+            });
+          }
           
           // Se for uma atualização de status, atualizar imediatamente no estado local
           if (payload.eventType === 'UPDATE' && payload.new?.id) {
@@ -227,12 +233,15 @@ export default function AdminPetitions() {
                 return updated;
               });
               
-              console.log('✅ [ADMIN PETITIONS] Status atualizado localmente:', {
-                id: updatedPetition.id,
-                oldStatus: oldPetition?.status,
-                newStatus: updatedPetition.status,
-                title: updatedPetition.title
-              });
+              // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+              if (import.meta.env.DEV) {
+                console.log('✅ [ADMIN PETITIONS] Status atualizado localmente:', {
+                  id: updatedPetition.id,
+                  oldStatus: oldPetition?.status,
+                  newStatus: updatedPetition.status,
+                  title: updatedPetition.title
+                });
+              }
             } catch (error) {
               console.error('❌ [ADMIN PETITIONS] Erro ao atualizar petição localmente:', error);
             }
@@ -247,9 +256,15 @@ export default function AdminPetitions() {
         if (err) {
           console.error('❌ [ADMIN PETITIONS] Erro na subscription:', err);
         } else if (status === 'SUBSCRIBED') {
-          console.log('✅ [ADMIN PETITIONS] Subscription ativa - atualizações em tempo real habilitadas');
+          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.log('✅ [ADMIN PETITIONS] Subscription ativa - atualizações em tempo real habilitadas');
+          }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('⚠️ [ADMIN PETITIONS] Realtime não disponível, usando polling como fallback');
+          // ✅ OTIMIZAÇÃO: Console.warn apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ [ADMIN PETITIONS] Realtime não disponível, usando polling como fallback');
+          }
         }
       });
 
@@ -262,7 +277,10 @@ export default function AdminPetitions() {
 
     // Cleanup: remover subscription e polling quando componente desmontar
     return () => {
-      console.log('🔌 [ADMIN PETITIONS] Removendo subscription e polling');
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('🔌 [ADMIN PETITIONS] Removendo subscription e polling');
+      }
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
@@ -391,10 +409,13 @@ export default function AdminPetitions() {
         const today = new Date();
         const extendedDate = setDeadlineCutoff(addBusinessDays(today, 1));
         newDeadline = extendedDate.toISOString();
-        console.log(`📅 ${isReassignment ? 'Reatribuição' : 'Atribuição'}: Novo prazo calculado = ${newDeadline}`);
-        console.log(`📅 Data formatada: ${extendedDate.toLocaleDateString('pt-BR')} às ${extendedDate.toLocaleTimeString('pt-BR')}`);
-        console.log(`📅 Prazo anterior: ${reassignPetition.deadline || 'N/A'}`);
-        console.log(`📅 Hoje: ${today.toLocaleDateString('pt-BR')} - Novo prazo: ${extendedDate.toLocaleDateString('pt-BR')}`);
+        // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+        if (import.meta.env.DEV) {
+          console.log(`📅 ${isReassignment ? 'Reatribuição' : 'Atribuição'}: Novo prazo calculado = ${newDeadline}`);
+          console.log(`📅 Data formatada: ${extendedDate.toLocaleDateString('pt-BR')} às ${extendedDate.toLocaleTimeString('pt-BR')}`);
+          console.log(`📅 Prazo anterior: ${reassignPetition.deadline || 'N/A'}`);
+          console.log(`📅 Hoje: ${today.toLocaleDateString('pt-BR')} - Novo prazo: ${extendedDate.toLocaleDateString('pt-BR')}`);
+        }
       } catch (deadlineError) {
         console.error('❌ Erro ao calcular novo prazo:', deadlineError);
         // Se falhar, tentar calcular novamente com fallback
@@ -404,7 +425,10 @@ export default function AdminPetitions() {
           tomorrow.setDate(tomorrow.getDate() + 1);
           tomorrow.setHours(18, 0, 0, 0);
           newDeadline = tomorrow.toISOString();
-          console.log(`📅 Usando prazo de fallback: ${newDeadline}`);
+          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.log(`📅 Usando prazo de fallback: ${newDeadline}`);
+          }
         } catch (fallbackError) {
           console.error('❌ Erro no fallback do prazo:', fallbackError);
           throw new Error('Não foi possível calcular o novo prazo');
@@ -418,13 +442,19 @@ export default function AdminPetitions() {
 
       // Atualizar a petição com o novo redator e novo prazo
       // SEMPRE atualizar o prazo quando atribuir/reatribuir (marcar 1 dia útil a mais)
-      console.log(`💾 Atualizando petição ${reassignPetition.id}`);
-      console.log(`   Prazo anterior: ${reassignPetition.deadline || 'N/A'}`);
-      console.log(`   Novo prazo: ${newDeadline}`);
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`💾 Atualizando petição ${reassignPetition.id}`);
+        console.log(`   Prazo anterior: ${reassignPetition.deadline || 'N/A'}`);
+        console.log(`   Novo prazo: ${newDeadline}`);
+      }
       
       // Fazer update completo incluindo o deadline
       // IMPORTANTE: Fazer update do deadline separadamente primeiro para garantir que o trigger reconheça a mudança
-      console.log(`🔄 Passo 1: Atualizando apenas o deadline...`);
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`🔄 Passo 1: Atualizando apenas o deadline...`);
+      }
       const { error: deadlineOnlyError } = await supabase
         .from('petitions')
         .update({
@@ -437,7 +467,10 @@ export default function AdminPetitions() {
         throw deadlineOnlyError;
       }
       
-      console.log(`🔄 Passo 2: Atualizando demais campos...`);
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`🔄 Passo 2: Atualizando demais campos...`);
+      }
       // Depois atualizar os outros campos
       const { error: updateError, data: updatedData } = await supabase
         .from('petitions')
@@ -458,17 +491,23 @@ export default function AdminPetitions() {
       
       // Verificar se o prazo foi atualizado corretamente
       if (updatedData && updatedData.length > 0) {
-        console.log(`✅ Prazo atualizado no banco: ${updatedData[0].deadline}`);
-        console.log(`✅ Data de atualização: ${updatedData[0].updated_at}`);
-        
-        // Verificar se o prazo foi realmente atualizado
-        if (updatedData[0].deadline !== newDeadline) {
-          console.warn('⚠️ ATENÇÃO: O prazo no banco não corresponde ao prazo calculado!');
-          console.warn(`   Calculado: ${newDeadline}`);
-          console.warn(`   No banco: ${updatedData[0].deadline}`);
+        // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+        if (import.meta.env.DEV) {
+          console.log(`✅ Prazo atualizado no banco: ${updatedData[0].deadline}`);
+          console.log(`✅ Data de atualização: ${updatedData[0].updated_at}`);
+          
+          // Verificar se o prazo foi realmente atualizado
+          if (updatedData[0].deadline !== newDeadline) {
+            console.warn('⚠️ ATENÇÃO: O prazo no banco não corresponde ao prazo calculado!');
+            console.warn(`   Calculado: ${newDeadline}`);
+            console.warn(`   No banco: ${updatedData[0].deadline}`);
+          }
         }
       } else {
-        console.warn('⚠️ Nenhum dado retornado após atualização');
+        // ✅ OTIMIZAÇÃO: Console.warn apenas em desenvolvimento
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ Nenhum dado retornado após atualização');
+        }
       }
 
       // Notificar o redator anterior (se houver e for diferente do novo)
@@ -508,9 +547,15 @@ export default function AdminPetitions() {
       }
 
       // Atualizar a lista de petições para refletir o novo prazo
-      console.log('🔄 Recarregando lista de petições...');
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('🔄 Recarregando lista de petições...');
+      }
       await loadPetitions();
-      console.log('✅ Lista de petições recarregada');
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('✅ Lista de petições recarregada');
+      }
 
       toast.success(
         reassignPetition.writer_name 

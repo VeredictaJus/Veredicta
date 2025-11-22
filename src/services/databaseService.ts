@@ -134,18 +134,42 @@ export class DatabaseService {
   }
 
   static async getWriterPetitions(writerId: string): Promise<Petition[]> {
+    // ✅ OTIMIZAÇÃO: Selecionar apenas campos necessários e adicionar limit
     const { data, error } = await supabase
       .from('petitions')
-      .select('*')
+      .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, client_name, client_id, price, description, requires_labor_calculation, calculation_id, delivered_file, correction_count, correction_requested_at, display_id, updated_at')
       .eq('assigned_writer_id', writerId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000); // Limitar a 1000 petições mais recentes
 
     if (error) {
       console.error('Error fetching writer petitions:', error);
       return [];
     }
 
-    return data || [];
+    // Mapear dados para incluir campos opcionais com valores padrão
+    return (data || []).map((p: any): Petition => ({
+      id: p.id,
+      display_id: p.display_id,
+      title: p.title || '',
+      type: p.type || '',
+      description: p.description || '',
+      price: p.price || 0,
+      deadline: p.deadline || '',
+      priority: (p.priority || 'normal') as 'normal' | 'urgent' | 'express',
+      client_id: p.client_id || '',
+      client_name: p.client_name || '',
+      client_location: '', // Campo não usado na página do writer
+      specialties: [], // Campo não usado na página do writer
+      estimated_hours: 0, // Campo não usado na página do writer
+      files_count: 0, // Campo não usado na página do writer
+      status: (p.status || 'pending') as Petition['status'],
+      assigned_writer_id: p.assigned_writer_id,
+      requires_labor_calculation: p.requires_labor_calculation || false,
+      calculation_id: p.calculation_id,
+      created_at: p.created_at || '',
+      updated_at: p.updated_at || p.created_at || '',
+    }));
   }
 
   static async getClientPetitions(clientId: string): Promise<Petition[]> {

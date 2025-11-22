@@ -715,20 +715,7 @@ export default function AdminDashboard() {
       </Card>
 
       {/* indicadores finais */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <Card className="shadow-sm border">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <div className="rounded-full bg-green-50 p-2"><CheckCircle className="h-5 w-5 text-green-600" /></div>
-              <div className="w-full">
-                <div className="text-lg font-semibold">Taxa de Conclusão</div>
-                <div className="text-sm text-muted-foreground mb-3">Petições finalizadas com sucesso</div>
-                <div className="text-3xl font-extrabold">{Math.round(stats.completionRate || 0)}%</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <Card className="shadow-sm border">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">

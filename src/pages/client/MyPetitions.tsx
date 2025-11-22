@@ -134,9 +134,10 @@ export default function MyPetitions() {
         // Buscar arquivos originais (não de correção)
         const { data: filesData, error: filesError } = await supabase
           .from('petition_files')
-          .select('*')
+          .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
           .eq('petition_id', selectedPetition.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
 
         if (filesError) {
           console.error('Erro ao buscar arquivos:', filesError);
@@ -194,7 +195,7 @@ export default function MyPetitions() {
         if (petitionData?.calculation_id) {
           const { data: calcData, error: calcError } = await supabase
             .from('labor_calculations')
-            .select('*')
+            .select('id, user_id, title, description, calculation_data, calculation_result, tags, is_favorite, created_at, updated_at')
             .eq('id', petitionData.calculation_id)
             .single();
 
@@ -312,9 +313,10 @@ export default function MyPetitions() {
         // Buscar petições sem JOIN (para evitar erro de foreign key)
         const { data, error } = await supabase
           .from('petitions')
-          .select('*')
+          .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, delivered_file, correction_count, correction_requested_at, calculation_id')
           .eq('client_id', user.uid)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(500);
 
         if (error) {
           console.error('Erro ao carregar petições:', error);
@@ -951,9 +953,10 @@ export default function MyPetitions() {
       if (selectedPetition.id) {
         const { data: filesData } = await supabase
           .from('petition_files')
-          .select('*')
+          .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
           .eq('petition_id', selectedPetition.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
         
         if (filesData) {
           const correctionDate = new Date(correctionRequestDate);
@@ -1551,7 +1554,7 @@ export default function MyPetitions() {
                                                   // Recarregar petição completa do banco
                                                   const { data: updatedPetition, error } = await supabase
                                                     .from('petitions')
-                                                    .select('*')
+                                                    .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, delivered_file, correction_count, correction_requested_at, calculation_id')
                                                     .eq('id', selectedPetition.id)
                                                     .single();
                                                   

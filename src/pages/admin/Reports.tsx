@@ -39,8 +39,9 @@ type PetitionRow = {
   value?: number | null;     // fallback
   type?: string | null;
   tipo?: string | null;      // fallback
-  client_name?: string | null;
+  client_id?: string | null;
   writer_name?: string | null;
+  assigned_writer_id?: string | null;
 };
 
 type PaymentRow = {
@@ -143,25 +144,34 @@ export default function Reports() {
       const until = new Date();
       const from  = subFromNow(timeRange);
 
-      const { data: p1, error: e1 } = await supabase
-        .from('profiles_v2')
-        .select('*')
-        .gte('created_at', from.toISOString())
-        .lte('created_at', until.toISOString());
+      // Executar queries em paralelo para melhor performance
+      const [result1, result2, result3] = await Promise.all([
+        supabase
+          .from('profiles_v2')
+          .select('id, created_at, role')
+          .gte('created_at', from.toISOString())
+          .lte('created_at', until.toISOString())
+          .limit(2000),
+        supabase
+          .from('petitions')
+          .select('id, created_at, status, price, type, writer_name, assigned_writer_id, client_id')
+          .gte('created_at', from.toISOString())
+          .lte('created_at', until.toISOString())
+          .limit(2000),
+        supabase
+          .from('app_2d8133c678_payments')
+          .select('id, created_at, payment_date, amount')
+          .gte('created_at', from.toISOString())
+          .lte('created_at', until.toISOString())
+          .limit(2000)
+      ]);
+
+      const { data: p1, error: e1 } = result1;
+      const { data: p2, error: e2 } = result2;
+      const { data: p3, error: e3 } = result3;
+
       if (e1) throw e1;
-
-      const { data: p2, error: e2 } = await supabase
-        .from('petitions')
-        .select('*')
-        .gte('created_at', from.toISOString())
-        .lte('created_at', until.toISOString());
       if (e2) throw e2;
-
-      const { data: p3, error: e3 } = await supabase
-        .from('app_2d8133c678_payments')
-        .select('*')
-        .gte('created_at', from.toISOString())
-        .lte('created_at', until.toISOString());
       if (e3) throw e3;
 
       let inv: InvoiceRow[] = [];
@@ -171,12 +181,11 @@ export default function Reports() {
         
         const { data, error } = await supabase
           .from('app_2d8133c678_invoices')
-          .select(`
-            *
-          `)
+          .select('id, submitted_by, submitted_at, status, period_month, period_year, file_path, created_at, updated_at')
           .gte('submitted_at', from.toISOString())
           .lte('submitted_at', until.toISOString())
-          .order('submitted_at', { ascending: false });
+          .order('submitted_at', { ascending: false })
+          .limit(500);
         
         console.log('✅ Resultado da query de notas:', { data, error });
         
@@ -238,7 +247,6 @@ export default function Reports() {
   /* ---------- KPIs ---------- */
   const stats = useMemo(() => {
     const totalRevenue    = payments.reduce((s, r) => s + Number(r.amount || 0), 0);
-    const totalCommission = payments.reduce((s, r) => s + Number(r.platform_fee || 0), 0);
     const totalPetitions  = petitions.length;
     const totalUsers      = profiles.length;
 
@@ -247,7 +255,7 @@ export default function Reports() {
     const completed = petitions.filter(p => String(p.status || '').toLowerCase() === 'completed').length;
     const completionRate = totalPetitions ? Math.round((completed / totalPetitions) * 1000) / 10 : 0;
 
-    return { totalRevenue, totalCommission, totalPetitions, totalUsers, avgPetitionValue, completionRate };
+    return { totalRevenue, totalPetitions, totalUsers, avgPetitionValue, completionRate };
   }, [profiles, petitions, payments]);
 
   /* ---------- Séries ---------- */
@@ -257,7 +265,6 @@ export default function Reports() {
     const months = buildMonthSeries(from, until);
 
     const mapReceita: Record<string, number> = {};
-    const mapComiss : Record<string, number> = {};
     const mapPet    : Record<string, number> = {};
     const mapCli    : Record<string, number> = {};
     const mapWri    : Record<string, number> = {};
@@ -266,7 +273,6 @@ export default function Reports() {
       const key = keyYM(pay.payment_date || pay.created_at);
       if (!key) return;
       mapReceita[key] = (mapReceita[key] || 0) + Number(pay.amount || 0);
-      mapComiss[key]  = (mapComiss[key]  || 0) + Number(pay.platform_fee || 0);
     });
 
     petitions.forEach(p => {
@@ -286,7 +292,6 @@ export default function Reports() {
     const revenueData = months.map(({ key, label }) => ({
       month: label,
       receita: Math.round(mapReceita[key] || 0),
-      comissao: Math.round(mapComiss[key] || 0),
       peticoes: Math.round(mapPet[key] || 0),
     }));
 
@@ -334,15 +339,17 @@ export default function Reports() {
     const clientsMap: Record<string, { name: string; peticoes: number; gasto: number }> = {};
 
     petitions.forEach(p => {
-      const price = Number(p.price ?? p.value ?? 0);
+      const price = Number(p.price ?? 0);
+      // Top Writers - usar writer_name se existir
       if (p.writer_name) {
         const k = p.writer_name;
         writersMap[k] = writersMap[k] || { name: k, peticoes: 0, receita: 0 };
         writersMap[k].peticoes += 1;
         writersMap[k].receita  += price;
       }
-      if (p.client_name) {
-        const k = p.client_name;
+      // Top Clients - usar client_id como chave (client_name não existe na tabela)
+      if (p.client_id) {
+        const k = p.client_id;
         clientsMap[k] = clientsMap[k] || { name: k, peticoes: 0, gasto: 0 };
         clientsMap[k].peticoes += 1;
         clientsMap[k].gasto    += price;
@@ -446,7 +453,6 @@ export default function Reports() {
       // KPIs
       csvRows.push('=== INDICADORES PRINCIPAIS ===');
       csvRows.push(`Receita Total,R$ ${stats.totalRevenue.toLocaleString()}`);
-      csvRows.push(`Comissões,R$ ${stats.totalCommission.toLocaleString()}`);
       csvRows.push(`Petições,${stats.totalPetitions}`);
       csvRows.push(`Usuários,${stats.totalUsers}`);
       csvRows.push(`Valor Médio por Petição,R$ ${stats.avgPetitionValue}`);
@@ -459,12 +465,12 @@ export default function Reports() {
       }
       csvRows.push('');
       
-      // Evolução Mensal - Receita e Comissões
+      // Evolução Mensal - Receita
       if (revenueData.length > 0) {
-        csvRows.push('=== EVOLUÇÃO MENSAL - RECEITA E COMISSÕES ===');
-        csvRows.push('Mês,Receita,Comissão,Petições');
+        csvRows.push('=== EVOLUÇÃO MENSAL - RECEITA ===');
+        csvRows.push('Mês,Receita,Petições');
         revenueData.forEach(item => {
-          csvRows.push(`${item.month},${item.receita},${item.comissao},${item.peticoes}`);
+          csvRows.push(`${item.month},${item.receita},${item.peticoes}`);
         });
         csvRows.push('');
       }
@@ -613,7 +619,7 @@ export default function Reports() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
@@ -626,21 +632,6 @@ export default function Reports() {
                 <p className={`text-xs ${mom.revenueMoM == null ? 'text-muted-foreground' : (mom.revenueMoM >= 0 ? 'text-green-600' : 'text-red-600')}`}>
                   {mom.revenueMoM == null ? '—' : `${mom.revenueMoM > 0 ? '+' : ''}${mom.revenueMoM}% vs mês anterior`}
                 </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-muted-foreground">Comissões</p>
-                <p className="text-2xl font-bold">R$ {stats.totalCommission.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">somatório real</p>
               </div>
             </div>
           </CardContent>
@@ -713,7 +704,7 @@ export default function Reports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Receita e Comissões</CardTitle>
+            <CardTitle>Receita - Evolução Mensal</CardTitle>
             <CardDescription>Evolução mensal</CardDescription>
           </CardHeader>
           <CardContent>
@@ -724,7 +715,6 @@ export default function Reports() {
                 <YAxis />
                 <Tooltip formatter={(v: number) => [`R$ ${Number(v || 0).toLocaleString()}`, '']} />
                 <Bar dataKey="receita" name="Receita" fill="#3B82F6" />
-                <Bar dataKey="comissao" name="Comissão" fill="#F59E0B" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

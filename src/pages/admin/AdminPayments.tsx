@@ -103,8 +103,9 @@ export default function AdminPayments() {
     try {
       const { data, error } = await supabase
         .from('app_2d8133c678_payments')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, amount, status, payment_date, created_at, payment_method, reference, petition_id, client_id, writer_id')
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
 

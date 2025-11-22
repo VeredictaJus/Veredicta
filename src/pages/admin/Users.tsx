@@ -371,12 +371,14 @@ export default function Users() {
       // Buscar de user_profiles (tabela principal com Firebase Auth)
       let { data: rowsUserProfiles, error: errorUserProfiles } = await supabase
         .from('user_profiles')
-        .select('*');
+        .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
+        .limit(2000);
 
       // Buscar de profiles_v2 (tabela legada)
       let { data: rowsProfilesV2, error: errorProfilesV2 } = await supabase
         .from('profiles_v2')
-        .select('*');
+        .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
+        .limit(2000);
 
       // Combinar resultados de ambas as tabelas
       const rows = [

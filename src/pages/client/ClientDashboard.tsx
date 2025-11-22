@@ -214,7 +214,7 @@ export default function ClientDashboard() {
     try {
       const { data: freeBonus } = await supabase
         .from('user_subscriptions')
-        .select('*')
+        .select('id, user_id, plan_code, status, is_bonus, created_at')
         .eq('user_id', user.uid)
         .eq('plan_code', 'free')
         .eq('is_bonus', true)
@@ -239,9 +239,10 @@ export default function ClientDashboard() {
         // Usar apenas a tabela atual 'petitions'
         const { data, error } = await supabase
           .from('petitions')
-          .select('*')
+          .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description')
           .eq('client_id', user.uid)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
         
         console.log('📊 Resultado da query petitions:', { data, error });
         

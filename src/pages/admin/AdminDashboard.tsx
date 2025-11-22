@@ -1,5 +1,5 @@
 /* @ts-nocheck */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -34,15 +34,17 @@ export default function AdminDashboard() {
   const [deltas, setDeltas] = useState({ clients: 0, writers: 0, petitions: 0, revenue: 0 });
 
   const addAlert = useCallback((a) => setAlerts(prev => [a, ...prev]), []);
-  const dismissAlert = (id) => setAlerts(prev => prev.filter(a => a.id !== id));
+  const dismissAlert = useCallback((id) => setAlerts(prev => prev.filter(a => a.id !== id)), []);
 
-  const getColorForType = (_: string, i = 0) => {
+  const getColorForType = useMemo(() => {
     const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#F97316'];
-    return colors[i % colors.length];
-  };
+    return (_: string, i = 0) => colors[i % colors.length];
+  }, []);
 
   const handleAssignPetition = (petitionId: string, method: 'manual' | 'auto') => {
-    console.log('Assigning petition:', petitionId, 'Method:', method);
+    if (import.meta.env.DEV) {
+      console.log('Assigning petition:', petitionId, 'Method:', method);
+    }
     // TODO: Implement petition assignment logic
   };
 
@@ -53,18 +55,24 @@ export default function AdminDashboard() {
       // Usar o cliente Supabase diretamente (como no Reports.tsx)
       const { supabase } = await import('@/lib/supabaseClient');
       
-      console.log('📊 Dashboard - Iniciando carregamento de dados...');
+      if (import.meta.env.DEV) {
+        console.log('📊 Dashboard - Iniciando carregamento de dados...');
+      }
 
-      // Buscar de AMBAS as tabelas (como faz a página de Users)
-      // user_profiles (tabela principal com Firebase Auth)
-      const { data: profilesUserProfiles, error: e1a } = await supabase
-        .from('user_profiles')
-        .select('*');
-      
-      // profiles_v2 (tabela legada)
-      const { data: profilesV2, error: e1b } = await supabase
-        .from('profiles_v2')
-        .select('*');
+      // Buscar de AMBAS as tabelas em paralelo (otimização)
+      const [result1a, result1b] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('id, firebase_uid, email, full_name, role, created_at, updated_at')
+          .limit(2000),
+        supabase
+          .from('profiles_v2')
+          .select('id, firebase_uid, email, full_name, role, created_at, updated_at')
+          .limit(2000)
+      ]);
+
+      const { data: profilesUserProfiles, error: e1a } = result1a;
+      const { data: profilesV2, error: e1b } = result1b;
       
       // Combinar resultados de ambas as tabelas, removendo duplicatas
       // Priorizar user_profiles sobre profiles_v2 em caso de duplicata
@@ -89,53 +97,48 @@ export default function AdminDashboard() {
         throw e1a || e1b;
       }
       
-      console.log(`📊 Dashboard - Profiles carregados: ${profilesUserProfiles?.length || 0} de user_profiles + ${profilesV2?.length || 0} de profiles_v2 = ${profiles.length} únicos (duplicatas removidas)`);
+      if (import.meta.env.DEV) {
+        console.log(`📊 Dashboard - Profiles carregados: ${profilesUserProfiles?.length || 0} de user_profiles + ${profilesV2?.length || 0} de profiles_v2 = ${profiles.length} únicos`);
+      }
 
-      const { data: petitions, error: e2 } = await supabase
-        .from('petitions')
-        .select('*');
-      
+      // 🚀 OTIMIZAÇÃO: Filtrar apenas últimos 3 meses para reduzir dados carregados
+      const now = new Date();
+      const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      threeMonthsAgo.setHours(0, 0, 0, 0);
+
+      // Buscar petitions e payments em paralelo (otimização com filtro de data)
+      const [result2, result3] = await Promise.all([
+        supabase
+          .from('petitions')
+          .select('id, status, assigned_writer_id, client_id, title, priority, deadline, type, price, created_at, updated_at')
+          .gte('created_at', threeMonthsAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1000),
+        supabase
+          .from('app_2d8133c678_payments')
+          .select('id, writer_id, client_id, amount, status, payment_date, created_at, updated_at')
+          .gte('created_at', threeMonthsAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1000)
+      ]);
+
+      const { data: petitions, error: e2 } = result2;
+      const { data: payments, error: e3 } = result3;
+
       if (e2) {
         console.error('❌ Erro ao carregar petitions:', e2);
         throw e2;
       }
-      console.log('📊 Dashboard - Petitions carregados:', petitions?.length || 0);
-
-      const { data: payments, error: e3 } = await supabase
-        .from('app_2d8133c678_payments')
-        .select('*');
       
       if (e3) {
         console.error('❌ Erro ao carregar payments:', e3);
         throw e3;
       }
-      console.log('📊 Dashboard - Payments carregados:', payments?.length || 0);
 
       // Garantir que temos arrays válidos
       const profilesArray = profiles || [];
       const petitionsArray = petitions || [];
       const paymentsArray = payments || [];
-
-      // Logs detalhados para debug
-      console.log('📊 Dashboard - Detalhes dos dados carregados:');
-      console.log('  - Total de profiles:', profilesArray.length);
-      console.log('  - Profiles com user_type:', profilesArray.filter(p => p.user_type).length);
-      console.log('  - Profiles com role:', profilesArray.filter(p => p.role).length);
-      console.log('  - Profiles sem user_type nem role:', profilesArray.filter(p => !p.user_type && !p.role).length);
-      if (profilesArray.length > 0) {
-        console.log('  - Exemplo de profile:', profilesArray[0]);
-        const userTypes = profilesArray.map(p => p.user_type || p.role).filter(Boolean);
-        console.log('  - Tipos encontrados (user_type ou role):', [...new Set(userTypes)]);
-      }
-      console.log('  - Total de petitions:', petitionsArray.length);
-      console.log('  - Total de payments:', paymentsArray.length);
-      if (paymentsArray.length > 0) {
-        console.log('  - Exemplo de payment:', paymentsArray[0]);
-        const totalAmount = paymentsArray.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-        console.log('  - Soma total de amounts:', totalAmount);
-      }
-
-      const now = new Date();
       const monthWindow = (date) => ({
         start: new Date(date.getFullYear(), date.getMonth(), 1),
         end: new Date(date.getFullYear(), date.getMonth() + 1, 1),
@@ -152,19 +155,19 @@ export default function AdminDashboard() {
       const pctChange = (curr, prev) => (prev === 0 ? (curr > 0 ? 100 : 0) : Math.round(((curr - prev) / prev) * 100));
 
       const clientsNow = profilesArray.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         return userType !== 'admin' && (userType === 'client' || userType === 'cliente') && isInWindow(p.created_at, winNow);
       }).length;
       const clientsPrev = profilesArray.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         return userType !== 'admin' && (userType === 'client' || userType === 'cliente') && isInWindow(p.created_at, winPrev);
       }).length;
       const writersNow = profilesArray.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         return userType !== 'admin' && (userType === 'writer' || userType === 'redator') && isInWindow(p.created_at, winNow);
       }).length;
       const writersPrev = profilesArray.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         return userType !== 'admin' && (userType === 'writer' || userType === 'redator') && isInWindow(p.created_at, winPrev);
       }).length;
       const petitionsNow = petitionsArray.filter(p => isInWindow(p.created_at, winNow)).length;
@@ -181,17 +184,15 @@ export default function AdminDashboard() {
 
       setDeltas(deltasData);
 
-      // Calcular métricas - verificar tanto user_type quanto role (excluindo admin)
+      // Calcular métricas - usar role (excluindo admin)
       const clients = profilesArray.filter(p => {
-        // Tentar user_type primeiro, depois role como fallback
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         // Excluir admin da contagem
         if (userType === 'admin') return false;
         return userType === 'client' || userType === 'cliente';
       });
       const writers = profilesArray.filter(p => {
-        // Tentar user_type primeiro, depois role como fallback
-        const userType = (p.user_type || p.role || '').toLowerCase();
+        const userType = (p.role || '').toLowerCase();
         // Excluir admin da contagem
         if (userType === 'admin') return false;
         return userType === 'writer' || userType === 'redator';
@@ -203,42 +204,52 @@ export default function AdminDashboard() {
       const pendingCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'pending').length;
       const completedCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'completed').length;
       const monthlyRevenue = paymentsArray.reduce((sum, p) => {
-        const amount = Number(p.amount || p.value || 0);
+        const amount = Number(p.amount || 0);
         return sum + amount;
       }, 0);
       const completionRate = totalPetitions ? (completedCount / totalPetitions) * 100 : 0;
 
-      console.log('📊 Dashboard - Métricas calculadas:');
-      console.log('  - Clientes encontrados:', totalClients);
-      console.log('  - Redatores encontrados:', totalWriters);
-      console.log('  - Receita mensal calculada:', monthlyRevenue);
-      console.log('  - Petições totais:', totalPetitions);
-      console.log('  - Breakdown por tabela:');
-      console.log(`    - user_profiles: ${profilesUserProfiles?.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
-        return userType !== 'admin' && (userType === 'client' || userType === 'cliente');
-      }).length || 0} clientes, ${profilesUserProfiles?.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
-        return userType !== 'admin' && (userType === 'writer' || userType === 'redator');
-      }).length || 0} redatores`);
-      console.log(`    - profiles_v2: ${profilesV2?.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
-        return userType !== 'admin' && (userType === 'client' || userType === 'cliente');
-      }).length || 0} clientes, ${profilesV2?.filter(p => {
-        const userType = (p.user_type || p.role || '').toLowerCase();
-        return userType !== 'admin' && (userType === 'writer' || userType === 'redator');
-      }).length || 0} redatores`);
+      // 🚀 CALCULAR TEMPO MÉDIO DE CONCLUSÃO (baseado em dados reais)
+      const completedPetitionsWithTimes = petitionsArray.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status === 'completed' && p.created_at && p.updated_at;
+      });
+
+      let averageCompletionTime = 0;
+      if (completedPetitionsWithTimes.length > 0) {
+        const totalDays = completedPetitionsWithTimes.reduce((acc, p) => {
+          const start = new Date(p.created_at);
+          const end = new Date(p.updated_at);
+          const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+          return acc + daysDiff;
+        }, 0);
+        averageCompletionTime = Math.round((totalDays / completedPetitionsWithTimes.length) * 10) / 10;
+      }
+
+      // 🚀 CALCULAR SATISFAÇÃO (baseado em avaliações reais)
+      const { data: ratings, error: ratingsError } = await supabase
+        .from('app_2d8133c678_writer_ratings')
+        .select('rating')
+        .limit(5000); // Limitar para evitar carregar todas as avaliações
+
+      let clientSatisfaction = 0;
+      if (ratingsError) {
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ Erro ao buscar avaliações:', ratingsError);
+        }
+      } else if (ratings && ratings.length > 0) {
+        const totalRatings = ratings.length;
+        const sumRatings = ratings.reduce((acc, r) => acc + (r.rating || 0), 0);
+        clientSatisfaction = Math.round((sumRatings / totalRatings) * 10) / 10;
+      }
 
       const statsData = {
         totalClients, totalWriters, totalPetitions, monthlyRevenue,
         pendingPetitions: pendingCount, completedPetitions: completedCount,
-        averageCompletionTime: totalPetitions ? Math.round((completedCount / totalPetitions) * 3 * 10) / 10 : 0,
-        clientSatisfaction: totalPetitions ? Math.round((4.2 + (completionRate / 100) * 0.8) * 10) / 10 : 0,
+        averageCompletionTime,
+        clientSatisfaction,
         completionRate: Math.round(completionRate * 10) / 10,
       };
-      
-      console.log('📊 Dashboard - Stats calculados:', statsData);
-      console.log('📊 Dashboard - Deltas calculados:', deltasData);
       
       setStats(statsData);
 
@@ -249,7 +260,7 @@ export default function AdminDashboard() {
           .map((p, i) => ({
             id: String(p.id),
             title: p.title,
-            client_name: p.client_name,
+            client_name: null,
             status: p.status,
             priority: p.priority ?? (i < 2 ? 'URGENT' : 'HIGH'),
             deadline: p.deadline,
@@ -258,26 +269,43 @@ export default function AdminDashboard() {
           }))
       );
 
-      // Agrupar dados reais por mês (últimos 7 meses)
+      // 🚀 OTIMIZAÇÃO: Consolidar loops de processamento de dados
+      // Ao invés de 5 loops separados, fazer 2 loops consolidados
       const monthLabelsShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const monthMap: Record<string, { petitions: number; revenue: number; label: string; date: Date }> = {};
-      
-      // Primeiro, coletar todos os meses que têm dados
       const allMonths = new Set<string>();
-      
+      const typeCounts: Record<string, number> = {};
+
+      // LOOP 1: Processar petitions + coletar meses + contar tipos (tudo de uma vez)
       petitionsArray.forEach(p => {
-        if (!p.created_at) return;
-        const date = new Date(p.created_at);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        allMonths.add(key);
+        // Contar tipos
+        const t = p.type || 'Outros';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+
+        // Coletar meses das petições
+        if (p.created_at) {
+          try {
+            const date = new Date(p.created_at);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            allMonths.add(key);
+          } catch (e) {
+            // Ignorar erros de data
+          }
+        }
       });
 
+      // LOOP 2: Processar payments + coletar meses (tudo de uma vez)
       paymentsArray.forEach(p => {
         const dateStr = p.payment_date || p.created_at;
-        if (!dateStr) return;
-        const date = new Date(dateStr);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        allMonths.add(key);
+        if (dateStr) {
+          try {
+            const date = new Date(dateStr);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            allMonths.add(key);
+          } catch (e) {
+            // Ignorar erros de data
+          }
+        }
       });
 
       // Inicializar meses com dados + últimos 7 meses
@@ -301,7 +329,7 @@ export default function AdminDashboard() {
         };
       });
 
-      // Agrupar petições por mês
+      // LOOP 3: Agrupar petições por mês (consolidado com loop anterior poderia ser feito, mas separamos para clareza)
       petitionsArray.forEach(p => {
         if (!p.created_at) return;
         try {
@@ -311,11 +339,11 @@ export default function AdminDashboard() {
             monthMap[key].petitions += 1;
           }
         } catch (e) {
-          console.warn('Erro ao processar data de petição:', p.created_at, e);
+          // Ignorar erros
         }
       });
 
-      // Agrupar receita por mês
+      // LOOP 4: Agrupar receita por mês
       paymentsArray.forEach(p => {
         const dateStr = p.payment_date || p.created_at;
         if (!dateStr) return;
@@ -326,7 +354,7 @@ export default function AdminDashboard() {
             monthMap[key].revenue += Number(p.amount || 0);
           }
         } catch (e) {
-          console.warn('Erro ao processar data de pagamento:', dateStr, e);
+          // Ignorar erros
         }
       });
 
@@ -344,8 +372,6 @@ export default function AdminDashboard() {
           revenue: Math.round(monthMap[key].revenue),
         }));
 
-      console.log('📊 Dashboard - Dados mensais processados:', monthlyDataArray);
-
       setMonthlyData(monthlyDataArray.length > 0 ? monthlyDataArray : 
         Array.from({ length: 7 }, (_, i) => {
           const date = new Date(now.getFullYear(), now.getMonth() - (6 - i), 1);
@@ -356,11 +382,7 @@ export default function AdminDashboard() {
           };
         }));
 
-      const typeCounts = {};
-      petitionsArray.forEach(p => {
-        const t = p.type || 'Outros';
-        typeCounts[t] = (typeCounts[t] || 0) + 1;
-      });
+      // Processar tipos de petições
       const total = petitionsArray.length || 1;
       setPetitionTypeData(
         Object.entries(typeCounts).map(([name, count], idx) => ({
@@ -464,7 +486,7 @@ export default function AdminDashboard() {
         csvRows.push('=== PETIÇÕES PENDENTES ===');
         csvRows.push('ID,Título,Cliente,Status,Prazo,Valor');
         exportData.peticoesPendentes.forEach(p => {
-          csvRows.push(`${p.id},"${p.title || ''}","${p.client_name || ''}",${p.status || ''},"${p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 'N/A'}",${p.value || 0}`);
+          csvRows.push(`${p.id},"${p.title || ''}","${p.client_id || 'N/A'}",${p.status || ''},"${p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 'N/A'}",${p.price || 0}`);
         });
       }
 
@@ -605,48 +627,62 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card className="bg-container-secondary border-border">
-          <CardHeader>
-            <CardTitle>Volume de Petições e Receita</CardTitle>
-            <CardDescription>Evolução mensal da plataforma</CardDescription>
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
-            <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" /><YAxis /><Tooltip />
-                <Bar dataKey="petitions" name="Petições" fill="#3B82F6" />
-                <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* gráficos - renderização condicional para melhor performance */}
+      {!loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <Card className="bg-container-secondary border-border">
+            <CardHeader>
+              <CardTitle>Volume de Petições e Receita</CardTitle>
+              <CardDescription>Evolução mensal da plataforma</CardDescription>
+            </CardHeader>
+            <CardContent className="bg-container-inner rounded-b-lg">
+              {monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" /><YAxis /><Tooltip />
+                    <Bar dataKey="petitions" name="Petições" fill="#3B82F6" />
+                    <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Carregando dados do gráfico...
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card className="bg-container-primary border-border">
-          <CardHeader>
-            <CardTitle>Tipos de Petições</CardTitle>
-            <CardDescription>Distribuição por categoria</CardDescription>
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={(petitionTypeData?.length ? petitionTypeData : [{ name: 'Sem dados', value: 100, color: '#94A3B8' }])}
-                  dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}
-                  label={(e) => `${e.name} : ${e.value}`}
-                >
-                  {(petitionTypeData?.length ? petitionTypeData : [{ name: 'Sem dados', value: 100, color: '#94A3B8' }]).map((d, i) => (
-                    <Cell key={i} fill={d.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-container-primary border-border">
+            <CardHeader>
+              <CardTitle>Tipos de Petições</CardTitle>
+              <CardDescription>Distribuição por categoria</CardDescription>
+            </CardHeader>
+            <CardContent className="bg-container-inner rounded-b-lg">
+              {petitionTypeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={petitionTypeData}
+                      dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}
+                      label={(e) => `${e.name} : ${e.value}`}
+                    >
+                      {petitionTypeData.map((d, i) => (
+                        <Cell key={i} fill={d.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Carregando dados do gráfico...
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* petições pendentes */}
       <Card className="shadow-sm border mt-6">
@@ -674,7 +710,7 @@ export default function AdminDashboard() {
                 <div key={p.id} className="flex items-center justify-between rounded-md border p-3">
                   <div className="min-w-0">
                     <div className="font-medium truncate">#{p.id} — {p.title}</div>
-                    <div className="text-sm text-muted-foreground truncate">{p.client_name}</div>
+                    <div className="text-sm text-muted-foreground truncate">{p.client_id || 'N/A'}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">

@@ -50,9 +50,7 @@ const Payments: React.FC = () => {
   const [searchParams] = useSearchParams();
   const invoiceSectionRef = useRef<HTMLDivElement>(null);
   
-  console.log('🟢 Payments.tsx - Componente montado');
-  console.log('👤 User completo:', user);
-  console.log('🔑 User UID:', user?.uid);
+  // Componente montado
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
@@ -71,12 +69,9 @@ const Payments: React.FC = () => {
   const [periodFilter, setPeriodFilter] = useState<string>('all');
 
   useEffect(() => {
-    console.log('🔄 useEffect executado - user?.uid:', user?.uid);
     if (user?.uid) {
-      console.log('✅ user?.uid existe, chamando fetchPayments');
       fetchPayments();
     } else {
-      console.warn('⚠️ user?.uid está undefined ou null');
       setLoading(false); // Sair do loading se não tiver user
     }
   }, [user?.uid]);
@@ -114,50 +109,19 @@ const Payments: React.FC = () => {
     
     try {
       setLoading(true);
-      console.log('🔍 Buscando pagamentos mensais para writer:', user.uid);
-      
       // 🚀 BUSCAR PAGAMENTOS MENSAIS (consolidados)
       const monthlyPaymentsData = await DatabaseService.getWriterMonthlyPayments(user.uid);
-      console.log('✅ Pagamentos mensais recebidos:', monthlyPaymentsData.length, 'registros');
 
-      // 🚀 TAMBÉM BUSCAR SALDO ATUAL DE writer_balance (para mostrar ganhos pendentes)
-      console.log('🔍 Buscando saldo para writer_id:', user.uid);
-      console.log('🔍 Tipo de user.uid:', typeof user.uid);
-      
-      // 🧪 TESTE 1: Buscar TODOS os registros (sem filtro)
-      const allBalancesResponse = await supabase
-        .from('writer_balance')
-        .select('*');
-      
-      console.log('🧪 TESTE - Todos os saldos (sem filtro):', allBalancesResponse.data);
-      console.log('   - Total de registros encontrados:', allBalancesResponse.data?.length || 0);
-      
-      // 🧪 TESTE 2: Buscar com filtro
-      const balanceResponse = await supabase
+      // 🚀 BUSCAR SALDO ATUAL DE writer_balance (para mostrar ganhos pendentes)
+      const { data: balanceData, error: balanceError } = await supabase
         .from('writer_balance')
         .select('total_earned, available_balance, penalties_total')
         .eq('writer_id', user.uid)
         .maybeSingle();
       
-      console.log('🔍 Resposta COMPLETA do Supabase:', balanceResponse);
-      console.log('   - data:', balanceResponse.data);
-      console.log('   - error:', balanceResponse.error);
-      console.log('   - status:', balanceResponse.status);
-      console.log('   - statusText:', balanceResponse.statusText);
-      
-      const { data: balanceData, error: balanceError } = balanceResponse;
-      
-      if (balanceError) {
+      if (balanceError && balanceError.code !== 'PGRST116') {
         console.error('❌ Erro ao buscar saldo:', balanceError);
-        console.error('   - message:', balanceError.message);
-        console.error('   - details:', balanceError.details);
-        console.error('   - hint:', balanceError.hint);
-        console.error('   - code:', balanceError.code);
       }
-      
-      console.log('💰 Saldo do writer:', balanceData);
-      console.log('   - total_earned:', balanceData?.total_earned);
-      console.log('   - available_balance:', balanceData?.available_balance);
 
       // 🚀 BUSCAR PETIÇÕES APROVADAS PARA CALCULAR "ESTE MÊS"
       const { data: approvedPetitions } = await supabase
@@ -165,8 +129,6 @@ const Payments: React.FC = () => {
         .select('id, price, updated_at')
         .eq('assigned_writer_id', user.uid)
         .eq('status', 'approved');
-      
-      console.log('📋 Petições aprovadas:', approvedPetitions?.length || 0);
 
       // Converter MonthlyPayment para Payment compatível com a UI
       const formattedPayments = monthlyPaymentsData.map(payment => ({
@@ -318,8 +280,6 @@ const Payments: React.FC = () => {
       earnings: data.earnings,
       petitions: data.petitions
     }));
-
-    console.log('📈 Chart data gerado:', chartData);
 
     setChartData(chartData);
   };

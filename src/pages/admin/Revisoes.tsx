@@ -14,25 +14,32 @@ import { CalculatorExportService } from '@/services/calculatorExportService';
 import { EmailService } from '@/services/emailService';
 import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
 
-// 🚀 Cliente Supabase com Service Role para operações admin (bypass RLS)
+// 🚀 Cliente Supabase com Service Role para operações admin (SINGLETON)
+let adminClientInstance: any = null;
+
 const getAdminClient = () => {
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (serviceRoleKey) {
-    return createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      }
-    );
+  if (!adminClientInstance) {
+    const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (serviceRoleKey) {
+      adminClientInstance = createClient(
+        import.meta.env.VITE_SUPABASE_URL as string,
+        serviceRoleKey,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            storageKey: 'veredicta.admin.supabase.auth', // Chave diferente para evitar conflito
+          },
+        }
+      );
+    } else {
+      console.warn('⚠️ Service role key não encontrada, usando cliente normal');
+      adminClientInstance = supabase;
+    }
   }
   
-  console.warn('⚠️ Service role key não encontrada, usando cliente normal');
-  return supabase;
+  return adminClientInstance;
 };
 
 type Correction = {
@@ -232,7 +239,7 @@ export default function Revisoes() {
       // Buscar petição
       const { data: p, error: petitionError } = await adminClient
         .from('petitions')
-        .select('*')
+        .select('id, title, type, status, client_id, assigned_writer_id, client_name, writer_name, price, description, delivered_file, calculation_id, created_at, deadline, updated_at')
         .eq('id', corr.petition_id)
         .single();
       
@@ -248,9 +255,10 @@ export default function Revisoes() {
       // Tentativa 1: Buscar via adminClient (bypass RLS)
       const { data: files1, error: error1 } = await adminClient
         .from('petition_files')
-        .select('*')
+        .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
         .eq('petition_id', corr.petition_id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
       
       if (error1) {
         console.error('Erro ao buscar arquivos (adminClient):', error1);
@@ -259,13 +267,14 @@ export default function Revisoes() {
         f = files1 || [];
       }
       
-      // Se não encontrou arquivos, tentar buscar via supabase normal (pode ter RLS)
-      if (f.length === 0) {
-        const { data: files2, error: error2 } = await supabase
-          .from('petition_files')
-          .select('*')
-          .eq('petition_id', corr.petition_id)
-          .order('created_at', { ascending: false });
+        // Se não encontrou arquivos, tentar buscar via supabase normal (pode ter RLS)
+        if (f.length === 0) {
+          const { data: files2, error: error2 } = await supabase
+            .from('petition_files')
+            .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
+            .eq('petition_id', corr.petition_id)
+            .order('created_at', { ascending: false })
+            .limit(100);
         
         if (error2) {
           console.error('Erro ao buscar arquivos (supabase normal):', error2);
@@ -326,7 +335,7 @@ export default function Revisoes() {
       if (p?.calculation_id) {
         const { data: calc } = await adminClient
           .from('labor_calculations')
-          .select('*')
+          .select('id, user_id, title, description, calculation_data, calculation_result, tags, is_favorite, created_at, updated_at')
           .eq('id', p.calculation_id)
           .single();
         setCalculation(calc || null);
@@ -397,7 +406,12 @@ export default function Revisoes() {
       toast.success('Arquivo corrigido anexado.');
       setCorrectedFile(null);
 
-      const { data: f } = await adminClient.from('petition_files').select('*').eq('petition_id', active.petition_id).order('created_at', { ascending: false });
+      const { data: f } = await adminClient
+        .from('petition_files')
+        .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
+        .eq('petition_id', active.petition_id)
+        .order('created_at', { ascending: false })
+        .limit(100);
       setFiles(f || []);
     } catch (err) {
       console.error(err);

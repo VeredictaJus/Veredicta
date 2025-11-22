@@ -1,34 +1,11 @@
 // src/services/productionAuthService.ts
-import { createClient } from '@supabase/supabase-js'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { EmailService } from './emailService'
+import { supabase } from '@/lib/supabaseClient' // Usar o cliente principal
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dmsodonmkffyvbuxtxec.supabase.co"
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc29kb25ta2ZmeXZidXh0eGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0NDk1NDYsImV4cCI6MjA2OTAyNTU0Nn0.lI6m8L9IPkV_2YZonS94Z71VGoHj5lym9VN2L-t3sXg"
-
-// Validar URLs antes de criar o cliente
-const isValidUrl = (url: string) => {
-  try {
-    new URL(url)
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Cliente Supabase para produção - SINGLETON para evitar múltiplas instâncias
-let supabase: any = null
-
+// Usar o cliente principal exportado de supabaseClient.ts (já é singleton)
 const getSupabaseClient = () => {
-  if (!supabase) {
-    if (SUPABASE_URL && SUPABASE_ANON_KEY && isValidUrl(SUPABASE_URL)) {
-      supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-      console.log('✅ Cliente Supabase criado (singleton)')
-    } else {
-      console.warn('⚠️ Supabase não configurado corretamente. URLs inválidas ou ausentes.')
-    }
-  }
   return supabase
 }
 

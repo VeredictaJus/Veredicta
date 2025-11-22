@@ -1,13 +1,10 @@
 // src/lib/session.ts
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from './firebase'
+import { supabase } from './supabaseClient' // Usar o cliente principal
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://dmsodonmkffyvbuxtxec.supabase.co"
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc29kb25ta2ZmeXZidXh0eGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0NDk1NDYsImV4cCI6MjA2OTAyNTU0Nn0.lI6m8L9IPkV_2YZonS94Z71VGoHj5lym9VN2L-t3sXg"
-
-// Cria cliente Supabase direto
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Usar o cliente principal exportado de supabaseClient.ts
 
 export async function getSupabaseForCurrentUser(): Promise<{ supabase: SupabaseClient, uid: string }> {
   const user = getAuth().currentUser

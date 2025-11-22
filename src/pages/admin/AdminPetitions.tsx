@@ -94,7 +94,7 @@ function mapRow(p: any): AdminPetition {
 
   return {
     id: String(p.id),
-    title: p.title ?? p.titulo ?? 'Petição sem título',
+    title: p.title ?? 'Petição sem título',
     type: p.type ?? p.tipo ?? 'Diversos',
     client_name: p.client_name ?? p.cliente ?? 'Cliente',
     writer_name: p.writer_name ?? p.redator ?? null,
@@ -105,8 +105,8 @@ function mapRow(p: any): AdminPetition {
     deadline: p.deadline ?? p.prazo ?? null,
     completed_at: p.completed_at ?? p.data_conclusao ?? null,
     description: p.description ?? p.descricao ?? null,
-    admin_notes: p.admin_notes ?? p.observacoes_admin ?? null,
-    dispute_reason: p.dispute_reason ?? p.motivo_disputa ?? null,
+    admin_notes: null, // Coluna não existe no banco
+    dispute_reason: null, // Coluna não existe no banco
     _raw: p,
   };
 }
@@ -134,8 +134,9 @@ export default function AdminPetitions() {
     try {
       const { data, error } = await supabase
         .from('petitions')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, title, type, client_name, assigned_writer_id, writer_name, status, priority, price, created_at, deadline, description')
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
       const mapped = (data ?? []).map(mapRow);

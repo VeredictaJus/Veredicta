@@ -175,9 +175,10 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
       try {
         const { data: filesData, error: filesError } = await supabase
           .from('petition_files')
-          .select('*')
+          .select('id, petition_id, file_url, file_name, file_size, file_type, uploaded_by, created_at, updated_at')
           .eq('petition_id', selectedPetition.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
 
         if (filesError) {
           console.error('Erro ao carregar arquivos da petição:', filesError);

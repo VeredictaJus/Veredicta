@@ -628,8 +628,6 @@ export default function Users() {
                     <TableHead className="text-foreground">Usuário</TableHead>
                     <TableHead className="text-foreground">Tipo</TableHead>
                     <TableHead className="text-foreground">Status</TableHead>
-                    <TableHead className="text-foreground">Verificação</TableHead>
-                    <TableHead className="text-foreground">Atividade</TableHead>
                     <TableHead className="text-foreground">Cadastro</TableHead>
                     <TableHead className="text-right text-foreground">Ações</TableHead>
                   </TableRow>
@@ -637,7 +635,7 @@ export default function Users() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={5} className="text-center py-8">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent mr-3" />
                           <span className="text-muted-foreground">Carregando usuários...</span>
@@ -646,7 +644,7 @@ export default function Users() {
                     </TableRow>
                   ) : filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Nenhum usuário encontrado
                       </TableCell>
                     </TableRow>
@@ -676,15 +674,6 @@ export default function Users() {
                             )}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${verifBadge(u.verifUI)}`}>
-                            {u.verifUI === 'unknown' ? '—' : (
-                              u.verifUI === 'verified' ? 'Verificado' :
-                              u.verifUI === 'pending'  ? 'Pendente'  : 'Rejeitado'
-                            )}
-                          </span>
-                        </TableCell>
-                        <TableCell>{typeof u.activity === 'number' ? `${u.activity} petições` : '—'}</TableCell>
                         <TableCell>{u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

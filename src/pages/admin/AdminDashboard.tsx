@@ -288,11 +288,11 @@ export default function AdminDashboard() {
         // Buscar data de entrega do primeiro arquivo de cada petição completada
         let deliveryDates = new Map<string, Date>();
         
-        if (completedPetitionIds.length > 0) {
+        if (deliveredPetitionIds.length > 0) {
           const { data: deliveredFiles, error: filesError } = await supabase
             .from('petition_files')
             .select('petition_id, created_at')
-            .in('petition_id', completedPetitionIds)
+            .in('petition_id', deliveredPetitionIds)
             .order('created_at', { ascending: true });
 
           if (filesError && import.meta.env.DEV) {

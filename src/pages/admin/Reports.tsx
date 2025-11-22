@@ -145,14 +145,10 @@ export default function Reports() {
       const from  = subFromNow(timeRange);
 
       // Executar queries em paralelo para melhor performance
-      // IMPORTANTE: Buscar de ambas as tabelas para ter dados reais completos
-      const [result1a, result1b, result2, result3] = await Promise.all([
+      // IMPORTANTE: Usar apenas user_profiles como fonte principal (mesma lógica da página Usuários)
+      const [result1, result2, result3] = await Promise.all([
         supabase
           .from('user_profiles')
-          .select('id, created_at, role')
-          .limit(2000),
-        supabase
-          .from('profiles_v2')
           .select('id, created_at, role')
           .limit(2000),
         supabase
@@ -169,22 +165,11 @@ export default function Reports() {
           .limit(2000)
       ]);
 
-      const { data: p1a, error: e1a } = result1a;
-      const { data: p1b, error: e1b } = result1b;
+      const { data: p1, error: e1 } = result1;
       const { data: p2, error: e2 } = result2;
       const { data: p3, error: e3 } = result3;
 
-      // Combinar perfis de ambas as tabelas (remover duplicatas por id)
-      const allProfiles = [
-        ...(p1a || []),
-        ...(p1b || [])
-      ];
-      // Remover duplicatas baseado no id
-      const uniqueProfiles = allProfiles.filter((profile, index, self) =>
-        index === self.findIndex((p) => p.id === profile.id)
-      );
-
-      if (e1a && e1b) throw e1a || e1b;
+      if (e1) throw e1;
       if (e2) throw e2;
       if (e3) throw e3;
 
@@ -245,7 +230,7 @@ export default function Reports() {
         inv = [];
       }
 
-      setProfiles(uniqueProfiles);
+      setProfiles(p1 || []);
       setPetitions(p2 || []);
       setPayments(p3 || []);
       setInvoices(inv);

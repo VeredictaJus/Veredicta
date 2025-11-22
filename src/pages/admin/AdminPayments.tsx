@@ -102,7 +102,12 @@ export default function AdminPayments() {
     setLoading(true);
     setError(null);
     try {
-      // Buscar pagamentos e notas fiscais aprovadas em paralelo
+      // Obter mês e ano atual para filtrar notas fiscais do mês corrente
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11, então +1
+      const currentYear = now.getFullYear();
+
+      // Buscar pagamentos e notas fiscais aprovadas do mês atual em paralelo
       const [paymentsResult, invoicesResult] = await Promise.all([
         supabase
           .from('app_2d8133c678_payments')
@@ -111,8 +116,10 @@ export default function AdminPayments() {
           .limit(1000),
         supabase
           .from('app_2d8133c678_invoices')
-          .select('id, amount, status')
+          .select('id, amount, status, period_month, period_year')
           .eq('status', 'approved')
+          .eq('period_month', currentMonth)
+          .eq('period_year', currentYear)
           .limit(1000)
       ]);
 
@@ -120,7 +127,7 @@ export default function AdminPayments() {
 
       setRows((paymentsResult.data ?? []).map(mapRow));
 
-      // Calcular soma dos valores das notas fiscais aprovadas
+      // Calcular soma dos valores das notas fiscais aprovadas do mês atual
       if (invoicesResult.data) {
         const total = invoicesResult.data.reduce((sum, inv) => {
           const amount = Number(inv.amount || 0);

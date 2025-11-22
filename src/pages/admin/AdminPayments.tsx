@@ -91,7 +91,8 @@ export default function AdminPayments() {
   const [rows, setRows] = useState<PaymentUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
-  const [approvedInvoicesTotal, setApprovedInvoicesTotal] = useState<number>(0); // Mês atual
+  const [approvedInvoicesTotal, setApprovedInvoicesTotal] = useState<number>(0); // Mês atual (valor)
+  const [approvedInvoicesCount, setApprovedInvoicesCount] = useState<number>(0); // Mês atual (quantidade)
   const [approvedInvoicesTotalCumulative, setApprovedInvoicesTotalCumulative] = useState<number>(0); // Cumulativo
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,15 +134,17 @@ export default function AdminPayments() {
 
       setRows((paymentsResult.data ?? []).map(mapRow));
 
-      // Calcular soma dos valores das notas fiscais aprovadas do mês atual
+      // Calcular soma dos valores e quantidade das notas fiscais aprovadas do mês atual
       if (invoicesMonthResult.data) {
         const total = invoicesMonthResult.data.reduce((sum, inv) => {
           const amount = Number(inv.amount || 0);
           return sum + amount;
         }, 0);
         setApprovedInvoicesTotal(total);
+        setApprovedInvoicesCount(invoicesMonthResult.data.length); // Quantidade de notas aprovadas do mês
       } else {
         setApprovedInvoicesTotal(0);
+        setApprovedInvoicesCount(0);
       }
 
       // Calcular soma cumulativa de todas as notas fiscais aprovadas (todos os tempos)
@@ -187,10 +190,10 @@ export default function AdminPayments() {
     return {
       totalRevenue: totalRevenue, // Receita cumulativa (recebido - a pagar)
       pendingAmount: approvedInvoicesTotal, // Soma das notas fiscais aprovadas do mês atual
-      doneCount: completed.length,
+      doneCount: approvedInvoicesCount, // Número de notas fiscais aprovadas do mês atual
       failedCount: rows.filter(r => r.status === 'failed').length,
     };
-  }, [rows, approvedInvoicesTotal, approvedInvoicesTotalCumulative]);
+  }, [rows, approvedInvoicesTotal, approvedInvoicesTotalCumulative, approvedInvoicesCount]);
 
   const updateStatus = async (paymentId: string, next: PaymentStatus) => {
     try {

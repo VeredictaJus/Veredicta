@@ -278,6 +278,7 @@ class ProductionAuthService {
             .update({ 
               role: role,
               status: role === 'writer' ? 'pending_approval' : 'approved',
+              verification_status: role === 'client' ? 'verified' : 'pending', // ✅ Clientes verificados automaticamente
               updated_at: new Date().toISOString()
             })
             .eq('firebase_uid', firebaseUid)
@@ -326,8 +327,24 @@ class ProductionAuthService {
 
       console.log('✅ Perfil criado:', data)
       
-      // Se for cliente, atribuir plano gratuito automaticamente
+      // ✅ Marcar clientes como verificados automaticamente
       if (role === 'client') {
+        try {
+          const { error: verifyError } = await supabaseClient
+            .from('user_profiles')
+            .update({ verification_status: 'verified' })
+            .eq('firebase_uid', firebaseUid)
+          
+          if (verifyError) {
+            console.warn('⚠️ Erro ao marcar cliente como verificado:', verifyError)
+          } else {
+            console.log('✅ Cliente marcado como verificado automaticamente')
+          }
+        } catch (verifyErr) {
+          console.warn('⚠️ Erro ao verificar cliente:', verifyErr)
+        }
+        
+        // Atribuir plano gratuito automaticamente
         await this.assignFreePlan(firebaseUid)
       }
       

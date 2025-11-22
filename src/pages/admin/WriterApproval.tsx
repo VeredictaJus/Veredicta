@@ -79,9 +79,13 @@ export default function WriterApproval() {
       // Buscar dados do redator antes de aprovar
       const writer = writers.find(w => w.id === writerId)
       
+      // ✅ Marcar redator como aprovado E verificado
       const { error } = await supabase
         .from('user_profiles')
-        .update({ status: 'approved' })
+        .update({ 
+          status: 'approved',
+          verification_status: 'verified' // Marcar como verificado ao aprovar
+        })
         .eq('id', writerId)
 
       if (error) {

@@ -269,7 +269,6 @@ export default function Reports() {
 
   /* ---------- KPIs ---------- */
   const stats = useMemo(() => {
-    const totalRevenue    = payments.reduce((s, r) => s + Number(r.amount || 0), 0);
     const totalPetitions  = petitions.length;
     
     // Separar redatores e clientes
@@ -301,7 +300,7 @@ export default function Reports() {
       ? Math.round((completed / totalPetitions) * 100 * 10) / 10 
       : 0;
 
-    return { totalRevenue, totalPetitions, totalUsers, totalClients, totalWriters, completionRate };
+    return { totalPetitions, totalUsers, totalClients, totalWriters, completionRate };
   }, [profiles, petitions, payments]);
 
   /* ---------- Séries ---------- */
@@ -499,7 +498,6 @@ export default function Reports() {
       
       // KPIs
       csvRows.push('=== INDICADORES PRINCIPAIS ===');
-      csvRows.push(`Receita Total,R$ ${stats.totalRevenue.toLocaleString()}`);
       csvRows.push(`Petições,${stats.totalPetitions}`);
       csvRows.push(`Usuários,${stats.totalUsers}`);
       csvRows.push(`Clientes,${stats.totalClients}`);
@@ -667,24 +665,7 @@ export default function Reports() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-muted-foreground">Receita Total</p>
-                <p className="text-2xl font-bold">R$ {stats.totalRevenue.toLocaleString()}</p>
-                <p className={`text-xs ${mom.revenueMoM == null ? 'text-muted-foreground' : (mom.revenueMoM >= 0 ? 'text-green-600' : 'text-red-600')}`}>
-                  {mom.revenueMoM == null ? '—' : `${mom.revenueMoM > 0 ? '+' : ''}${mom.revenueMoM}% vs mês anterior`}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">

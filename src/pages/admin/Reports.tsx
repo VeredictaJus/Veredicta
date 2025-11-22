@@ -180,7 +180,7 @@ export default function Reports() {
         
         const { data, error } = await supabase
           .from('app_2d8133c678_invoices')
-          .select('id, submitted_by, submitted_at, status, period_month, period_year, file_path, created_at, updated_at')
+          .select('id, submitted_by, submitted_at, status, period_month, period_year, file_path, amount')
           .gte('submitted_at', from.toISOString())
           .lte('submitted_at', until.toISOString())
           .order('submitted_at', { ascending: false })

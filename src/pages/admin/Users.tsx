@@ -254,7 +254,10 @@ export default function Users() {
   };
 
   const updateUserField = async (user: UiUser, field: string, value: any) => {
-    console.log('Updating user field:', field, 'Value:', value, 'User:', user.id);
+    // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+    if (import.meta.env.DEV) {
+      console.log('Updating user field:', field, 'Value:', value, 'User:', user.id);
+    }
     
     try {
       // Determinar qual coluna atualizar
@@ -270,7 +273,10 @@ export default function Users() {
       // Detectar de qual tabela o usuário veio
       const sourceTable = user._raw._sourceTable || 'profiles_v2';
 
-      console.log('🔄 Atualizando no banco:', { userId: user.id, table: sourceTable, column: columnName, value });
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('🔄 Atualizando no banco:', { userId: user.id, table: sourceTable, column: columnName, value });
+      }
 
       // Atualizar na tabela correta
       const { error } = await supabase
@@ -290,7 +296,10 @@ export default function Users() {
         throw error;
       }
 
-      console.log('✅ Atualizado com sucesso no banco');
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('✅ Atualizado com sucesso no banco');
+      }
 
       const shouldNotifySuspension =
         field === 'status' &&
@@ -332,13 +341,19 @@ export default function Users() {
   };
 
   const deleteUser = async (user: UiUser) => {
-    console.log('Deleting user:', user.id);
+    // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+    if (import.meta.env.DEV) {
+      console.log('Deleting user:', user.id);
+    }
     
     try {
       // Detectar de qual tabela o usuário veio
       const sourceTable = user._raw._sourceTable || 'profiles_v2';
       
-      console.log('🗑️ Excluindo usuário:', { userId: user.id, table: sourceTable });
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('🗑️ Excluindo usuário:', { userId: user.id, table: sourceTable });
+      }
       
       // Excluir da tabela correta
       const { error } = await supabase
@@ -351,7 +366,10 @@ export default function Users() {
         throw error;
       }
       
-      console.log('✅ Usuário excluído com sucesso');
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('✅ Usuário excluído com sucesso');
+      }
       
       // Remover do estado local
       setUsers(prev => prev.filter(u => u.id !== user.id));
@@ -368,17 +386,20 @@ export default function Users() {
     setLoading(true);
     setError(null);
     try {
-      // Buscar de user_profiles (tabela principal com Firebase Auth)
-      let { data: rowsUserProfiles, error: errorUserProfiles } = await supabase
-        .from('user_profiles')
-        .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
-        .limit(2000);
-
-      // Buscar de profiles_v2 (tabela legada)
-      let { data: rowsProfilesV2, error: errorProfilesV2 } = await supabase
-        .from('profiles_v2')
-        .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
-        .limit(2000);
+      // ✅ OTIMIZAÇÃO: Paralelizar queries (antes eram sequenciais)
+      const [
+        { data: rowsUserProfiles, error: errorUserProfiles },
+        { data: rowsProfilesV2, error: errorProfilesV2 }
+      ] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
+          .limit(2000),
+        supabase
+          .from('profiles_v2')
+          .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
+          .limit(2000)
+      ]);
 
       // Combinar resultados de ambas as tabelas
       const rows = [
@@ -386,12 +407,18 @@ export default function Users() {
         ...(rowsProfilesV2 || [])
       ];
 
-      console.log(`✅ Usuários carregados: ${rowsUserProfiles?.length || 0} de user_profiles + ${rowsProfilesV2?.length || 0} de profiles_v2`);
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`✅ Usuários carregados: ${rowsUserProfiles?.length || 0} de user_profiles + ${rowsProfilesV2?.length || 0} de profiles_v2`);
+      }
 
       // Se ambas deram erro, lançar exceção
       if ((errorUserProfiles || errorProfilesV2) && rows.length === 0) {
         throw errorUserProfiles || errorProfilesV2;
       }
+
+      // ✅ OTIMIZAÇÃO: Criar Date() uma vez antes do loop (evita criação repetida)
+      const now = new Date();
 
       const mapped: UiUser[] = (rows || []).map((p: any): UiUser => {
         const roleRaw = String(p.user_type ?? p.role ?? '').toUpperCase();
@@ -414,7 +441,6 @@ export default function Users() {
         // 🔒 CALCULAR STATUS BASEADO EM SUSPENSÃO
         const isBlocked = p.is_blocked || false;
         const suspendedUntil = p.suspended_until;
-        const now = new Date();
         const suspendedUntilDate = suspendedUntil ? new Date(suspendedUntil) : null;
         const isSuspended = suspendedUntilDate ? now < suspendedUntilDate : false;
         const daysRemaining = suspendedUntilDate && isSuspended
@@ -454,7 +480,11 @@ export default function Users() {
         };
       });
 
-      console.log(`✅ ${mapped.length} usuários carregados do banco de dados`);
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`✅ ${mapped.length} usuários carregados do banco de dados`);
+      }
+      
       setUsers(mapped);
     } catch (err: any) {
       console.error('❌ Erro ao carregar usuários:', err);

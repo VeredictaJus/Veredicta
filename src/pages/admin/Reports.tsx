@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell
+  LineChart, Line
 } from 'recharts';
 
 import {
@@ -722,33 +722,6 @@ export default function Reports() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Tipos de Petições</CardTitle>
-            <CardDescription>Distribuição por categoria</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={petitionTypeData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, value }) => `${name}: ${value}%`}
-                >
-                  {petitionTypeData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Crescimento de Usuários</CardTitle>
             <CardDescription>Novos cadastros</CardDescription>
           </CardHeader>
@@ -762,24 +735,6 @@ export default function Reports() {
                 <Line type="monotone" dataKey="clientes" stroke="#3B82F6" name="Clientes" />
                 <Line type="monotone" dataKey="redatores" stroke="#10B981" name="Redatores" />
               </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Volume de Petições</CardTitle>
-            <CardDescription>Quantidade mensal</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={volumeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="peticoes" fill="#8B5CF6" name="Petições" />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

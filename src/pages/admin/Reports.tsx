@@ -279,15 +279,39 @@ export default function Reports() {
     // Taxa de conclusão: considerar apenas 'completed', 'approved' e 'delivered' como concluídas
     // IMPORTANTE: 'in_progress', 'pending', 'review', 'revision', etc. NÃO são considerados concluídos
     const completedStatuses = ['completed', 'approved', 'delivered'];
+    
+    // Debug: verificar todos os status das petições
+    if (import.meta.env.DEV && petitions.length > 0) {
+      const statusCounts: Record<string, number> = {};
+      petitions.forEach(p => {
+        const status = String(p.status || 'null').toLowerCase().trim();
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      console.log('[Reports] Status das petições:', statusCounts);
+      console.log('[Reports] Total de petições:', petitions.length);
+    }
+    
     const completed = petitions.filter(p => {
       if (!p.status) return false;
       const status = String(p.status).toLowerCase().trim();
-      return completedStatuses.includes(status);
+      const isCompleted = completedStatuses.includes(status);
+      
+      // Debug individual
+      if (import.meta.env.DEV && petitions.length <= 5) {
+        console.log(`[Reports] Petição ID: ${p.id}, Status original: "${p.status}", Status normalizado: "${status}", Concluída: ${isCompleted}`);
+      }
+      
+      return isCompleted;
     }).length;
     
     const completionRate = totalPetitions > 0 
       ? Math.round((completed / totalPetitions) * 100 * 10) / 10 
       : 0;
+    
+    // Debug final
+    if (import.meta.env.DEV) {
+      console.log(`[Reports] Taxa de conclusão calculada: ${completed} concluídas de ${totalPetitions} total = ${completionRate}%`);
+    }
 
     return { totalRevenue, totalPetitions, totalUsers, avgPetitionValue, completionRate };
   }, [profiles, petitions, payments]);

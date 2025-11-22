@@ -170,8 +170,8 @@ export default function AdminDashboard() {
       const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
       threeMonthsAgo.setHours(0, 0, 0, 0);
 
-      // Buscar petitions e payments em paralelo (otimização com filtro de data)
-      const [result2, result3] = await Promise.all([
+      // Buscar petitions, payments e invoices aprovadas em paralelo (otimização com filtro de data)
+      const [result2, result3, result4] = await Promise.all([
         supabase
         .from('petitions')
           .select('id, status, assigned_writer_id, client_id, title, priority, deadline, type, price, created_at, updated_at')
@@ -183,11 +183,17 @@ export default function AdminDashboard() {
           .select('id, writer_id, client_id, amount, status, payment_date, created_at, updated_at')
           .gte('created_at', threeMonthsAgo.toISOString())
           .order('created_at', { ascending: false })
+          .limit(1000),
+        supabase
+          .from('app_2d8133c678_invoices')
+          .select('id, amount, status, submitted_at, period_month, period_year')
+          .eq('status', 'approved')
           .limit(1000)
       ]);
 
       const { data: petitions, error: e2 } = result2;
       const { data: payments, error: e3 } = result3;
+      const { data: approvedInvoices, error: e4 } = result4;
       
       if (e2) {
         console.error('❌ Erro ao carregar petitions:', e2);
@@ -267,10 +273,39 @@ export default function AdminDashboard() {
       const totalPetitions = petitionsArray.length;
       const pendingCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'pending').length;
       const completedCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'completed').length;
-      const monthlyRevenue = paymentsArray.reduce((sum, p) => {
-        const amount = Number(p.amount || 0);
-        return sum + amount;
-      }, 0);
+      
+      // 🚀 CALCULAR RECEITA MENSAL: Total recebido no mês - Total a pagar aos redatores (notas fiscais aprovadas)
+      // winNow já foi declarado acima (linha 222), não precisa redeclarar
+      // Total recebido no mês (pagamentos de clientes no mês atual)
+      const totalReceivedThisMonth = paymentsArray
+        .filter(p => {
+          // Filtrar apenas pagamentos do mês atual
+          const paymentDate = p.payment_date || p.created_at;
+          return isInWindow(paymentDate, winNow);
+        })
+        .reduce((sum, p) => {
+          const amount = Number(p.amount || 0);
+          return sum + amount;
+        }, 0);
+      
+      // Total a pagar aos redatores no mês (soma dos valores das notas fiscais aprovadas do mês)
+      // Filtrar notas fiscais aprovadas do mês atual (usar period_month e period_year)
+      const currentMonth = now.getMonth() + 1; // getMonth() retorna 0-11, então +1
+      const currentYear = now.getFullYear();
+      
+      const totalToPayWriters = (approvedInvoices || [])
+        .filter(inv => {
+          // Filtrar notas do mês atual usando period_month e period_year
+          return inv.period_month === currentMonth && inv.period_year === currentYear;
+        })
+        .reduce((sum, inv) => {
+          const amount = Number(inv.amount || 0);
+          return sum + amount;
+        }, 0);
+      
+      // Receita mensal = Recebido no mês - Total a pagar aos redatores (notas aprovadas do mês)
+      const monthlyRevenue = totalReceivedThisMonth - totalToPayWriters;
+      
       const completionRate = totalPetitions ? (completedCount / totalPetitions) * 100 : 0;
 
       // 🚀 CALCULAR TEMPO MÉDIO DE ENTREGA (baseado em dados reais)

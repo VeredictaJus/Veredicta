@@ -692,9 +692,7 @@ export default function Reports() {
               <div className="ml-4">
                 <p className="text-sm text-muted-foreground">Usuários</p>
                 <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                <p className="text-xs text-muted-foreground">
-                  {stats.totalClients} clientes • {stats.totalWriters} redatores
-                </p>
+                <p className="text-xs text-muted-foreground">novos no período</p>
               </div>
             </div>
           </CardContent>

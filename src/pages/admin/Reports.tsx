@@ -27,8 +27,7 @@ type TimeRange = '30d' | '3m' | '6m' | '1y';
 type ProfileRow = {
   id: string | number;
   created_at?: string | null;
-  user_type?: string | null; // 'client' | 'writer' | ...
-  role?: string | null;      // fallback
+  role?: string | null;      // 'client' | 'writer' | 'admin'
 };
 
 type PetitionRow = {
@@ -309,7 +308,7 @@ export default function Reports() {
     profiles.forEach(pr => {
       const key = keyYM(pr.created_at);
       if (!key) return;
-      const t = String(pr.user_type || pr.role || '').toLowerCase();
+      const t = String(pr.role || '').toLowerCase();
       if (t === 'client' || t === 'cliente') mapCli[key] = (mapCli[key] || 0) + 1;
       if (t === 'writer' || t === 'redator') mapWri[key] = (mapWri[key] || 0) + 1;
     });

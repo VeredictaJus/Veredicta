@@ -136,6 +136,7 @@ export default function Reports() {
   const [petitions, setPetitions] = useState<PetitionRow[]>([]);
   const [payments, setPayments]   = useState<PaymentRow[]>([]);
   const [invoices, setInvoices]   = useState<InvoiceRow[]>([]);
+  const [clientNamesMap, setClientNamesMap] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
@@ -235,6 +236,30 @@ export default function Reports() {
       setPetitions(p2 || []);
       setPayments(p3 || []);
       setInvoices(inv);
+
+      // ✅ Buscar nomes dos clientes para Top Clientes
+      const clientIds = [...new Set((p2 || []).map(p => p.client_id).filter(Boolean))];
+      if (clientIds.length > 0) {
+        try {
+          const { data: clientProfiles, error: clientError } = await supabase
+            .from('user_profiles')
+            .select('firebase_uid, full_name, email')
+            .in('firebase_uid', clientIds)
+            .limit(500);
+
+          if (!clientError && clientProfiles) {
+            const namesMap: Record<string, string> = {};
+            clientProfiles.forEach(client => {
+              if (client.firebase_uid) {
+                namesMap[client.firebase_uid] = client.full_name || client.email || client.firebase_uid;
+              }
+            });
+            setClientNamesMap(namesMap);
+          }
+        } catch (clientErr) {
+          console.warn('⚠️ Erro ao buscar nomes dos clientes:', clientErr);
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar relatórios');
     } finally {
@@ -347,10 +372,11 @@ export default function Reports() {
         writersMap[k].peticoes += 1;
         writersMap[k].receita  += price;
       }
-      // Top Clients - usar client_id como chave (client_name não existe na tabela)
+      // Top Clients - usar client_id como chave e buscar nome do mapa
       if (p.client_id) {
         const k = p.client_id;
-        clientsMap[k] = clientsMap[k] || { name: k, peticoes: 0, gasto: 0 };
+        const clientName = clientNamesMap[k] || k; // Usar nome do mapa ou fallback para ID
+        clientsMap[k] = clientsMap[k] || { name: clientName, peticoes: 0, gasto: 0 };
         clientsMap[k].peticoes += 1;
         clientsMap[k].gasto    += price;
       }
@@ -359,7 +385,7 @@ export default function Reports() {
     const topWriters = Object.values(writersMap).sort((a,b) => b.peticoes - a.peticoes).slice(0, 3);
     const topClients = Object.values(clientsMap).sort((a,b) => b.gasto - a.gasto).slice(0, 3);
     return { topWriters, topClients };
-  }, [petitions]);
+  }, [petitions, clientNamesMap]);
 
   /* ---------- Ações de Notas Fiscais ---------- */
 

@@ -91,6 +91,7 @@ export default function AdminPayments() {
   const [rows, setRows] = useState<PaymentUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
+  const [approvedInvoicesTotal, setApprovedInvoicesTotal] = useState<number>(0);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | PaymentStatus>('all');
@@ -101,15 +102,34 @@ export default function AdminPayments() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
-        .from('app_2d8133c678_payments')
-        .select('id, amount, status, payment_date, created_at, payment_method, reference, petition_id, client_id, writer_id')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+      // Buscar pagamentos e notas fiscais aprovadas em paralelo
+      const [paymentsResult, invoicesResult] = await Promise.all([
+        supabase
+          .from('app_2d8133c678_payments')
+          .select('id, amount, status, payment_date, created_at, payment_method, reference, petition_id, client_id, writer_id')
+          .order('created_at', { ascending: false })
+          .limit(1000),
+        supabase
+          .from('app_2d8133c678_invoices')
+          .select('id, amount, status')
+          .eq('status', 'approved')
+          .limit(1000)
+      ]);
 
-      if (error) throw error;
+      if (paymentsResult.error) throw paymentsResult.error;
 
-      setRows((data ?? []).map(mapRow));
+      setRows((paymentsResult.data ?? []).map(mapRow));
+
+      // Calcular soma dos valores das notas fiscais aprovadas
+      if (invoicesResult.data) {
+        const total = invoicesResult.data.reduce((sum, inv) => {
+          const amount = Number(inv.amount || 0);
+          return sum + amount;
+        }, 0);
+        setApprovedInvoicesTotal(total);
+      } else {
+        setApprovedInvoicesTotal(0);
+      }
     } catch (e: any) {
       setError(e.message || 'Erro ao carregar pagamentos');
     } finally {
@@ -136,14 +156,14 @@ export default function AdminPayments() {
 
   const stats = useMemo(() => {
     const completed = rows.filter(r => r.status === 'completed');
-    const pendingOrProcessing = rows.filter(r => r.status === 'pending' || r.status === 'processing');
+    // Pendentes = soma dos valores das notas fiscais aprovadas
     return {
       totalRevenue: completed.reduce((s, r) => s + (r.amount || 0), 0),
-      pendingAmount: pendingOrProcessing.reduce((s, r) => s + (r.amount || 0), 0),
+      pendingAmount: approvedInvoicesTotal, // Soma das notas fiscais aprovadas
       doneCount: completed.length,
       failedCount: rows.filter(r => r.status === 'failed').length,
     };
-  }, [rows]);
+  }, [rows, approvedInvoicesTotal]);
 
   const updateStatus = async (paymentId: string, next: PaymentStatus) => {
     try {

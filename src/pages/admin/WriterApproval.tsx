@@ -45,12 +45,13 @@ export default function WriterApproval() {
 
   const loadWriters = async () => {
     try {
-      // Buscar da tabela correta (user_profiles) onde role = 'writer'
+      // ✅ OTIMIZAÇÃO: Adicionar limit para performance
       const { data, error } = await supabase
         .from('user_profiles')
         .select('id, firebase_uid, email, full_name, phone, address, status, created_at, updated_at, petition_files, oab_documents')
         .eq('role', 'writer')
         .order('created_at', { ascending: false })
+        .limit(500); // Limitar a 500 redatores mais recentes
 
       if (error) {
         console.error('Erro ao carregar redatores:', error)
@@ -58,7 +59,11 @@ export default function WriterApproval() {
         return
       }
 
-      console.log(`✅ ${data?.length || 0} redatores carregados`)
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`✅ ${data?.length || 0} redatores carregados`)
+      }
+      
       setWriters(data || [])
     } catch (error) {
       console.error('Erro ao carregar redatores:', error)
@@ -85,26 +90,32 @@ export default function WriterApproval() {
         return
       }
 
-      console.log('✅ Redator aprovado:', writerId)
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('✅ Redator aprovado:', writerId)
+      }
+      
       toast.success('Redator aprovado com sucesso! Ele já pode acessar a plataforma.')
       
       // Enviar email de boas-vindas ao redator aprovado
       if (writer?.email && writer?.full_name) {
         try {
           await EmailService.sendWriterWelcomeEmail(writer.email, writer.full_name)
-          console.log('📧 Email de boas-vindas enviado para:', writer.email)
+          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.log('📧 Email de boas-vindas enviado para:', writer.email)
+          }
         } catch (emailError) {
           console.error('⚠️ Erro ao enviar email de boas-vindas:', emailError)
           // Não falhar a aprovação se o email falhar
         }
       }
       
-      // Atualizar lista localmente para remover imediatamente da visualização
+      // ✅ OTIMIZAÇÃO: Atualizar lista localmente (remover loadWriters() redundante)
       setWriters(prev => prev.map(w => 
         w.id === writerId ? { ...w, status: 'approved' } : w
       ))
-      
-      await loadWriters()
+      // Removido: await loadWriters() - redundante, já atualizamos localmente
     } catch (error) {
       console.error('Erro ao aprovar redator:', error)
       toast.error('Erro ao aprovar redator')
@@ -130,26 +141,32 @@ export default function WriterApproval() {
         return
       }
 
-      console.log('❌ Redator rejeitado:', writerId)
+      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('❌ Redator rejeitado:', writerId)
+      }
+      
       toast.success('Redator rejeitado. Ele será notificado.')
       
       // Enviar email de rejeição ao redator
       if (writer?.email && writer?.full_name) {
         try {
           await EmailService.sendWriterRejectionEmail(writer.email, writer.full_name)
-          console.log('📧 Email de rejeição enviado para:', writer.email)
+          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+          if (import.meta.env.DEV) {
+            console.log('📧 Email de rejeição enviado para:', writer.email)
+          }
         } catch (emailError) {
           console.error('⚠️ Erro ao enviar email de rejeição:', emailError)
           // Não falhar a rejeição se o email falhar
         }
       }
       
-      // Atualizar lista localmente para remover imediatamente da visualização
+      // ✅ OTIMIZAÇÃO: Atualizar lista localmente (remover loadWriters() redundante)
       setWriters(prev => prev.map(w => 
         w.id === writerId ? { ...w, status: 'rejected' } : w
       ))
-      
-      await loadWriters()
+      // Removido: await loadWriters() - redundante, já atualizamos localmente
     } catch (error) {
       console.error('Erro ao rejeitar redator:', error)
       toast.error('Erro ao rejeitar redator')
@@ -177,6 +194,14 @@ export default function WriterApproval() {
     return writers.filter(w => w.status === statusFilter);
   }, [writers, statusFilter]);
 
+  // ✅ OTIMIZAÇÃO: Usar useMemo para contadores (evita recalcular a cada render)
+  const statusCounts = useMemo(() => ({
+    pending: writers.filter(w => w.status === 'pending_approval').length,
+    approved: writers.filter(w => w.status === 'approved').length,
+    rejected: writers.filter(w => w.status === 'rejected').length,
+    total: writers.length,
+  }), [writers]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -190,10 +215,10 @@ export default function WriterApproval() {
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pending_approval">Pendentes ({writers.filter(w => w.status === 'pending_approval').length})</SelectItem>
-            <SelectItem value="approved">Aprovados ({writers.filter(w => w.status === 'approved').length})</SelectItem>
-            <SelectItem value="rejected">Rejeitados ({writers.filter(w => w.status === 'rejected').length})</SelectItem>
-            <SelectItem value="all">Todos ({writers.length})</SelectItem>
+            <SelectItem value="pending_approval">Pendentes ({statusCounts.pending})</SelectItem>
+            <SelectItem value="approved">Aprovados ({statusCounts.approved})</SelectItem>
+            <SelectItem value="rejected">Rejeitados ({statusCounts.rejected})</SelectItem>
+            <SelectItem value="all">Todos ({statusCounts.total})</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -236,7 +261,7 @@ export default function WriterApproval() {
 
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  Cadastrado em: {new Date(writer.created_at).toLocaleDateString('pt-BR')}
+                  Cadastrado em: {writer.created_at ? new Date(writer.created_at).toLocaleDateString('pt-BR') : '—'}
                 </div>
                 
                 <div className="flex items-center gap-2">

@@ -272,7 +272,19 @@ export default function Reports() {
   const stats = useMemo(() => {
     const totalRevenue    = payments.reduce((s, r) => s + Number(r.amount || 0), 0);
     const totalPetitions  = petitions.length;
-    const totalUsers      = profiles.length;
+    
+    // Separar redatores e clientes
+    const totalClients = profiles.filter(p => {
+      const role = String(p.role || '').toLowerCase().trim();
+      return role === 'client' || role === 'cliente';
+    }).length;
+    
+    const totalWriters = profiles.filter(p => {
+      const role = String(p.role || '').toLowerCase().trim();
+      return role === 'writer' || role === 'redator';
+    }).length;
+    
+    const totalUsers = profiles.length;
 
     // Taxa de conclusão: considerar APENAS 'completed' e 'approved' como concluídas
     // IMPORTANTE: 
@@ -314,7 +326,7 @@ export default function Reports() {
       console.log(`[Reports] Taxa de conclusão calculada: ${completed} concluídas de ${totalPetitions} total = ${completionRate}%`);
     }
 
-    return { totalRevenue, totalPetitions, totalUsers, completionRate };
+    return { totalRevenue, totalPetitions, totalUsers, totalClients, totalWriters, completionRate };
   }, [profiles, petitions, payments]);
 
   /* ---------- Séries ---------- */
@@ -515,6 +527,8 @@ export default function Reports() {
       csvRows.push(`Receita Total,R$ ${stats.totalRevenue.toLocaleString()}`);
       csvRows.push(`Petições,${stats.totalPetitions}`);
       csvRows.push(`Usuários,${stats.totalUsers}`);
+      csvRows.push(`Clientes,${stats.totalClients}`);
+      csvRows.push(`Redatores,${stats.totalWriters}`);
       csvRows.push(`Taxa de Conclusão,${stats.completionRate}%`);
       if (mom.revenueMoM !== null) {
         csvRows.push(`Variação Receita vs Mês Anterior,${mom.revenueMoM > 0 ? '+' : ''}${mom.revenueMoM}%`);
@@ -722,7 +736,9 @@ export default function Reports() {
               <div className="ml-4">
                 <p className="text-sm text-muted-foreground">Usuários</p>
                 <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                <p className="text-xs text-muted-foreground">novos no período</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalClients} clientes • {stats.totalWriters} redatores
+                </p>
               </div>
             </div>
           </CardContent>

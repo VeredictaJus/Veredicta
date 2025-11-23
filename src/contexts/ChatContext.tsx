@@ -393,7 +393,36 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         const filteredMessages = messagesList.filter(
           (msg) => msg.conversation_id === currentConversation.id
         );
-        setMessages(filteredMessages);
+        
+        // ✅ CORREÇÃO: Mesclar mensagens ao invés de substituir completamente (preserva mensagens otimistas)
+        setMessages(prev => {
+          // Manter mensagens otimistas que ainda não foram confirmadas
+          const optimisticMessages = prev.filter(msg => msg.id.startsWith('temp-'));
+          const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
+          
+          // Remover mensagens otimistas que já foram confirmadas
+          const remainingOptimistic = optimisticMessages.filter(optMsg => {
+            const isConfirmed = filteredMessages.some(
+              confirmedMsg => 
+                confirmedMsg.content === optMsg.content &&
+                confirmedMsg.sender_id === optMsg.sender_id &&
+                Math.abs(new Date(confirmedMsg.created_at).getTime() - new Date(optMsg.created_at).getTime()) < 5000
+            );
+            return !isConfirmed;
+          });
+          
+          // Combinar mensagens confirmadas com otimistas restantes
+          const allMessages = [...filteredMessages, ...remainingOptimistic];
+          
+          // Remover duplicatas e ordenar por data
+          const uniqueMessages = Array.from(
+            new Map(allMessages.map(msg => [msg.id, msg])).values()
+          ).sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          
+          return uniqueMessages;
+        });
       } else if (messagesList.length > 0) {
         // Se não há conversa selecionada mas há mensagens, usar todas (pode ser inicialização)
         setMessages(messagesList);

@@ -89,7 +89,7 @@ export const POST: Handler = async (req, res) => {
       metadata: {
         plan: plan,
         include_free_bonus: include_free_bonus ? 'true' : 'false',
-        userId: user_id,
+        user_id: user_id,
       },
       // customer_email será preenchido pelo Stripe no checkout
       // Não precisamos passar aqui, o Stripe pedirá ao usuário

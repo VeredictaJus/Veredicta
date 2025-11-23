@@ -90,10 +90,16 @@ export const NotificationBell: React.FC = () => {
       case 'plan_expired':
       case 'limit_reached':
       case 'limit_near':
+        if (userRole === 'admin') {
+          return '/admin/plans';
+        }
         return `/${userRole}/plans`;
 
       // ===== PAGAMENTOS =====
       case 'payment':
+        if (userRole === 'admin') {
+          return '/admin/pagamentos';
+        }
         if (userRole === 'writer') {
           return '/writer/payments';
         }
@@ -102,6 +108,13 @@ export const NotificationBell: React.FC = () => {
       // ===== PETIÇÕES =====
       case 'petition':
       case 'petition_delivered':
+        if (userRole === 'admin') {
+          // ✅ CORREÇÃO: Admin usa rota específica de peticoes
+          if (entityType === 'petition' && entityId) {
+            return `/admin/peticoes?petition=${entityId}`;
+          }
+          return '/admin/peticoes';
+        }
         if (userRole === 'writer') {
           if (entityType === 'petition' && entityId) {
             return `/writer/my-petitions?petition=${entityId}`;
@@ -160,6 +173,13 @@ export const NotificationBell: React.FC = () => {
 
       // ===== SUPORTE =====
       case 'support':
+        if (userRole === 'admin') {
+          // ✅ CORREÇÃO: Admin usa rota específica de chat-suporte
+          if (entityId) {
+            return `/admin/chat-suporte?conversation=${entityId}`;
+          }
+          return '/admin/chat-suporte';
+        }
         if (entityId) {
           return `/${userRole}/chat?conversation=${entityId}`;
         }

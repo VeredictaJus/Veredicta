@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotifications } from '@/contexts/NotificationContext';
-import Layout from '@/components/Layout/Layout';
 
 const iconMap = {
   FileText,
@@ -96,33 +95,32 @@ export default function AdminNotifications() {
   };
 
   return (
-    <Layout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Bell className="h-7 w-7" />
-              Notificações Administrativas
-              {filteredNotifications.filter(n => !n.read).length > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {filteredNotifications.filter(n => !n.read).length}
-                </Badge>
-              )}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">Monitore atividades do sistema e aprovações pendentes</p>
-          </div>
-          {filteredNotifications.filter(n => !n.read).length > 0 && (
-            <Button onClick={markAllAsRead} variant="outline">
-              Marcar todas como lidas
-            </Button>
-          )}
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Bell className="h-7 w-7" />
+            Notificações Administrativas
+            {filteredNotifications.filter(n => !n.read).length > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {filteredNotifications.filter(n => !n.read).length}
+              </Badge>
+            )}
+          </h1>
+          <p className="text-muted-foreground mt-1">Monitore atividades do sistema e aprovações pendentes</p>
         </div>
+        {filteredNotifications.filter(n => !n.read).length > 0 && (
+          <Button onClick={markAllAsRead} variant="outline">
+            Marcar todas como lidas
+          </Button>
+        )}
+      </div>
 
         {/* Filtros */}
         <div className="flex gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Buscar notificações..."
                 value={search}
@@ -159,7 +157,7 @@ export default function AdminNotifications() {
               return (
                 <Card 
                   key={notification.id}
-                  className={`cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                  className={`cursor-pointer transition-colors hover:bg-accent ${
                     !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/30 dark:border-l-orange-400' : ''
                   }`}
                   onClick={() => handleMarkAsRead(notification.id)}
@@ -174,7 +172,7 @@ export default function AdminNotifications() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className={`text-sm font-medium dark:text-gray-200 ${!notification.read ? 'font-semibold' : ''}`}>
+                          <h3 className={`text-sm font-medium ${!notification.read ? 'font-semibold' : ''}`}>
                             {notification.title}
                           </h3>
                           <div className="flex items-center space-x-2">
@@ -182,13 +180,13 @@ export default function AdminNotifications() {
                               <Badge variant="destructive" className="w-2 h-2 p-0 rounded-full">
                               </Badge>
                             )}
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                               {formatTimestamp(notification.timestamp)}
                             </span>
                           </div>
                         </div>
                         
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {notification.message}
                         </p>
                       </div>
@@ -198,13 +196,13 @@ export default function AdminNotifications() {
               );
             })
           ) : (
-            <Card className="dark:bg-gray-800 dark:border-gray-700">
+            <Card>
               <CardContent className="p-8 text-center">
-                <BellOff className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                <BellOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
                   {search || filter !== 'all' ? 'Nenhuma notificação encontrada' : 'Nenhuma notificação no momento'}
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   {search || filter !== 'all' 
                     ? 'Tente ajustar os filtros ou termos de busca'
                     : 'Sistema funcionando normalmente - sem alertas pendentes'
@@ -214,7 +212,6 @@ export default function AdminNotifications() {
             </Card>
           )}
         </div>
-      </div>
-    </Layout>
+    </div>
   );
 }

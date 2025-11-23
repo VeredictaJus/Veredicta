@@ -805,7 +805,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           .from('app_2d8133c678_notifications')
           .select('id')
           .eq('user_id', recipientId)
-          .eq('type', 'message')
+          .eq('type', 'chat') // ✅ CORREÇÃO: usar 'chat' ao invés de 'message' (não está na lista permitida)
           .eq('related_entity_id', conversation.id)
           .gt('created_at', recentThreshold)
           .maybeSingle();
@@ -814,17 +814,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
         notifications.push({
           user_id: recipientId,
-          type: 'message',
+          type: 'chat', // ✅ CORREÇÃO: usar 'chat' ao invés de 'message' (não está na lista permitida)
           title: `Nova mensagem de ${senderName}`,
           body: preview, // ✅ CORREÇÃO: usar 'body' ao invés de 'message'
           priority: 'normal',
           is_read: false,
           related_entity_type: 'conversation',
-          related_entity_id: conversation.id,
-          meta: {
-            senderName,
-            conversationTitle: conversation.title
-          }
+          related_entity_id: conversation.id
+          // ✅ CORREÇÃO: Removido campo 'meta' que não existe na tabela
         });
       }
 
@@ -1018,6 +1015,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setError('Erro ao enviar mensagem');
         console.error('Erro ao enviar mensagem:', err);
         messageId = null;
+        // ✅ CORREÇÃO: Lançar erro para que o ChatWindow possa tratá-lo e remover a mensagem otimista
+        throw err;
       }
     },
     [currentConversation, queueMessageNotification, user, loadConversationMessages, getPreviewFromMessage]

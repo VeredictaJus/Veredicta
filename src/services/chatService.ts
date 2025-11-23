@@ -1141,7 +1141,13 @@ export class ChatService {
    */
   static async markMessageAsRead(messageId: string): Promise<boolean> {
     try {
-      if (messageId.startsWith('welcome-') || messageId.startsWith('support-message-')) {
+      // ✅ CORREÇÃO: Ignorar IDs temporários (otimistas) que não existem no banco
+      if (
+        messageId.startsWith('welcome-') || 
+        messageId.startsWith('support-message-') ||
+        messageId.startsWith('temp-') ||
+        messageId.startsWith('tmp-')
+      ) {
         return true;
       }
 

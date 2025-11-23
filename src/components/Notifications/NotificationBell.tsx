@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, MessageSquare, FileText, CreditCard, AlertCircle, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,8 +37,31 @@ export const NotificationBell: React.FC = () => {
   };
 
   const getTypeIcon = (type: string) => {
-    // You can add more specific icons based on notification type
-    return '📄'; // Default icon
+    switch (type) {
+      case 'chat':
+      case 'message':
+        return <MessageSquare className="h-4 w-4" />;
+      case 'petition':
+      case 'petition_delivered':
+      case 'petition_available':
+        return <FileText className="h-4 w-4" />;
+      case 'payment':
+        return <CreditCard className="h-4 w-4" />;
+      case 'correction':
+      case 'invoice_rejected':
+      case 'limit_reached':
+      case 'plan_expired':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'deadline':
+      case 'plan_expiring_soon':
+      case 'limit_near':
+      case 'invoice_reminder':
+        return <Clock className="h-4 w-4" />;
+      case 'approval':
+        return <CheckCircle className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -186,8 +209,12 @@ export const NotificationBell: React.FC = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <div className="flex items-center justify-between p-2">
+      <DropdownMenuContent 
+        align="end" 
+        className="w-80 max-h-[calc(100vh-4rem)] overflow-visible z-[100]"
+        sideOffset={8}
+      >
+        <div className="flex items-center justify-between p-2 sticky top-0 bg-background z-10 border-b">
           <DropdownMenuLabel>Notificações</DropdownMenuLabel>
           {unreadCount > 0 && (
             <Button
@@ -208,56 +235,60 @@ export const NotificationBell: React.FC = () => {
             Nenhuma notificação
           </div>
         ) : (
-          <ScrollArea className="h-80">
-            {recentNotifications.map((notification) => {
-              try {
-                return (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    className="p-0 focus:bg-transparent"
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div
-                      className={`w-full p-3 border-l-4 ${
-                        notification.is_read 
-                          ? 'border-transparent bg-transparent' 
-                          : 'border-orange-500 bg-orange-50'
-                      } hover:bg-gray-50 cursor-pointer`}
+          <ScrollArea className="max-h-[60vh]">
+            <div className="pr-4">
+              {recentNotifications.map((notification) => {
+                try {
+                  return (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="p-0 focus:bg-transparent"
+                      onClick={() => handleNotificationClick(notification)}
                     >
-                      <div className="flex items-start justify-between">
+                      <div
+                        className={`w-full p-3 border-l-4 ${
+                          notification.is_read 
+                            ? 'border-transparent bg-transparent' 
+                            : 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
+                        } hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-sm">{getTypeIcon(notification.type || 'system')}</span>
+                            <div className="flex-shrink-0 text-muted-foreground">
+                              {getTypeIcon(notification.type || 'system')}
+                            </div>
                             <p className={`text-sm font-medium truncate ${getPriorityColor(notification.priority || 'normal')}`}>
                               {notification.title || 'Sem título'}
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-1 line-clamp-2">
-                            {notification.message || 'Sem mensagem'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {notification.created_at ? formatTimeAgo(notification.created_at) : 'Agora'}
-                          </p>
+                            <p className="text-xs text-muted-foreground mb-1 line-clamp-2 break-words">
+                              {notification.message || 'Sem mensagem'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {notification.created_at ? formatTimeAgo(notification.created_at) : 'Agora'}
+                            </p>
+                          </div>
+                          {!notification.is_read && (
+                            <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1"></div>
+                          )}
                         </div>
-                        {!notification.is_read && (
-                          <div className="w-2 h-2 bg-orange-500 rounded-full flex-shrink-0 mt-1"></div>
-                        )}
                       </div>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              } catch (error) {
-                console.error('Erro ao renderizar notificação:', notification, error);
-                return null;
-              }
-            })}
+                    </DropdownMenuItem>
+                  );
+                } catch (error) {
+                  console.error('Erro ao renderizar notificação:', notification, error);
+                  return null;
+                }
+              })}
+            </div>
           </ScrollArea>
         )}
         
         {notifications.length > 10 && (
           <>
             <DropdownMenuSeparator />
-            <div className="p-2">
+            <div className="p-2 sticky bottom-0 bg-background border-t">
               <Button 
                 variant="ghost" 
                 size="sm" 

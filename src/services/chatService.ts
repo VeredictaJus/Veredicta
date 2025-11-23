@@ -802,11 +802,27 @@ export class ChatService {
     try {
       const user = await this.getAuthUser();
 
+      // 🚀 PASSO 0: Obter roles dos usuários
+      const { data: currentUserProfile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('firebase_uid', user.uid)
+        .single();
+
+      const { data: targetUserProfile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('firebase_uid', targetUserId)
+        .single();
+
+      const currentUserRole = (currentUserProfile?.role || 'client') as 'client' | 'writer' | 'admin' | 'support';
+      const targetUserRole = (targetUserProfile?.role || 'client') as 'client' | 'writer' | 'admin' | 'support';
+
       // 🚀 PASSO 1: Verificar permissão de comunicação
       const permission = await ConversationPermissionService.canUserCommunicateWith(
         user.uid,
         targetUserId,
-        'client' // TODO: Obter role real do usuário
+        currentUserRole
       );
 
       if (!permission.canCommunicate) {
@@ -821,13 +837,13 @@ export class ChatService {
         return existingConversation.id;
       }
 
-      // 🚀 PASSO 3: Criar nova conversa
+      // 🚀 PASSO 3: Criar nova conversa com roles corretos
       const conversationId = await this.createConversation(
         title,
         permission.conversationType || 'general',
         [
-          { userId: user.uid, role: 'client' }, // TODO: Obter role real
-          { userId: targetUserId, role: 'client' } // TODO: Obter role real do target
+          { userId: user.uid, role: currentUserRole },
+          { userId: targetUserId, role: targetUserRole }
         ]
       );
 
@@ -852,7 +868,7 @@ export class ChatService {
     userId2: string
   ): Promise<Conversation | null> {
     try {
-      // Buscar conversas onde ambos os usuários são participantes
+      // Buscar conversas onde ambos os usuários são participantes usando join
       const { data: conversations, error } = await supabase
         .from('conversations')
         .select(`
@@ -860,16 +876,22 @@ export class ChatService {
           conversation_participants!inner(user_id, role)
         `)
         .neq('status', 'archived')
-        .neq('status', 'closed');
+        .neq('status', 'closed')
+        .in('conversation_participants.user_id', [userId1, userId2]);
 
       if (error) {
         console.error('❌ Erro ao buscar conversas ativas:', error);
         return null;
       }
 
+      if (!conversations || conversations.length === 0) {
+        return null;
+      }
+
       // Filtrar conversas onde ambos os usuários são participantes
-      const activeConversation = conversations?.find(conv => {
+      const activeConversation = conversations.find(conv => {
         const participants = conv.conversation_participants;
+        if (!Array.isArray(participants)) return false;
         const userIds = participants.map((p: any) => p.user_id);
         return userIds.includes(userId1) && userIds.includes(userId2);
       });

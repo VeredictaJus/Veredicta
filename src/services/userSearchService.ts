@@ -166,17 +166,21 @@ export class UserSearchService {
           .select('id')
           .in('id', commonConversations)
           .eq('type', 'support')
+          .neq('status', 'archived')
+          .neq('status', 'closed')
           .order('updated_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (convError) {
-          console.log('⚠️ [UserSearch] Nenhuma conversa de suporte encontrada');
+          console.error('❌ [UserSearch] Erro ao buscar conversa:', convError);
           return null;
         }
 
-        console.log('✅ [UserSearch] Conversa existente encontrada:', conversation?.id);
-        return conversation?.id || null;
+        if (conversation?.id) {
+          console.log('✅ [UserSearch] Conversa existente encontrada:', conversation.id);
+          return conversation.id;
+        }
       }
 
       console.log('⚠️ [UserSearch] Nenhuma conversa existente encontrada');

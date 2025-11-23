@@ -35,13 +35,13 @@ const formatTimestamp = (timestamp: Date) => {
 
 const getTypeColor = (type: string) => {
   switch (type) {
-    case 'user': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
-    case 'system': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-    case 'payment': return 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400';
-    case 'report': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
-    case 'approval': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-    case 'chat_report': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-    default: return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+    case 'user': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+    case 'system': return 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
+    case 'payment': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20';
+    case 'report': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20';
+    case 'approval': return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+    case 'chat_report': return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+    default: return 'bg-muted text-muted-foreground border border-border';
   }
 };
 

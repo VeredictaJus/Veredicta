@@ -220,7 +220,7 @@ export default function MultiAdminChatManager({
           conversationId = await createConversationWithUser(
             targetUser.firebase_uid,
             title,
-            `Olá ${targetUser.full_name || 'usuário'}! Como posso ajudar?`
+            `Olá ${targetUser.full_name || 'usuário'}! Entrei em contato para te ajudar.`
           );
           
           if (!conversationId) {

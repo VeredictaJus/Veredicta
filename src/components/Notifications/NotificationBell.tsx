@@ -130,6 +130,13 @@ export const NotificationBell: React.FC = () => {
       // ===== CHAT / MENSAGENS =====
       case 'chat':
       case 'message':
+        if (userRole === 'admin') {
+          // ✅ CORREÇÃO: Admin usa rota específica de chat-suporte
+          if (entityType === 'conversation' && entityId) {
+            return `/admin/chat-suporte?conversation=${entityId}`;
+          }
+          return '/admin/chat-suporte';
+        }
         if (entityType === 'conversation' && entityId) {
           return `/${userRole}/chat?conversation=${entityId}`;
         }

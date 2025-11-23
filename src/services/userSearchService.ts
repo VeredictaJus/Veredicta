@@ -131,10 +131,9 @@ export class UserSearchService {
    */
   static async checkExistingConversation(adminId: string, userId: string): Promise<string | null> {
     try {
-      console.log('🔍 [UserSearch] Verificando conversa existente entre:', adminId, 'e', userId);
+      console.log('🔍 [UserSearch] Verificando conversa existente entre admin:', adminId, 'e usuário:', userId);
       
-      // Buscar conversas onde ambos são participantes usando uma query mais eficiente
-      // Primeiro, buscar todas as conversas onde o admin é participante
+      // MÉTODO 1: Buscar via conversation_participants (método original)
       const { data: adminConversations, error: adminError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
@@ -142,76 +141,90 @@ export class UserSearchService {
 
       if (adminError) {
         console.error('❌ [UserSearch] Erro ao buscar conversas do admin:', adminError);
-        return null;
       }
 
-      if (!adminConversations || adminConversations.length === 0) {
-        console.log('⚠️ [UserSearch] Admin não tem conversas');
-        return null;
-      }
+      if (adminConversations && adminConversations.length > 0) {
+        const adminConvIds = adminConversations.map(c => c.conversation_id);
+        console.log('📋 [UserSearch] Admin tem', adminConvIds.length, 'conversas');
 
-      const adminConvIds = adminConversations.map(c => c.conversation_id);
+        const { data: userConversations, error: userError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', userId)
+          .in('conversation_id', adminConvIds);
 
-      // Buscar conversas onde o usuário também é participante
-      const { data: userConversations, error: userError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', userId)
-        .in('conversation_id', adminConvIds);
-
-      if (userError) {
-        console.error('❌ [UserSearch] Erro ao buscar conversas do usuário:', userError);
-        return null;
-      }
-
-      if (!userConversations || userConversations.length === 0) {
-        console.log('⚠️ [UserSearch] Nenhuma conversa em comum encontrada');
-        return null;
-      }
-
-      // Encontrar conversas em comum
-      const userConvIds = userConversations.map(c => c.conversation_id);
-      const commonConversations = adminConvIds.filter(id => userConvIds.includes(id));
-
-      if (commonConversations.length > 0) {
-        // Primeiro, buscar conversas ATIVAS (não arquivadas e não fechadas)
-        const { data: activeConversation, error: activeError } = await supabase
-          .from('conversations')
-          .select('id, type, status')
-          .in('id', commonConversations)
-          .eq('status', 'active')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!activeError && activeConversation?.id) {
-          console.log('✅ [UserSearch] Conversa ATIVA encontrada:', activeConversation.id, 'tipo:', activeConversation.type, 'status:', activeConversation.status);
-          return activeConversation.id;
+        if (userError) {
+          console.error('❌ [UserSearch] Erro ao buscar conversas do usuário:', userError);
         }
 
-        // Se não encontrou ativa, buscar qualquer conversa que não esteja arquivada
-        // (pode estar 'in_progress', 'pending', etc)
-        const { data: anyConversation, error: anyError } = await supabase
-          .from('conversations')
-          .select('id, type, status')
-          .in('id', commonConversations)
-          .neq('status', 'archived')
-          .neq('status', 'closed')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        if (userConversations && userConversations.length > 0) {
+          const userConvIds = userConversations.map(c => c.conversation_id);
+          const commonConversations = adminConvIds.filter(id => userConvIds.includes(id));
+          console.log('📋 [UserSearch] Encontradas', commonConversations.length, 'conversas em comum');
 
-        if (!anyError && anyConversation?.id) {
-          console.log('✅ [UserSearch] Conversa existente (não arquivada) encontrada:', anyConversation.id, 'tipo:', anyConversation.type, 'status:', anyConversation.status);
-          return anyConversation.id;
-        }
+          if (commonConversations.length > 0) {
+            // Buscar conversas ATIVAS primeiro
+            const { data: activeConversation, error: activeError } = await supabase
+              .from('conversations')
+              .select('id, type, status, updated_at')
+              .in('id', commonConversations)
+              .eq('status', 'active')
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-        if (activeError || anyError) {
-          console.error('❌ [UserSearch] Erro ao buscar conversa:', activeError || anyError);
+            if (!activeError && activeConversation?.id) {
+              console.log('✅ [UserSearch] Conversa ATIVA encontrada (método 1):', activeConversation.id, 'status:', activeConversation.status);
+              return activeConversation.id;
+            }
+
+            // Se não encontrou ativa, buscar qualquer conversa não arquivada/fechada
+            const { data: anyConversation, error: anyError } = await supabase
+              .from('conversations')
+              .select('id, type, status, updated_at')
+              .in('id', commonConversations)
+              .neq('status', 'archived')
+              .neq('status', 'closed')
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!anyError && anyConversation?.id) {
+              console.log('✅ [UserSearch] Conversa existente encontrada (método 1):', anyConversation.id, 'status:', anyConversation.status);
+              return anyConversation.id;
+            }
+          }
         }
       }
 
-      console.log('⚠️ [UserSearch] Nenhuma conversa existente encontrada');
+      // MÉTODO 2: Buscar diretamente na tabela conversations usando join
+      console.log('🔄 [UserSearch] Tentando método alternativo (join direto)...');
+      const { data: directConversations, error: directError } = await supabase
+        .from('conversations')
+        .select(`
+          id, type, status, updated_at,
+          conversation_participants!inner(user_id)
+        `)
+        .eq('conversation_participants.user_id', adminId)
+        .neq('status', 'archived')
+        .neq('status', 'closed')
+        .order('updated_at', { ascending: false });
+
+      if (!directError && directConversations && directConversations.length > 0) {
+        // Filtrar conversas onde o userId também é participante
+        for (const conv of directConversations) {
+          const participants = (conv as any).conversation_participants;
+          if (Array.isArray(participants)) {
+            const participantIds = participants.map((p: any) => p.user_id);
+            if (participantIds.includes(adminId) && participantIds.includes(userId)) {
+              console.log('✅ [UserSearch] Conversa encontrada (método 2):', conv.id, 'status:', conv.status);
+              return conv.id;
+            }
+          }
+        }
+      }
+
+      console.log('⚠️ [UserSearch] Nenhuma conversa existente encontrada após todos os métodos');
       return null;
 
     } catch (error) {

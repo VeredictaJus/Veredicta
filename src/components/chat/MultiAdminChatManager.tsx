@@ -174,6 +174,11 @@ export default function MultiAdminChatManager({
         // Se já existe, abrir a conversa existente
         console.log('✅ Conversa existente encontrada:', existingConversationId);
         conversationId = existingConversationId;
+        
+        // Recarregar dados para garantir que a conversa está atualizada na lista
+        console.log('🔄 Recarregando dados para conversa existente...');
+        await loadData();
+        
         toast({
           title: 'Sucesso',
           description: 'Conversa existente aberta'

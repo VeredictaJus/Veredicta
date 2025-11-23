@@ -133,7 +133,8 @@ export class UserSearchService {
     try {
       console.log('🔍 [UserSearch] Verificando conversa existente entre:', adminId, 'e', userId);
       
-      // Buscar conversas onde ambos são participantes
+      // Buscar conversas onde ambos são participantes usando uma query mais eficiente
+      // Primeiro, buscar todas as conversas onde o admin é participante
       const { data: adminConversations, error: adminError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
@@ -144,28 +145,41 @@ export class UserSearchService {
         return null;
       }
 
+      if (!adminConversations || adminConversations.length === 0) {
+        console.log('⚠️ [UserSearch] Admin não tem conversas');
+        return null;
+      }
+
+      const adminConvIds = adminConversations.map(c => c.conversation_id);
+
+      // Buscar conversas onde o usuário também é participante
       const { data: userConversations, error: userError } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .in('conversation_id', adminConvIds);
 
       if (userError) {
         console.error('❌ [UserSearch] Erro ao buscar conversas do usuário:', userError);
         return null;
       }
 
+      if (!userConversations || userConversations.length === 0) {
+        console.log('⚠️ [UserSearch] Nenhuma conversa em comum encontrada');
+        return null;
+      }
+
       // Encontrar conversas em comum
-      const adminConvIds = adminConversations?.map(c => c.conversation_id) || [];
-      const userConvIds = userConversations?.map(c => c.conversation_id) || [];
+      const userConvIds = userConversations.map(c => c.conversation_id);
       const commonConversations = adminConvIds.filter(id => userConvIds.includes(id));
 
       if (commonConversations.length > 0) {
-        // Buscar a conversa mais recente
+        // Buscar a conversa mais recente que não está arquivada ou fechada
+        // Não filtrar por tipo, buscar qualquer conversa ativa
         const { data: conversation, error: convError } = await supabase
           .from('conversations')
-          .select('id')
+          .select('id, type, status')
           .in('id', commonConversations)
-          .eq('type', 'support')
           .neq('status', 'archived')
           .neq('status', 'closed')
           .order('updated_at', { ascending: false })
@@ -178,7 +192,7 @@ export class UserSearchService {
         }
 
         if (conversation?.id) {
-          console.log('✅ [UserSearch] Conversa existente encontrada:', conversation.id);
+          console.log('✅ [UserSearch] Conversa existente encontrada:', conversation.id, 'tipo:', conversation.type);
           return conversation.id;
         }
       }

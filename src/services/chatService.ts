@@ -868,35 +868,68 @@ export class ChatService {
     userId2: string
   ): Promise<Conversation | null> {
     try {
-      // Buscar conversas onde ambos os usuários são participantes usando join
-      const { data: conversations, error } = await supabase
+      console.log('🔍 [ChatService] Buscando conversa ativa entre:', userId1, 'e', userId2);
+      
+      // Buscar conversas onde ambos os usuários são participantes
+      // Primeiro, buscar conversas onde userId1 é participante
+      const { data: user1Conversations, error: user1Error } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', userId1);
+
+      if (user1Error) {
+        console.error('❌ Erro ao buscar conversas do usuário 1:', user1Error);
+        return null;
+      }
+
+      if (!user1Conversations || user1Conversations.length === 0) {
+        console.log('⚠️ [ChatService] Usuário 1 não tem conversas');
+        return null;
+      }
+
+      const user1ConvIds = user1Conversations.map(c => c.conversation_id);
+
+      // Buscar conversas onde userId2 também é participante
+      const { data: user2Conversations, error: user2Error } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', userId2)
+        .in('conversation_id', user1ConvIds);
+
+      if (user2Error) {
+        console.error('❌ Erro ao buscar conversas do usuário 2:', user2Error);
+        return null;
+      }
+
+      if (!user2Conversations || user2Conversations.length === 0) {
+        console.log('⚠️ [ChatService] Nenhuma conversa em comum encontrada');
+        return null;
+      }
+
+      const commonConvIds = user2Conversations.map(c => c.conversation_id);
+
+      // Buscar a conversa mais recente que não está arquivada ou fechada
+      const { data: conversation, error: convError } = await supabase
         .from('conversations')
-        .select(`
-          id, title, type, status, priority, created_by, created_at, updated_at,
-          conversation_participants!inner(user_id, role)
-        `)
+        .select('id, title, type, status, priority, created_by, created_at, updated_at')
+        .in('id', commonConvIds)
         .neq('status', 'archived')
         .neq('status', 'closed')
-        .in('conversation_participants.user_id', [userId1, userId2]);
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) {
-        console.error('❌ Erro ao buscar conversas ativas:', error);
+      if (convError) {
+        console.error('❌ Erro ao buscar conversa:', convError);
         return null;
       }
 
-      if (!conversations || conversations.length === 0) {
-        return null;
+      if (conversation) {
+        console.log('✅ [ChatService] Conversa ativa encontrada:', conversation.id, 'tipo:', conversation.type);
+        return conversation as Conversation;
       }
 
-      // Filtrar conversas onde ambos os usuários são participantes
-      const activeConversation = conversations.find(conv => {
-        const participants = conv.conversation_participants;
-        if (!Array.isArray(participants)) return false;
-        const userIds = participants.map((p: any) => p.user_id);
-        return userIds.includes(userId1) && userIds.includes(userId2);
-      });
-
-      return activeConversation || null;
+      return null;
 
     } catch (error) {
       console.error('❌ Erro ao buscar conversa ativa:', error);

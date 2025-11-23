@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     // Usa nomes seguros primeiro: STRIPE_WEBHOOK_SIGNING, depois fallback para nomes antigos
     const webhookSecret = getEnvVar('STRIPE_WEBHOOK_SIGNING', 'STRIPE_WEBHOOK_SECRET', '') || 
-                          getEnvVar('', 'VITE_STRIPE_WEBHOOK_SECRET', '');
+                          process.env.VITE_STRIPE_WEBHOOK_SECRET || '';
     
     event = stripe.webhooks.constructEvent(
       body,

@@ -191,7 +191,33 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       const filteredMessages = contextMessages.filter(
         (msg) => msg.conversation_id === currentConversation.id
       );
-      setMessages(filteredMessages);
+      
+      // ✅ CORREÇÃO: Mesclar mensagens otimistas (temporárias) com as do contexto
+      // Manter mensagens otimistas que ainda não foram confirmadas
+      setMessages(prev => {
+        const optimisticMessages = prev.filter(msg => msg.id.startsWith('temp-'));
+        const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
+        
+        // Remover mensagens otimistas que já foram confirmadas (mesmo conteúdo e remetente)
+        const remainingOptimistic = optimisticMessages.filter(optMsg => {
+          // Verificar se já existe uma mensagem confirmada com o mesmo conteúdo e remetente
+          const isConfirmed = filteredMessages.some(
+            confirmedMsg => 
+              confirmedMsg.content === optMsg.content &&
+              confirmedMsg.sender_id === optMsg.sender_id &&
+              Math.abs(new Date(confirmedMsg.created_at).getTime() - new Date(optMsg.created_at).getTime()) < 5000
+          );
+          return !isConfirmed;
+        });
+        
+        // Combinar mensagens confirmadas com otimistas restantes
+        const allMessages = [...filteredMessages, ...remainingOptimistic];
+        
+        // Ordenar por data de criação
+        return allMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
     } else {
       // Se não há conversa selecionada, limpar mensagens
       setMessages([]);
@@ -661,7 +687,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
   // Enviar mensagem
   const handleSendMessage = async () => {
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() || !currentConversation) return;
 
     const content = messageInput.trim();
     
@@ -676,31 +702,40 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       });
     }
     
+    const tempId = `temp-${Date.now()}`;
     setMessageInput('');
     setIsTyping(true);
 
+    const optimisticMessage: Message = {
+      id: tempId,
+      conversation_id: currentConversation.id,
+      sender_id: user?.uid ?? 'me',
+      content: filteredContent,
+      message_type: 'text',
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      sender: {
+        id: user?.uid ?? 'me',
+        name: user?.profile?.full_name || user?.email || 'Você',
+        role: currentConversation.type === 'support' ? 'client' : (currentConversation.type ?? 'client'),
+      },
+    };
+
+    // Adicionar mensagem otimista
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversation_id: currentConversation.id,
-        sender_id: user?.uid ?? 'me',
-        content: filteredContent,
-        message_type: 'text',
-        status: 'sending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        sender: {
-          id: user?.uid ?? 'me',
-          name: user?.profile?.full_name || user?.email || 'Você',
-          role: currentConversation.type === 'support' ? 'client' : (currentConversation.type ?? 'client'),
-        },
-      };
-
-      setMessages(prev => [...prev, optimisticMessage]);
-
       await sendMessage(filteredContent); // Envia a mensagem filtrada
+      // Se chegou aqui, a mensagem foi enviada com sucesso
+      // A mensagem otimista será substituída pela mensagem real quando chegar via real-time
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
+      // Remover mensagem otimista em caso de erro
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      toast.error('Erro ao enviar mensagem. Tente novamente.', {
+        description: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     } finally {
       setIsTyping(false);
     }

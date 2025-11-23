@@ -159,8 +159,8 @@ export default function AdminNotifications() {
               return (
                 <Card 
                   key={notification.id}
-                  className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                    !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/20 dark:border-l-orange-400' : ''
+                  className={`cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                    !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/30 dark:border-l-orange-400' : ''
                   }`}
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
@@ -198,7 +198,7 @@ export default function AdminNotifications() {
               );
             })
           ) : (
-            <Card>
+            <Card className="dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="p-8 text-center">
                 <BellOff className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">

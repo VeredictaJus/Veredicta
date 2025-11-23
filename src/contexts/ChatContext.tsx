@@ -672,6 +672,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setIsLoadingOlderMessages(false);
       isLoadingOlderMessagesRef.current = false;
       
+      // ✅ CORREÇÃO: Se a conversa foi criada recentemente (últimos 2 segundos), aguardar um pouco
+      // para garantir que mensagens automáticas sejam salvas antes de carregar
+      const conversationAge = conversation.created_at 
+        ? Date.now() - new Date(conversation.created_at).getTime()
+        : Infinity;
+      const isRecentlyCreated = conversationAge < 2000; // Criada há menos de 2 segundos
+      
+      if (isRecentlyCreated) {
+        // Aguardar um pouco para garantir que mensagens automáticas sejam processadas
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+      
       // Carregar mensagens da nova conversa
       const messagesData = await ChatService.getConversationMessages(conversationId, {
         limit: MESSAGE_PAGE_SIZE,

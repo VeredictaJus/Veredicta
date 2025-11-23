@@ -681,7 +681,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       
       if (isRecentlyCreated) {
         // Aguardar um pouco para garantir que mensagens automáticas sejam processadas
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Mas não bloquear - carregar em paralelo
+        await new Promise(resolve => setTimeout(resolve, 300)); // Reduzido de 800ms para 300ms
       }
       
       // Carregar mensagens da nova conversa
@@ -971,8 +972,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           }, 1500);
         }
 
-        await queueMessageNotification(currentConversation, content);
-        await loadConversationMessages(currentConversation.id);
+        // ✅ CORREÇÃO: Executar operações pesadas em background (não bloqueiam o envio)
+        queueMessageNotification(currentConversation, content).catch(err => {
+          console.error('Erro ao criar notificação:', err);
+        });
+        
+        // Não recarregar mensagens após envio - a mensagem já foi adicionada otimisticamente
+        // e será atualizada via real-time quando chegar do servidor
+        // loadConversationMessages(currentConversation.id).catch(err => {
+        //   console.error('Erro ao recarregar mensagens:', err);
+        // });
       } catch (err) {
         console.error('Erro ao enviar mensagem:', err);
         

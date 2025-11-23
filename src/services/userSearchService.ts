@@ -131,8 +131,6 @@ export class UserSearchService {
    */
   static async checkExistingConversation(adminId: string, userId: string): Promise<string | null> {
     try {
-      console.log('🔍 [UserSearch] Verificando conversa existente entre admin:', adminId, 'e usuário:', userId);
-      
       // MÉTODO 1: Buscar via conversation_participants (método original)
       const { data: adminConversations, error: adminError } = await supabase
         .from('conversation_participants')
@@ -145,7 +143,6 @@ export class UserSearchService {
 
       if (adminConversations && adminConversations.length > 0) {
         const adminConvIds = adminConversations.map(c => c.conversation_id);
-        console.log('📋 [UserSearch] Admin tem', adminConvIds.length, 'conversas');
 
         const { data: userConversations, error: userError } = await supabase
           .from('conversation_participants')
@@ -160,7 +157,6 @@ export class UserSearchService {
         if (userConversations && userConversations.length > 0) {
           const userConvIds = userConversations.map(c => c.conversation_id);
           const commonConversations = adminConvIds.filter(id => userConvIds.includes(id));
-          console.log('📋 [UserSearch] Encontradas', commonConversations.length, 'conversas em comum');
 
           if (commonConversations.length > 0) {
             // Buscar conversas ATIVAS primeiro
@@ -174,7 +170,6 @@ export class UserSearchService {
               .maybeSingle();
 
             if (!activeError && activeConversation?.id) {
-              console.log('✅ [UserSearch] Conversa ATIVA encontrada (método 1):', activeConversation.id, 'status:', activeConversation.status);
               return activeConversation.id;
             }
 
@@ -190,7 +185,6 @@ export class UserSearchService {
               .maybeSingle();
 
             if (!anyError && anyConversation?.id) {
-              console.log('✅ [UserSearch] Conversa existente encontrada (método 1):', anyConversation.id, 'status:', anyConversation.status);
               return anyConversation.id;
             }
           }
@@ -198,7 +192,6 @@ export class UserSearchService {
       }
 
       // MÉTODO 2: Buscar diretamente na tabela conversations usando join
-      console.log('🔄 [UserSearch] Tentando método alternativo (join direto)...');
       const { data: directConversations, error: directError } = await supabase
         .from('conversations')
         .select(`
@@ -217,14 +210,12 @@ export class UserSearchService {
           if (Array.isArray(participants)) {
             const participantIds = participants.map((p: any) => p.user_id);
             if (participantIds.includes(adminId) && participantIds.includes(userId)) {
-              console.log('✅ [UserSearch] Conversa encontrada (método 2):', conv.id, 'status:', conv.status);
               return conv.id;
             }
           }
         }
       }
 
-      console.log('⚠️ [UserSearch] Nenhuma conversa existente encontrada após todos os métodos');
       return null;
 
     } catch (error) {

@@ -149,8 +149,6 @@ export default function MultiAdminChatManager({
   // ✅ NOVO: Iniciar conversa com usuário ativo
   const handleStartConversationWithUser = async (targetUser: UserSearchResult) => {
     try {
-      console.log('🔄 Iniciando conversa com usuário:', targetUser);
-      
       if (!user?.uid) {
         console.error('❌ Usuário não autenticado');
         toast({
@@ -162,19 +160,15 @@ export default function MultiAdminChatManager({
       }
 
       // Verificar se já existe conversa
-      console.log('🔍 [MultiAdmin] Verificando se já existe conversa entre:', user.uid, 'e', targetUser.firebase_uid);
       const existingConversationId = await UserSearchService.checkExistingConversation(
         user.uid,
         targetUser.firebase_uid
       );
 
-      console.log('🔍 [MultiAdmin] Resultado da verificação:', existingConversationId ? `Encontrada: ${existingConversationId}` : 'Não encontrada');
-
       let conversationId: string;
 
       if (existingConversationId) {
         // Se já existe, abrir a conversa existente IMEDIATAMENTE
-        console.log('✅ Conversa existente encontrada:', existingConversationId);
         conversationId = existingConversationId;
         
         // Abrir a conversa imediatamente (sem esperar recarregar dados)
@@ -196,14 +190,12 @@ export default function MultiAdminChatManager({
         });
       } else {
         // Verificar novamente antes de criar (fallback - pode ter sido criada entre as verificações)
-        console.log('🔍 [MultiAdmin] Verificação dupla antes de criar...');
         const doubleCheckId = await UserSearchService.checkExistingConversation(
           user.uid,
           targetUser.firebase_uid
         );
         
         if (doubleCheckId) {
-          console.log('✅ [MultiAdmin] Conversa encontrada na verificação dupla:', doubleCheckId);
           conversationId = doubleCheckId;
           
           // Abrir a conversa existente
@@ -224,7 +216,6 @@ export default function MultiAdminChatManager({
           });
         } else {
           // Criar nova conversa (a função createConversationWithUser também verifica antes de criar)
-          console.log('📝 [MultiAdmin] Nenhuma conversa encontrada, criando nova...');
           const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
           conversationId = await createConversationWithUser(
             targetUser.firebase_uid,
@@ -235,8 +226,6 @@ export default function MultiAdminChatManager({
           if (!conversationId) {
             throw new Error('Falha ao criar conversa: ID não retornado');
           }
-          
-          console.log('✅ [MultiAdmin] Conversa criada com sucesso:', conversationId);
           
           // Abrir a conversa IMEDIATAMENTE após criar
           emitConversationSelection(conversationId, {
@@ -257,8 +246,6 @@ export default function MultiAdminChatManager({
           });
         }
       }
-      
-      console.log('✅ Conversa aberta com sucesso');
     } catch (error) {
       console.error('❌ Erro ao iniciar conversa:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';

@@ -868,8 +868,6 @@ export class ChatService {
     userId2: string
   ): Promise<Conversation | null> {
     try {
-      console.log('🔍 [ChatService] Buscando conversa ativa entre:', userId1, 'e', userId2);
-      
       // Buscar conversas onde ambos os usuários são participantes
       // Primeiro, buscar conversas onde userId1 é participante
       const { data: user1Conversations, error: user1Error } = await supabase
@@ -883,7 +881,6 @@ export class ChatService {
       }
 
       if (!user1Conversations || user1Conversations.length === 0) {
-        console.log('⚠️ [ChatService] Usuário 1 não tem conversas');
         return null;
       }
 
@@ -902,7 +899,6 @@ export class ChatService {
       }
 
       if (!user2Conversations || user2Conversations.length === 0) {
-        console.log('⚠️ [ChatService] Nenhuma conversa em comum encontrada');
         return null;
       }
 
@@ -919,7 +915,6 @@ export class ChatService {
         .maybeSingle();
 
       if (!activeError && activeConversation) {
-        console.log('✅ [ChatService] Conversa ATIVA encontrada:', activeConversation.id, 'tipo:', activeConversation.type, 'status:', activeConversation.status);
         return activeConversation as Conversation;
       }
 
@@ -935,7 +930,6 @@ export class ChatService {
         .maybeSingle();
 
       if (!anyError && anyConversation) {
-        console.log('✅ [ChatService] Conversa existente (não arquivada) encontrada:', anyConversation.id, 'tipo:', anyConversation.type, 'status:', anyConversation.status);
         return anyConversation as Conversation;
       }
 
@@ -943,7 +937,6 @@ export class ChatService {
         console.error('❌ Erro ao buscar conversa:', activeError || anyError);
       }
 
-      console.log('⚠️ [ChatService] Nenhuma conversa ativa encontrada');
       return null;
 
     } catch (error) {

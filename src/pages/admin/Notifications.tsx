@@ -35,13 +35,13 @@ const formatTimestamp = (timestamp: Date) => {
 
 const getTypeColor = (type: string) => {
   switch (type) {
-    case 'user': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
-    case 'system': return 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
-    case 'payment': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20';
-    case 'report': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20';
-    case 'approval': return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
-    case 'chat_report': return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
-    default: return 'bg-muted text-muted-foreground border border-border';
+    case 'user': return 'bg-blue-500 text-white dark:bg-blue-600';
+    case 'system': return 'bg-green-500 text-white dark:bg-green-600';
+    case 'payment': return 'bg-orange-500 text-white dark:bg-orange-600';
+    case 'report': return 'bg-purple-500 text-white dark:bg-purple-600';
+    case 'approval': return 'bg-red-500 text-white dark:bg-red-600';
+    case 'chat_report': return 'bg-red-500 text-white dark:bg-red-600';
+    default: return 'bg-gray-500 text-white dark:bg-gray-600';
   }
 };
 

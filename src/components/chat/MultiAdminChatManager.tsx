@@ -149,7 +149,10 @@ export default function MultiAdminChatManager({
   // ✅ NOVO: Iniciar conversa com usuário ativo
   const handleStartConversationWithUser = async (targetUser: UserSearchResult) => {
     try {
+      console.log('🔄 Iniciando conversa com usuário:', targetUser);
+      
       if (!user?.uid) {
+        console.error('❌ Usuário não autenticado');
         toast({
           title: 'Erro',
           description: 'Usuário não autenticado',
@@ -159,6 +162,7 @@ export default function MultiAdminChatManager({
       }
 
       // Verificar se já existe conversa
+      console.log('🔍 Verificando se já existe conversa...');
       const existingConversationId = await UserSearchService.checkExistingConversation(
         user.uid,
         targetUser.firebase_uid
@@ -168,6 +172,7 @@ export default function MultiAdminChatManager({
 
       if (existingConversationId) {
         // Se já existe, abrir a conversa existente
+        console.log('✅ Conversa existente encontrada:', existingConversationId);
         conversationId = existingConversationId;
         toast({
           title: 'Sucesso',
@@ -175,19 +180,31 @@ export default function MultiAdminChatManager({
         });
       } else {
         // Criar nova conversa
+        console.log('📝 Criando nova conversa...');
         const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
         conversationId = await createConversationWithUser(
           targetUser.firebase_uid,
           title,
           `Olá ${targetUser.full_name || 'usuário'}! Como posso ajudar?`
         );
+        
+        if (!conversationId) {
+          throw new Error('Falha ao criar conversa: ID não retornado');
+        }
+        
+        console.log('✅ Conversa criada com sucesso:', conversationId);
         toast({
           title: 'Sucesso',
           description: 'Conversa criada com sucesso'
         });
+        
+        // Recarregar dados para incluir a nova conversa na lista
+        console.log('🔄 Recarregando dados...');
+        await loadData();
       }
 
       // Abrir a conversa
+      console.log('🚀 Abrindo conversa:', conversationId);
       emitConversationSelection(conversationId, {
         conversation_id: conversationId,
         title: `Conversa com ${targetUser.full_name || targetUser.email}`,
@@ -196,11 +213,13 @@ export default function MultiAdminChatManager({
         status: 'active',
         type: 'support',
       });
+      console.log('✅ Conversa aberta com sucesso');
     } catch (error) {
-      console.error('Erro ao iniciar conversa:', error);
+      console.error('❌ Erro ao iniciar conversa:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: 'Erro',
-        description: 'Erro ao iniciar conversa',
+        description: `Erro ao iniciar conversa: ${errorMessage}`,
         variant: 'destructive'
       });
     }

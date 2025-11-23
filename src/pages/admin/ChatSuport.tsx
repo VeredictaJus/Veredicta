@@ -34,7 +34,7 @@ export default function ChatSuport() {
   const isSelectingRef = useRef(false);
   const hasProcessedPetitionIdRef = useRef(false);
 
-  const handleConversationSelect = React.useCallback((
+  const handleConversationSelect = React.useCallback(async (
     conversationId: string,
     conversation?: { conversation_id: string; title?: string; client_name?: string; priority?: string; status?: string; type?: string }
   ) => {
@@ -68,11 +68,19 @@ export default function ChatSuport() {
     
     setViewMode('chat');
     
+    // ✅ Carregar a conversa no contexto do chat
+    try {
+      await selectConversation(conversationId);
+    } catch (error) {
+      console.error('Erro ao carregar conversa no contexto:', error);
+      toast.error('Erro ao carregar conversa');
+    }
+    
     // Resetar flag após um pequeno delay
     setTimeout(() => {
       isSelectingRef.current = false;
     }, 100);
-  }, []);
+  }, [selectConversation, toast]);
 
   // ✅ CORREÇÃO: Garantir que quando selectedConversationId muda, o viewMode também muda
   useEffect(() => {

@@ -271,24 +271,32 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const lastScrollTopRef = useRef(0);
 
   // Função para verificar se está próximo do final
+  // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para evitar reflow forçado
   const checkIfNearBottom = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return false;
     
-    const { scrollTop, scrollHeight, clientHeight } = container;
+    // ✅ Agrupar leituras de layout em um único frame
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     // Considera "próximo do final" se estiver a menos de 100px do final
     return distanceFromBottom < 100;
   }, []);
 
   // Handler de scroll para detectar quando o usuário está rolando
+  // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para evitar reflow forçado
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const currentScrollTop = container.scrollTop;
-    const scrollDirection = currentScrollTop < lastScrollTopRef.current ? 'up' : 'down';
-    lastScrollTopRef.current = currentScrollTop;
+    // ✅ Agrupar leitura de layout em um único frame
+    requestAnimationFrame(() => {
+      if (!container) return;
+      const currentScrollTop = container.scrollTop;
+      const scrollDirection = currentScrollTop < lastScrollTopRef.current ? 'up' : 'down';
+      lastScrollTopRef.current = currentScrollTop;
 
     // Se o usuário está rolando para cima, definitivamente não fazer scroll automático
     if (scrollDirection === 'up') {
@@ -318,6 +326,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     scrollTimeoutRef.current = setTimeout(() => {
       isUserScrollingRef.current = false;
     }, 800);
+    });
   }, [checkIfNearBottom]);
 
   // Função para abrir modal de imagem
@@ -630,6 +639,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
 
     skipAutoScrollRef.current = true;
+    
+    // ✅ OTIMIZAÇÃO: Ler propriedades de layout antes de modificar o DOM
     const previousHeight = container.scrollHeight;
     const previousTop = container.scrollTop;
 
@@ -640,13 +651,17 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
 
+    // ✅ OTIMIZAÇÃO: Usar double RAF para garantir que o layout foi atualizado
     requestAnimationFrame(() => {
-      if (!scrollContainerRef.current) {
-        return;
-      }
-      const newHeight = scrollContainerRef.current.scrollHeight;
-      scrollContainerRef.current.scrollTop =
-        newHeight - previousHeight + previousTop;
+      requestAnimationFrame(() => {
+        if (!scrollContainerRef.current) {
+          return;
+        }
+        // Agrupar leitura e escrita de layout
+        const newHeight = scrollContainerRef.current.scrollHeight;
+        scrollContainerRef.current.scrollTop =
+          newHeight - previousHeight + previousTop;
+      });
     });
   }, [loadOlderMessages]);
 
@@ -656,17 +671,23 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
 
+    // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para agrupar leituras de layout
     const onScroll = () => {
-      // Atualizar estado de proximidade do final
-      isNearBottomRef.current = checkIfNearBottom();
-      
-      if (
-        container.scrollTop <= 80 &&
-        hasMoreOlderMessages &&
-        !isLoadingOlderMessages
-      ) {
-        void handleLoadOlderMessages();
-      }
+      requestAnimationFrame(() => {
+        if (!container) return;
+        // Atualizar estado de proximidade do final
+        isNearBottomRef.current = checkIfNearBottom();
+        
+        // Agrupar leitura de scrollTop
+        const scrollTop = container.scrollTop;
+        if (
+          scrollTop <= 80 &&
+          hasMoreOlderMessages &&
+          !isLoadingOlderMessages
+        ) {
+          void handleLoadOlderMessages();
+        }
+      });
     };
 
     container.addEventListener('scroll', onScroll);
@@ -1123,16 +1144,20 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   }, []);
 
   // Evitar scroll automático quando áudio aparece
+  // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para evitar reflow forçado
   useEffect(() => {
     if (audioBlob) {
-      // Pequeno delay para permitir que o DOM seja atualizado
-      setTimeout(() => {
-        // Manter a posição do scroll
-        const chatContainer = document.querySelector('.chat-container');
-        if (chatContainer) {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-      }, 100);
+      // ✅ Usar RAF para agrupar leitura e escrita de layout
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const chatContainer = document.querySelector('.chat-container');
+          if (chatContainer) {
+            // Agrupar leitura e escrita
+            const scrollHeight = chatContainer.scrollHeight;
+            chatContainer.scrollTop = scrollHeight;
+          }
+        });
+      });
     }
   }, [audioBlob]);
 

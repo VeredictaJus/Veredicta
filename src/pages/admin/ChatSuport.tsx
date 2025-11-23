@@ -68,11 +68,14 @@ export default function ChatSuport() {
     
     setViewMode('chat');
     
-    // ✅ Carregar a conversa no contexto do chat em background (não bloqueia a abertura)
-    selectConversation(conversationId).catch((error) => {
-      console.error('Erro ao carregar conversa no contexto:', error);
-      toast.error('Erro ao carregar conversa');
-    });
+    // ✅ Carregar a conversa no contexto do chat com pequeno delay para garantir que mensagens automáticas sejam salvas
+    // Isso é especialmente importante para conversas criadas via "Iniciar Conversa" que têm mensagem automática
+    setTimeout(() => {
+      selectConversation(conversationId).catch((error) => {
+        console.error('Erro ao carregar conversa no contexto:', error);
+        toast.error('Erro ao carregar conversa');
+      });
+    }, 500); // Pequeno delay para garantir que mensagens automáticas sejam processadas
     
     // Resetar flag após um pequeno delay
     setTimeout(() => {

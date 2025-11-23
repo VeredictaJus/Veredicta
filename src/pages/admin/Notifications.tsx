@@ -36,13 +36,13 @@ const formatTimestamp = (timestamp: Date) => {
 
 const getTypeColor = (type: string) => {
   switch (type) {
-    case 'user': return 'bg-blue-100 text-blue-600';
-    case 'system': return 'bg-green-100 text-green-600';
-    case 'payment': return 'bg-orange-100 text-orange-600';
-    case 'report': return 'bg-purple-100 text-purple-600';
-    case 'approval': return 'bg-red-100 text-red-600';
-    case 'chat_report': return 'bg-red-100 text-red-600';
-    default: return 'bg-gray-100 text-gray-600';
+    case 'user': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'system': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+    case 'payment': return 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400';
+    case 'report': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
+    case 'approval': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+    case 'chat_report': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+    default: return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
   }
 };
 
@@ -100,7 +100,7 @@ export default function AdminNotifications() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Bell className="h-7 w-7" />
               Notificações Administrativas
               {filteredNotifications.filter(n => !n.read).length > 0 && (
@@ -109,7 +109,7 @@ export default function AdminNotifications() {
                 </Badge>
               )}
             </h1>
-            <p className="text-gray-600">Monitore atividades do sistema e aprovações pendentes</p>
+            <p className="text-gray-600 dark:text-gray-400">Monitore atividades do sistema e aprovações pendentes</p>
           </div>
           {filteredNotifications.filter(n => !n.read).length > 0 && (
             <Button onClick={markAllAsRead} variant="outline">
@@ -122,7 +122,7 @@ export default function AdminNotifications() {
         <div className="flex gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
               <Input
                 placeholder="Buscar notificações..."
                 value={search}
@@ -159,8 +159,8 @@ export default function AdminNotifications() {
               return (
                 <Card 
                   key={notification.id}
-                  className={`cursor-pointer transition-colors hover:bg-gray-50 ${
-                    !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50' : ''
+                  className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                    !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/20 dark:border-l-orange-400' : ''
                   }`}
                   onClick={() => handleMarkAsRead(notification.id)}
                 >
@@ -174,7 +174,7 @@ export default function AdminNotifications() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className={`text-sm font-medium ${!notification.read ? 'font-semibold' : ''}`}>
+                          <h3 className={`text-sm font-medium dark:text-gray-200 ${!notification.read ? 'font-semibold' : ''}`}>
                             {notification.title}
                           </h3>
                           <div className="flex items-center space-x-2">
@@ -182,13 +182,13 @@ export default function AdminNotifications() {
                               <Badge variant="destructive" className="w-2 h-2 p-0 rounded-full">
                               </Badge>
                             )}
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               {formatTimestamp(notification.timestamp)}
                             </span>
                           </div>
                         </div>
                         
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                           {notification.message}
                         </p>
                       </div>
@@ -200,11 +200,11 @@ export default function AdminNotifications() {
           ) : (
             <Card>
               <CardContent className="p-8 text-center">
-                <BellOff className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <BellOff className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                   {search || filter !== 'all' ? 'Nenhuma notificação encontrada' : 'Nenhuma notificação no momento'}
                 </h3>
-                <p className="text-gray-500">
+                <p className="text-gray-500 dark:text-gray-400">
                   {search || filter !== 'all' 
                     ? 'Tente ajustar os filtros ou termos de busca'
                     : 'Sistema funcionando normalmente - sem alertas pendentes'

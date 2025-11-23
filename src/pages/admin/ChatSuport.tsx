@@ -68,13 +68,11 @@ export default function ChatSuport() {
     
     setViewMode('chat');
     
-    // ✅ Carregar a conversa no contexto do chat
-    try {
-      await selectConversation(conversationId);
-    } catch (error) {
+    // ✅ Carregar a conversa no contexto do chat em background (não bloqueia a abertura)
+    selectConversation(conversationId).catch((error) => {
       console.error('Erro ao carregar conversa no contexto:', error);
       toast.error('Erro ao carregar conversa');
-    }
+    });
     
     // Resetar flag após um pequeno delay
     setTimeout(() => {

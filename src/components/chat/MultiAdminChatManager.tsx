@@ -171,13 +171,22 @@ export default function MultiAdminChatManager({
       let conversationId: string;
 
       if (existingConversationId) {
-        // Se já existe, abrir a conversa existente
+        // Se já existe, abrir a conversa existente IMEDIATAMENTE
         console.log('✅ Conversa existente encontrada:', existingConversationId);
         conversationId = existingConversationId;
         
-        // Recarregar dados para garantir que a conversa está atualizada na lista
-        console.log('🔄 Recarregando dados para conversa existente...');
-        await loadData();
+        // Abrir a conversa imediatamente (sem esperar recarregar dados)
+        emitConversationSelection(conversationId, {
+          conversation_id: conversationId,
+          title: `Conversa com ${targetUser.full_name || targetUser.email}`,
+          client_name: targetUser.full_name || targetUser.email,
+          priority: 'normal',
+          status: 'active',
+          type: 'support',
+        });
+        
+        // Recarregar dados em background (sem bloquear a abertura)
+        loadData().catch(err => console.error('Erro ao recarregar dados:', err));
         
         toast({
           title: 'Sucesso',
@@ -198,26 +207,26 @@ export default function MultiAdminChatManager({
         }
         
         console.log('✅ Conversa criada com sucesso:', conversationId);
+        
+        // Abrir a conversa IMEDIATAMENTE após criar
+        emitConversationSelection(conversationId, {
+          conversation_id: conversationId,
+          title: `Conversa com ${targetUser.full_name || targetUser.email}`,
+          client_name: targetUser.full_name || targetUser.email,
+          priority: 'normal',
+          status: 'active',
+          type: 'support',
+        });
+        
+        // Recarregar dados em background (sem bloquear a abertura)
+        loadData().catch(err => console.error('Erro ao recarregar dados:', err));
+        
         toast({
           title: 'Sucesso',
           description: 'Conversa criada com sucesso'
         });
-        
-        // Recarregar dados para incluir a nova conversa na lista
-        console.log('🔄 Recarregando dados...');
-        await loadData();
       }
-
-      // Abrir a conversa
-      console.log('🚀 Abrindo conversa:', conversationId);
-      emitConversationSelection(conversationId, {
-        conversation_id: conversationId,
-        title: `Conversa com ${targetUser.full_name || targetUser.email}`,
-        client_name: targetUser.full_name || targetUser.email,
-        priority: 'normal',
-        status: 'active',
-        type: 'support',
-      });
+      
       console.log('✅ Conversa aberta com sucesso');
     } catch (error) {
       console.error('❌ Erro ao iniciar conversa:', error);

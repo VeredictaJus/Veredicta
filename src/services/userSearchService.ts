@@ -174,9 +174,24 @@ export class UserSearchService {
       const commonConversations = adminConvIds.filter(id => userConvIds.includes(id));
 
       if (commonConversations.length > 0) {
-        // Buscar a conversa mais recente que não está arquivada ou fechada
-        // Não filtrar por tipo, buscar qualquer conversa ativa
-        const { data: conversation, error: convError } = await supabase
+        // Primeiro, buscar conversas ATIVAS (não arquivadas e não fechadas)
+        const { data: activeConversation, error: activeError } = await supabase
+          .from('conversations')
+          .select('id, type, status')
+          .in('id', commonConversations)
+          .eq('status', 'active')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!activeError && activeConversation?.id) {
+          console.log('✅ [UserSearch] Conversa ATIVA encontrada:', activeConversation.id, 'tipo:', activeConversation.type, 'status:', activeConversation.status);
+          return activeConversation.id;
+        }
+
+        // Se não encontrou ativa, buscar qualquer conversa que não esteja arquivada
+        // (pode estar 'in_progress', 'pending', etc)
+        const { data: anyConversation, error: anyError } = await supabase
           .from('conversations')
           .select('id, type, status')
           .in('id', commonConversations)
@@ -186,14 +201,13 @@ export class UserSearchService {
           .limit(1)
           .maybeSingle();
 
-        if (convError) {
-          console.error('❌ [UserSearch] Erro ao buscar conversa:', convError);
-          return null;
+        if (!anyError && anyConversation?.id) {
+          console.log('✅ [UserSearch] Conversa existente (não arquivada) encontrada:', anyConversation.id, 'tipo:', anyConversation.type, 'status:', anyConversation.status);
+          return anyConversation.id;
         }
 
-        if (conversation?.id) {
-          console.log('✅ [UserSearch] Conversa existente encontrada:', conversation.id, 'tipo:', conversation.type);
-          return conversation.id;
+        if (activeError || anyError) {
+          console.error('❌ [UserSearch] Erro ao buscar conversa:', activeError || anyError);
         }
       }
 

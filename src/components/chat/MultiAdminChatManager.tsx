@@ -162,11 +162,13 @@ export default function MultiAdminChatManager({
       }
 
       // Verificar se já existe conversa
-      console.log('🔍 Verificando se já existe conversa...');
+      console.log('🔍 [MultiAdmin] Verificando se já existe conversa entre:', user.uid, 'e', targetUser.firebase_uid);
       const existingConversationId = await UserSearchService.checkExistingConversation(
         user.uid,
         targetUser.firebase_uid
       );
+
+      console.log('🔍 [MultiAdmin] Resultado da verificação:', existingConversationId ? `Encontrada: ${existingConversationId}` : 'Não encontrada');
 
       let conversationId: string;
 
@@ -193,38 +195,67 @@ export default function MultiAdminChatManager({
           description: 'Conversa existente aberta'
         });
       } else {
-        // Criar nova conversa
-        console.log('📝 Criando nova conversa...');
-        const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
-        conversationId = await createConversationWithUser(
-          targetUser.firebase_uid,
-          title,
-          `Olá ${targetUser.full_name || 'usuário'}! Como posso ajudar?`
+        // Verificar novamente antes de criar (fallback - pode ter sido criada entre as verificações)
+        console.log('🔍 [MultiAdmin] Verificação dupla antes de criar...');
+        const doubleCheckId = await UserSearchService.checkExistingConversation(
+          user.uid,
+          targetUser.firebase_uid
         );
         
-        if (!conversationId) {
-          throw new Error('Falha ao criar conversa: ID não retornado');
+        if (doubleCheckId) {
+          console.log('✅ [MultiAdmin] Conversa encontrada na verificação dupla:', doubleCheckId);
+          conversationId = doubleCheckId;
+          
+          // Abrir a conversa existente
+          emitConversationSelection(conversationId, {
+            conversation_id: conversationId,
+            title: `Conversa com ${targetUser.full_name || targetUser.email}`,
+            client_name: targetUser.full_name || targetUser.email,
+            priority: 'normal',
+            status: 'active',
+            type: 'support',
+          });
+          
+          loadData().catch(err => console.error('Erro ao recarregar dados:', err));
+          
+          toast({
+            title: 'Sucesso',
+            description: 'Conversa existente aberta'
+          });
+        } else {
+          // Criar nova conversa (a função createConversationWithUser também verifica antes de criar)
+          console.log('📝 [MultiAdmin] Nenhuma conversa encontrada, criando nova...');
+          const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
+          conversationId = await createConversationWithUser(
+            targetUser.firebase_uid,
+            title,
+            `Olá ${targetUser.full_name || 'usuário'}! Como posso ajudar?`
+          );
+          
+          if (!conversationId) {
+            throw new Error('Falha ao criar conversa: ID não retornado');
+          }
+          
+          console.log('✅ [MultiAdmin] Conversa criada com sucesso:', conversationId);
+          
+          // Abrir a conversa IMEDIATAMENTE após criar
+          emitConversationSelection(conversationId, {
+            conversation_id: conversationId,
+            title: `Conversa com ${targetUser.full_name || targetUser.email}`,
+            client_name: targetUser.full_name || targetUser.email,
+            priority: 'normal',
+            status: 'active',
+            type: 'support',
+          });
+          
+          // Recarregar dados em background (sem bloquear a abertura)
+          loadData().catch(err => console.error('Erro ao recarregar dados:', err));
+          
+          toast({
+            title: 'Sucesso',
+            description: 'Conversa criada com sucesso'
+          });
         }
-        
-        console.log('✅ Conversa criada com sucesso:', conversationId);
-        
-        // Abrir a conversa IMEDIATAMENTE após criar
-        emitConversationSelection(conversationId, {
-          conversation_id: conversationId,
-          title: `Conversa com ${targetUser.full_name || targetUser.email}`,
-          client_name: targetUser.full_name || targetUser.email,
-          priority: 'normal',
-          status: 'active',
-          type: 'support',
-        });
-        
-        // Recarregar dados em background (sem bloquear a abertura)
-        loadData().catch(err => console.error('Erro ao recarregar dados:', err));
-        
-        toast({
-          title: 'Sucesso',
-          description: 'Conversa criada com sucesso'
-        });
       }
       
       console.log('✅ Conversa aberta com sucesso');

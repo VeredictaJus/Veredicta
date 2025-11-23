@@ -908,8 +908,23 @@ export class ChatService {
 
       const commonConvIds = user2Conversations.map(c => c.conversation_id);
 
-      // Buscar a conversa mais recente que não está arquivada ou fechada
-      const { data: conversation, error: convError } = await supabase
+      // Primeiro, buscar conversas ATIVAS (prioridade)
+      const { data: activeConversation, error: activeError } = await supabase
+        .from('conversations')
+        .select('id, title, type, status, priority, created_by, created_at, updated_at')
+        .in('id', commonConvIds)
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!activeError && activeConversation) {
+        console.log('✅ [ChatService] Conversa ATIVA encontrada:', activeConversation.id, 'tipo:', activeConversation.type, 'status:', activeConversation.status);
+        return activeConversation as Conversation;
+      }
+
+      // Se não encontrou ativa, buscar qualquer conversa que não esteja arquivada ou fechada
+      const { data: anyConversation, error: anyError } = await supabase
         .from('conversations')
         .select('id, title, type, status, priority, created_by, created_at, updated_at')
         .in('id', commonConvIds)
@@ -919,16 +934,16 @@ export class ChatService {
         .limit(1)
         .maybeSingle();
 
-      if (convError) {
-        console.error('❌ Erro ao buscar conversa:', convError);
-        return null;
+      if (!anyError && anyConversation) {
+        console.log('✅ [ChatService] Conversa existente (não arquivada) encontrada:', anyConversation.id, 'tipo:', anyConversation.type, 'status:', anyConversation.status);
+        return anyConversation as Conversation;
       }
 
-      if (conversation) {
-        console.log('✅ [ChatService] Conversa ativa encontrada:', conversation.id, 'tipo:', conversation.type);
-        return conversation as Conversation;
+      if (activeError || anyError) {
+        console.error('❌ Erro ao buscar conversa:', activeError || anyError);
       }
 
+      console.log('⚠️ [ChatService] Nenhuma conversa ativa encontrada');
       return null;
 
     } catch (error) {

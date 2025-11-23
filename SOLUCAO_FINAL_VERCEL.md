@@ -99,3 +99,5 @@ O Vercel automaticamente injeta as variáveis de ambiente que começam com `VITE
 
 Me avise o que você encontrou ao verificar essas configurações! 😊
 
+
+

@@ -95,7 +95,6 @@ export class ChatService {
         throw new Error('Usuário não autenticado');
       }
       
-      console.log('✅ Usuário autenticado:', auth.currentUser.uid);
       return auth.currentUser;
     } catch (error) {
       console.error('❌ Erro ao obter usuário autenticado:', error);
@@ -109,7 +108,6 @@ export class ChatService {
   static async getUserConversations(): Promise<Conversation[]> {
     try {
       const user = await this.getAuthUser();
-      console.log('🔍 Buscando conversas para usuário:', user.uid);
 
       // Verificar se o usuário é admin
       const { data: userProfile } = await supabase
@@ -119,10 +117,8 @@ export class ChatService {
         .single();
 
       const isAdmin = userProfile?.role === 'admin';
-      console.log('🔍 Usuário é admin?', isAdmin);
 
       // Primeira tentativa: Query completa - Buscar conversas onde usuário é PARTICIPANTE
-      console.log('🔍 getUserConversations: Executando query principal para usuário:', user.uid);
       
       const { data: conversations, error } = await supabase
         .from('conversations')
@@ -137,7 +133,6 @@ export class ChatService {
       // Se for admin, também buscar conversas atribuídas a ele (mesmo que não seja participante)
       let assignedConversations: any[] = [];
       if (isAdmin) {
-        console.log('🔍 Admin detectado, buscando conversas atribuídas...');
         const { data: assigned, error: assignedError } = await supabase
           .from('conversations')
           .select(`
@@ -149,36 +144,9 @@ export class ChatService {
 
         if (!assignedError && assigned) {
           assignedConversations = assigned;
-          console.log('🔍 Conversas atribuídas encontradas:', assignedConversations.length);
         }
       }
 
-      console.log('🔍 getUserConversations: Resultado da query principal:', {
-        conversations: conversations?.length || 0,
-        error: error?.message || 'Nenhum erro',
-        data: conversations
-      });
-
-      // 🔍 DEBUG: Testar query sem filtro para ver se RLS está bloqueando
-      const { data: debugAllConversations, error: allError } = await supabase
-        .from('conversations')
-        .select('id, title, type, status, priority, created_by, created_at, updated_at')
-        .order('updated_at', { ascending: false })
-        .limit(10);
-
-      console.log('🔍 DEBUG: Query sem filtro (todas as conversas):', {
-        allError: allError?.message,
-        allConversationsCount: debugAllConversations?.length || 0,
-        allConversations: debugAllConversations?.map(c => ({ id: c.id, title: c.title, status: c.status, created_by: c.created_by }))
-      });
-
-      // 🔍 DEBUG: Log da query
-      console.log('🔍 Query getUserConversations:', {
-        userUid: user.uid,
-        error: error?.message,
-        conversationsCount: conversations?.length || 0,
-        conversations: conversations?.map(c => ({ id: c.id, title: c.title, status: c.status }))
-      });
 
       if (error) {
         console.error('❌ Erro na query principal:', error);
@@ -195,7 +163,6 @@ export class ChatService {
 
         if (simpleError) {
           console.error('❌ Erro na query simples:', simpleError);
-          console.log('🔍 DEBUG: Usando fallback após erro na query simples para usuário:', user.uid);
           return this.getFallbackConversations(user.uid);
         }
 
@@ -214,7 +181,6 @@ export class ChatService {
           unread_count: 0
         }));
 
-        console.log('✅ Conversas carregadas com query simples:', formattedSimpleConversations.length);
         return formattedSimpleConversations;
       }
 
@@ -236,8 +202,6 @@ export class ChatService {
       }
 
       if (combinedConversations.length === 0) {
-        console.log('⚠️ Nenhuma conversa encontrada, usando fallback');
-        console.log('🔍 DEBUG: Usando fallback para usuário:', user.uid);
         return this.getFallbackConversations(user.uid);
       }
 
@@ -391,11 +355,6 @@ export class ChatService {
                     petitionDisplayId = fallbackPetitionDisplayId;
                   }
 
-                  console.log('📋 [FALLBACK PETITION] Encontrada petição por participantes:', {
-                    conversationId: conv.id,
-                    fallbackPetitionId,
-                    fallbackPetitionDisplayId,
-                  });
 
                   const updatedMetadata = {
                     ...rawMetadata,
@@ -436,13 +395,6 @@ export class ChatService {
                 
                 petitionDisplayId = petition?.display_id || petition?.id || petitionIdToFetch;
                 
-                console.log('📋 [PETITION ID] Display ID carregado:', {
-                  conversationId: conv.id,
-                  petitionId: petitionIdToFetch,
-                  displayId: petitionDisplayId,
-                  hasPetition: !!petition,
-                  error: petitionError?.message
-                });
               } catch (petitionErr) {
                 console.warn('⚠️ Exceção ao buscar display_id da petição:', petitionErr);
                 // Usar petition_id como fallback
@@ -463,15 +415,6 @@ export class ChatService {
             fallbackPetitionDisplayId ||
             conv.petition_id ||
             fallbackPetitionId;
-
-          console.log('📋 [CONVERSATION] Resolvendo display_id:', {
-            conversationId: conv.id,
-            petitionId: conv.petition_id,
-            metadataPetitionId,
-            petitionDisplayIdFromQuery: petitionDisplayId,
-            metadataDisplayId: rawMetadata.petitionDisplayId,
-            resolvedDisplayId
-          });
 
           return {
             id: conv.id,
@@ -500,12 +443,10 @@ export class ChatService {
         })
       );
 
-      console.log('✅ Conversas carregadas:', formattedConversations.length);
       return formattedConversations;
 
     } catch (error) {
       console.error('❌ Erro geral ao buscar conversas:', error);
-      console.log('🔍 DEBUG: Usando fallback após erro geral para usuário anônimo');
       return this.getFallbackConversations('anonymous');
     }
   }
@@ -514,8 +455,6 @@ export class ChatService {
    * Conversas de fallback
    */
   private static getFallbackConversations(userId: string): Conversation[] {
-    // 🚀 CORREÇÃO: Remover conversa fallback que estava causando problema
-    console.log('✅ Usando conversas de fallback (SEM CONVERSA FANTASMA):', 0);
     return [];
   }
 
@@ -532,7 +471,6 @@ export class ChatService {
     } = {}
   ): Promise<Message[]> {
     try {
-      console.log(`🔍 Buscando mensagens para conversa: ${conversationId}`);
 
       const {
         limit = 50,
@@ -633,12 +571,10 @@ export class ChatService {
           simpleOrderedMessages = formattedSimpleMessages;
         }
 
-        console.log('✅ Mensagens carregadas com query simples:', simpleOrderedMessages.length);
         return simpleOrderedMessages;
       }
 
       if (!messages || messages.length === 0) {
-        console.log('⚠️ Nenhuma mensagem encontrada, usando fallback');
         return this.getFallbackMessages(conversationId);
       }
 
@@ -695,7 +631,6 @@ export class ChatService {
         orderedMessages = formattedMessages;
       }
 
-      console.log('✅ Mensagens carregadas (ordenadas):', orderedMessages.length);
       return orderedMessages;
 
     } catch (error) {
@@ -736,7 +671,6 @@ export class ChatService {
   static async deleteConversation(conversationId: string): Promise<boolean> {
     try {
       const user = await this.getAuthUser();
-      console.log('🗑️ Excluindo conversa:', conversationId, 'para usuário:', user.uid);
 
       // Verificar se a conversa existe
       const { data: conversation, error: conversationError } = await supabase
@@ -755,24 +689,12 @@ export class ChatService {
         throw new Error('Conversa não encontrada');
       }
 
-      // 🔧 CORREÇÃO: Mesmo problema do arquivamento - aplicar solução temporária
-      console.log('🔍 DEBUG - Verificação de permissão para exclusão:');
-      console.log('  - conversation.created_by:', conversation.created_by);
-      console.log('  - user.uid:', user.uid);
-      console.log('  - Comparação direta:', conversation.created_by === user.uid);
-      
       // 🚀 SOLUÇÃO TEMPORÁRIA: Permitir exclusão para qualquer usuário autenticado
       // TODO: Investigar problema de comparação de strings (mesmo do arquivamento)
-      console.log('🚀 SOLUÇÃO TEMPORÁRIA: Permitindo exclusão para usuário autenticado');
-      console.log('⚠️  ATENÇÃO: Esta é uma solução temporária para contornar o problema de comparação de strings');
-      
-      // Verificação básica: usuário deve estar autenticado
       if (!user.uid) {
         console.error('❌ Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
-      
-      console.log('✅ Usuário autenticado - permissão concedida para exclusão');
 
       // Excluir mensagens primeiro
       const { error: messagesError } = await supabase
@@ -805,7 +727,6 @@ export class ChatService {
         throw new Error(`Erro ao excluir conversa: ${deleteError.message}`);
       }
 
-      console.log('✅ Conversa excluída com sucesso');
       return true;
 
     } catch (error) {
@@ -820,7 +741,6 @@ export class ChatService {
   static async archiveConversation(conversationId: string): Promise<boolean> {
     try {
       const user = await this.getAuthUser();
-      console.log('📁 Arquivando conversa:', conversationId, 'para usuário:', user.uid);
 
       // Verificar se a conversa existe
       const { data: conversation, error: conversationError } = await supabase
@@ -844,34 +764,12 @@ export class ChatService {
       const normalizedUserUid = String(user.uid).trim().normalize();
       const isCreator = normalizedCreatedBy === normalizedUserUid;
       
-      console.log('🔍 DEBUG - Verificação de permissão:');
-      console.log('  - conversation.created_by:', conversation.created_by);
-      console.log('  - user.uid:', user.uid);
-      console.log('  - normalizedCreatedBy:', normalizedCreatedBy);
-      console.log('  - normalizedUserUid:', normalizedUserUid);
-      console.log('  - isCreator:', isCreator);
-      console.log('  - conversationId:', conversationId);
-      console.log('  - Comparação normalizada:', normalizedCreatedBy === normalizedUserUid);
-      console.log('  - Códigos created_by:', Array.from(String(conversation.created_by)).map(c => c.charCodeAt(0)));
-      console.log('  - Códigos user.uid:', Array.from(String(user.uid)).map(c => c.charCodeAt(0)));
-      console.log('  - Length created_by:', String(conversation.created_by).length);
-      console.log('  - Length user.uid:', String(user.uid).length);
-      
       // 🚀 SOLUÇÃO TEMPORÁRIA: Permitir arquivamento para qualquer usuário autenticado
       // TODO: Investigar problema de comparação de strings
-      console.log('🚀 SOLUÇÃO TEMPORÁRIA: Permitindo arquivamento para usuário autenticado');
-      console.log('⚠️  ATENÇÃO: Esta é uma solução temporária para contornar o problema de comparação de strings');
-      
-      // Verificação básica: usuário deve estar autenticado
       if (!user.uid) {
         console.error('❌ Usuário não autenticado');
         throw new Error('Usuário não autenticado');
       }
-      
-      console.log('✅ Usuário autenticado - permissão concedida para arquivamento');
-
-      // Arquivar conversa
-      console.log('🔄 Executando arquivamento...');
       const { error } = await supabase
         .from('conversations')
         .update({ 
@@ -885,7 +783,6 @@ export class ChatService {
         throw new Error(`Erro ao arquivar conversa: ${error.message}`);
       }
 
-      console.log('✅ Conversa arquivada com sucesso');
       return true;
 
     } catch (error) {
@@ -904,11 +801,6 @@ export class ChatService {
   ): Promise<string> {
     try {
       const user = await this.getAuthUser();
-      console.log('🔍 Criando conversa com verificação de permissão:', {
-        fromUserId: user.uid,
-        targetUserId,
-        title
-      });
 
       // 🚀 PASSO 1: Verificar permissão de comunicação
       const permission = await ConversationPermissionService.canUserCommunicateWith(
@@ -922,12 +814,10 @@ export class ChatService {
         throw new Error(permission.reason || 'Você não tem permissão para criar esta conversa');
       }
 
-      console.log('✅ Permissão concedida:', permission.reason);
 
       // 🚀 PASSO 2: Verificar se já existe conversa ativa
       const existingConversation = await this.findActiveConversation(user.uid, targetUserId);
       if (existingConversation) {
-        console.log('✅ Conversa já existe, retornando ID:', existingConversation.id);
         return existingConversation.id;
       }
 
@@ -941,12 +831,9 @@ export class ChatService {
         ]
       );
 
-      console.log('✅ Conversa criada com sucesso:', conversationId);
-
       // 🚀 PASSO 4: Enviar mensagem inicial se fornecida
       if (message) {
         await this.sendMessage(conversationId, message);
-        console.log('✅ Mensagem inicial enviada');
       }
 
       return conversationId;
@@ -1008,13 +895,6 @@ export class ChatService {
     try {
       const user = await this.getAuthUser();
       
-      console.log('📤 [sendMessage] Iniciando envio:', { 
-        conversationId, 
-        content: content.substring(0, 50) + '...', 
-        messageType,
-        userId: user.uid 
-      });
-
       const messageData = {
         conversation_id: conversationId,
         sender_id: user.uid,
@@ -1027,24 +907,12 @@ export class ChatService {
         status: 'sent'
       };
 
-      console.log('📤 [sendMessage] Dados da mensagem:', messageData);
-      console.log('📤 [sendMessage] Fazendo INSERT na tabela messages...');
-
       const { data, error } = await supabase
         .from('messages')
         .insert(messageData)
         .select('id')
         .single();
 
-      console.log('📤 [sendMessage] Resposta do Supabase:', { 
-        data, 
-        error: error ? {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        } : null
-      });
 
       if (error) {
         console.error('❌ [sendMessage] Erro ao enviar mensagem:', {
@@ -1062,7 +930,6 @@ export class ChatService {
         throw new Error('Resposta do servidor não contém ID da mensagem');
       }
 
-      console.log('✅ [sendMessage] Mensagem enviada com sucesso:', data.id);
 
       return data.id;
 
@@ -1120,7 +987,6 @@ export class ChatService {
    */
   static async getConversationParticipants(conversationId: string): Promise<ConversationParticipant[]> {
     try {
-      console.log(`🔍 Buscando participantes para conversa: ${conversationId}`);
       
       const { data: participants, error } = await supabase
         .from('conversation_participants')
@@ -1134,7 +1000,6 @@ export class ChatService {
       }
 
       if (!participants || participants.length === 0) {
-        console.log('⚠️ Nenhum participante encontrado');
         return [];
       }
 
@@ -1180,7 +1045,6 @@ export class ChatService {
         })
       );
 
-      console.log('📋 Perfis carregados:', profiles.filter(p => p.profile).length);
 
       // Formatar participantes com dados reais (case-insensitive)
       const formattedParticipants: ConversationParticipant[] = participants.map(participant => {
@@ -1201,7 +1065,6 @@ export class ChatService {
         };
       });
 
-      console.log('✅ Participantes formatados:', formattedParticipants.length);
       return formattedParticipants;
 
     } catch (error) {
@@ -1282,7 +1145,6 @@ export class ChatService {
       
       // Formato: PROTO-YYYY-NNNN
       const protocolNumber = `PROTO-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
-      console.log('📋 Protocolo gerado:', protocolNumber);
       return protocolNumber;
     } catch (error) {
       console.error('❌ Erro ao gerar protocolo:', error);
@@ -1305,14 +1167,12 @@ export class ChatService {
     try {
       const user = await this.getAuthUser();
       
-      console.log('📝 Criando conversa:', { title, type, participants, metadata });
 
       const normalizedMetadata: Record<string, any> = { ...(metadata || {}) };
       
       // 🚀 GERAR PROTOCOLO PARA CONVERSAS DE SUPORTE
       if (type === 'support' && !normalizedMetadata.protocol_number) {
         normalizedMetadata.protocol_number = await this.generateProtocolNumber();
-        console.log('📋 Protocolo gerado para conversa de suporte:', normalizedMetadata.protocol_number);
       }
       
       if (!normalizedMetadata.petitionId && normalizedMetadata.petition_id) {
@@ -1347,10 +1207,6 @@ export class ChatService {
       }
 
       if (participants.length > 0) {
-        console.log('🧩 Adicionando participantes à conversa recém-criada:', {
-          conversationId: data.id,
-          participants
-        });
 
         const participantRows = participants.map(({ userId, role }) => ({
           conversation_id: data.id,
@@ -1367,12 +1223,8 @@ export class ChatService {
           throw new Error(`Erro ao adicionar participantes: ${participantsError.message}`);
         }
 
-        console.log('✅ Participantes adicionados à conversa:', participantRows.length);
-      } else {
-        console.warn('⚠️ Nenhum participante fornecido para criar a conversa');
       }
 
-      console.log('✅ Conversa criada com sucesso:', data.id);
       return data.id;
 
     } catch (error) {
@@ -1393,7 +1245,6 @@ export class ChatService {
     try {
       const user = await this.getAuthUser();
       
-      console.log('📝 Atualizando status da conversa:', { conversationId, status, priority, assignedTo });
 
       const updateData: any = { status };
       if (priority) updateData.priority = priority;
@@ -1409,7 +1260,6 @@ export class ChatService {
         throw new Error(`Erro ao atualizar conversa: ${error.message}`);
       }
 
-      console.log('✅ Status da conversa atualizado com sucesso');
       return true;
 
     } catch (error) {

@@ -248,3 +248,5 @@ No painel do Resend, configure o domínio de envio de emails.
 - Use HTTPS sempre (SSL)
 
 
+
+

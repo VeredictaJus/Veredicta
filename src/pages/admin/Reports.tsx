@@ -175,8 +175,10 @@ export default function Reports() {
 
       let inv: InvoiceRow[] = [];
       try {
-        console.log('📊 Reports - Buscando notas fiscais...');
-        console.log('📅 Período:', { from: from.toISOString(), until: until.toISOString() });
+        if (import.meta.env.DEV) {
+          console.log('📊 Reports - Buscando notas fiscais...');
+          console.log('📅 Período:', { from: from.toISOString(), until: until.toISOString() });
+        }
         
         const { data, error } = await supabase
           .from('app_2d8133c678_invoices')
@@ -186,7 +188,9 @@ export default function Reports() {
           .order('submitted_at', { ascending: false })
           .limit(500);
         
-        console.log('✅ Resultado da query de notas:', { data, error });
+        if (import.meta.env.DEV) {
+          console.log('✅ Resultado da query de notas:', { data, error });
+        }
         
         if (error) throw error;
         
@@ -194,7 +198,9 @@ export default function Reports() {
         const invoicesData = data || [];
         const writerIds = [...new Set(invoicesData.map((i: any) => i.submitted_by).filter(Boolean))];
         
-        console.log('📝 IDs de redatores únicos:', writerIds);
+        if (import.meta.env.DEV) {
+          console.log('📝 IDs de redatores únicos:', writerIds);
+        }
         
         let writerMap: Record<string, { full_name: string | null; email: string | null }> = {};
         
@@ -211,7 +217,9 @@ export default function Reports() {
             }, {});
           }
           
-          console.log('👥 Mapa de redatores:', writerMap);
+          if (import.meta.env.DEV) {
+            console.log('👥 Mapa de redatores:', writerMap);
+          }
         }
         
         // Mapear os dados para incluir writer_name e writer_email
@@ -221,9 +229,11 @@ export default function Reports() {
           writer_email: writerMap[item.submitted_by]?.email || null
         })) as InvoiceRow[];
         
-        console.log('📄 Total de notas encontradas:', inv.length);
-        if (inv.length > 0) {
-          console.log('📄 Primeira nota:', inv[0]);
+        if (import.meta.env.DEV) {
+          console.log('📄 Total de notas encontradas:', inv.length);
+          if (inv.length > 0) {
+            console.log('📄 Primeira nota:', inv[0]);
+          }
         }
       } catch (err) {
         console.error('❌ Erro ao buscar notas fiscais:', err);
@@ -255,7 +265,9 @@ export default function Reports() {
             setClientNamesMap(namesMap);
           }
         } catch (clientErr) {
-          console.warn('⚠️ Erro ao buscar nomes dos clientes:', clientErr);
+          if (import.meta.env.DEV) {
+            console.warn('⚠️ Erro ao buscar nomes dos clientes:', clientErr);
+          }
         }
       }
     } catch (err: any) {
@@ -613,16 +625,7 @@ export default function Reports() {
   }, [timeRange, stats, mom, revenueData, userGrowthData, volumeData, petitionTypeData, topWriters, topClients, invoiceKpis, invoices]);
 
   /* ---------- Estados ---------- */
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-80">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-orange-500 border-t-transparent mx-auto" />
-          <p className="mt-4 text-gray-600">Carregando relatórios...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removido indicador de loading - carrega silenciosamente
 
   if (error) {
     return (

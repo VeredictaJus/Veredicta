@@ -396,46 +396,84 @@ export default function MyPetitions() {
 
     loadPetitions();
 
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('client-petitions-updates')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'petitions',
-        filter: `client_id=eq.${user.uid}`
-      }, (payload) => {
-        const newRow = payload.new as any;
-        const oldRow = payload.old as any;
-        
-        const petitionId = (newRow && 'id' in newRow ? newRow.id : null) || (oldRow && 'id' in oldRow ? oldRow.id : null);
-        console.log('🔄 Mudança detectada na tabela petitions:', {
-          event: payload.eventType,
-          old: oldRow,
-          new: newRow,
-          petitionId
-        });
-        
-        // Se o status mudou, logar especificamente
-        if (payload.eventType === 'UPDATE' && newRow && oldRow) {
-          const oldStatus = oldRow.status;
-          const newStatus = newRow.status;
-          if (oldStatus !== newStatus) {
-            console.log('📊 Status da petição mudou:', {
-              petitionId: newRow.id,
-              oldStatus,
-              newStatus
-            });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Função para criar/ativar subscription
+    const activateSubscription = () => {
+      if (channel) {
+        return; // Já existe
+      }
+
+      // Subscribe to real-time updates
+      channel = supabase
+        .channel('client-petitions-updates')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'petitions',
+          filter: `client_id=eq.${user.uid}`
+        }, (payload) => {
+          const newRow = payload.new as any;
+          const oldRow = payload.old as any;
+          
+          const petitionId = (newRow && 'id' in newRow ? newRow.id : null) || (oldRow && 'id' in oldRow ? oldRow.id : null);
+          console.log('🔄 Mudança detectada na tabela petitions:', {
+            event: payload.eventType,
+            old: oldRow,
+            new: newRow,
+            petitionId
+          });
+          
+          // Se o status mudou, logar especificamente
+          if (payload.eventType === 'UPDATE' && newRow && oldRow) {
+            const oldStatus = oldRow.status;
+            const newStatus = newRow.status;
+            if (oldStatus !== newStatus) {
+              console.log('📊 Status da petição mudou:', {
+                petitionId: newRow.id,
+                oldStatus,
+                newStatus
+              });
+            }
           }
-        }
-        
-        // Recarregar petições quando houver mudanças
-        loadPetitions();
-      })
-      .subscribe();
+          
+          // Recarregar petições quando houver mudanças
+          loadPetitions();
+        })
+        .subscribe();
+    };
+
+    // Função para desativar subscription
+    const deactivateSubscription = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
+
+    // ✅ OTIMIZAÇÃO: Gerenciar subscription baseado na visibilidade da aba
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        deactivateSubscription();
+      } else {
+        activateSubscription();
+        loadPetitions(); // Recarregar ao voltar
+      }
+    };
+
+    // Ativar subscription inicialmente (se a aba estiver visível)
+    if (!document.hidden) {
+      activateSubscription();
+    }
+
+    // Escutar mudanças de visibilidade da aba
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user?.uid]);
 

@@ -276,28 +276,66 @@ export default function ClientDashboard() {
     }
     loadPetitions();
 
-    const channel = supabase
-      .channel('client-petitions')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'petitions',
-        filter: `client_id=eq.${user.uid}`
-      }, (payload) => {
-        const evt = payload.eventType;
-        const newRow = payload.new as Petition;
-        const oldRow = payload.old as Petition | null;
-        setPetitions(prev => {
-          if (evt === 'INSERT' && newRow) return [newRow, ...prev];
-          if (evt === 'UPDATE' && newRow) return prev.map(p => p.id === newRow.id ? newRow : p);
-          if (evt === 'DELETE' && oldRow) return prev.filter(p => p.id !== oldRow.id);
-          return prev;
-        });
-      })
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Função para criar/ativar subscription
+    const activateSubscription = () => {
+      if (channel) {
+        return; // Já existe
+      }
+
+      channel = supabase
+        .channel('client-petitions')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'petitions',
+          filter: `client_id=eq.${user.uid}`
+        }, (payload) => {
+          const evt = payload.eventType;
+          const newRow = payload.new as Petition;
+          const oldRow = payload.old as Petition | null;
+          setPetitions(prev => {
+            if (evt === 'INSERT' && newRow) return [newRow, ...prev];
+            if (evt === 'UPDATE' && newRow) return prev.map(p => p.id === newRow.id ? newRow : p);
+            if (evt === 'DELETE' && oldRow) return prev.filter(p => p.id !== oldRow.id);
+            return prev;
+          });
+        })
+        .subscribe();
+    };
+
+    // Função para desativar subscription
+    const deactivateSubscription = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
+
+    // ✅ OTIMIZAÇÃO: Gerenciar subscription baseado na visibilidade da aba
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        deactivateSubscription();
+      } else {
+        activateSubscription();
+        loadPetitions(); // Recarregar ao voltar
+      }
+    };
+
+    // Ativar subscription inicialmente (se a aba estiver visível)
+    if (!document.hidden) {
+      activateSubscription();
+    }
+
+    // Escutar mudanças de visibilidade da aba
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user?.uid]);
 

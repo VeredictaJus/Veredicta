@@ -136,3 +136,5 @@ console.log(`📊 Satisfação calculada: ${clientSatisfaction}/5.0 (${totalRati
 **Data:** $(date)
 **Arquivo:** `src/pages/admin/AdminDashboard.tsx`
 
+
+

@@ -53,3 +53,5 @@ VITE_STRIPE_PUBLISHABLE_KEY=SUA_CHAVE_AQUI
 Consulte o guia completo: `DEPLOY_HOSTINGER.md`
 
 
+
+

@@ -190,3 +190,5 @@ Depois de seguir esses passos, seu domínio estará funcionando! 🎉
 
 Se tiver alguma dúvida ou problema durante a configuração, me avise! 😊
 
+
+

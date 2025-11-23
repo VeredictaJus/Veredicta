@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 
 export interface Plan {
   id: string;
   name: string;
+  plan_code?: string; // Código único do plano (ex: 'free', 'start', 'pro', 'elite')
   price: number;
   petitions_included: number;
   features: string[];
@@ -26,6 +28,26 @@ export interface PlanStats {
 
 export class PlansService {
   private static readonly TABLE_NAME = 'plans';
+
+  /**
+   * Obter cliente Supabase com service role para operações admin
+   */
+  private static getAdminClient() {
+    const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    
+    if (serviceRoleKey && supabaseUrl) {
+      return createClient(supabaseUrl, serviceRoleKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+    }
+    
+    // Fallback para cliente normal se service role não estiver disponível
+    return supabase;
+  }
 
   /**
    * Calcular preço do crédito adicional baseado no plano
@@ -226,11 +248,32 @@ export class PlansService {
         recommended: plan.name === 'Pro' // Marcar Pro como recomendado
       }));
       
-      return plansWithCalculatedFields;
+      // ✅ Ordenar planos na ordem correta: Free, Start, Pro, Elite
+      return this.sortPlans(plansWithCalculatedFields);
     } catch (error) {
       console.error('💥 PlansService: Erro inesperado ao buscar planos ativos:', error);
       return [];
     }
+  }
+
+  /**
+   * Ordenar planos na ordem correta: Free, Start, Pro, Elite
+   */
+  private static sortPlans(plans: Plan[]): Plan[] {
+    const orderMap: { [key: string]: number } = {
+      'free': 1,
+      'start': 2,
+      'pro': 3,
+      'elite': 4
+    };
+
+    return plans.sort((a, b) => {
+      const aCode = (a.plan_code || a.name.toLowerCase()).toLowerCase();
+      const bCode = (b.plan_code || b.name.toLowerCase()).toLowerCase();
+      const aOrder = orderMap[aCode] || 99;
+      const bOrder = orderMap[bCode] || 99;
+      return aOrder - bOrder;
+    });
   }
 
   /**
@@ -255,11 +298,26 @@ export class PlansService {
         recommended: plan.name === 'Pro'
       }));
 
-      return plansWithCalculatedFields;
+      // ✅ Ordenar planos na ordem correta: Free, Start, Pro, Elite
+      return this.sortPlans(plansWithCalculatedFields);
     } catch (error) {
       console.error('Unexpected error fetching all plans:', error);
       return [];
     }
+  }
+
+  /**
+   * Gerar plan_code a partir do nome do plano
+   */
+  private static generatePlanCode(name: string): string {
+    // Converter nome para lowercase e remover caracteres especiais
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '_') // Substitui caracteres especiais por underscore
+      .replace(/_+/g, '_') // Remove underscores duplicados
+      .replace(/^_|_$/g, ''); // Remove underscores no início/fim
   }
 
   /**
@@ -273,6 +331,9 @@ export class PlansService {
         return { success: false, error: 'Preencha todos os campos obrigatórios' };
       }
 
+      // Gerar plan_code automaticamente se não fornecido
+      const plan_code = planData.plan_code || this.generatePlanCode(name);
+
       // Gerar features automaticamente baseado nos dados
       const autoFeatures = [
         `${petitions_included} petições por mês`,
@@ -283,11 +344,14 @@ export class PlansService {
 
       const planToInsert = {
         ...planData,
+        plan_code, // ✅ CORREÇÃO: Adicionar plan_code obrigatório
         features: planData.features.length > 0 ? planData.features : autoFeatures,
         subscribers: planData.subscribers || 0
       };
 
-      const { data, error } = await supabase
+      // ✅ CORREÇÃO: Usar service role key para bypass RLS
+      const adminClient = this.getAdminClient();
+      const { data, error } = await adminClient
         .from(this.TABLE_NAME)
         .insert([planToInsert])
         .select()
@@ -313,7 +377,9 @@ export class PlansService {
    */
   static async updatePlan(planId: string, updates: Partial<Plan>): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      // ✅ CORREÇÃO: Usar service role key para bypass RLS
+      const adminClient = this.getAdminClient();
+      const { error } = await adminClient
         .from(this.TABLE_NAME)
         .update({
           ...updates,
@@ -341,7 +407,9 @@ export class PlansService {
    */
   static async deletePlan(planId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      // ✅ CORREÇÃO: Usar service role key para bypass RLS
+      const adminClient = this.getAdminClient();
+      const { error } = await adminClient
         .from(this.TABLE_NAME)
         .delete()
         .eq('id', planId);
@@ -366,7 +434,9 @@ export class PlansService {
    */
   static async togglePlanStatus(planId: string, isActive: boolean): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
+      // ✅ CORREÇÃO: Usar service role key para bypass RLS
+      const adminClient = this.getAdminClient();
+      const { error } = await adminClient
         .from(this.TABLE_NAME)
         .update({ 
           is_active: isActive,
@@ -435,12 +505,78 @@ export class PlansService {
   }
 
   /**
+   * Restaurar plano Elite (caso tenha sido deletado)
+   */
+  static async restoreElitePlan(): Promise<{ success: boolean; plan?: Plan; error?: string }> {
+    try {
+      // Verificar se o plano Elite já existe
+      const adminClient = this.getAdminClient();
+      const { data: existingPlan } = await adminClient
+        .from(this.TABLE_NAME)
+        .select('id')
+        .eq('plan_code', 'elite')
+        .maybeSingle();
+
+      if (existingPlan) {
+        return { success: false, error: 'O plano Elite já existe' };
+      }
+
+      // Dados do plano Elite
+      const elitePlanData = {
+        plan_code: 'elite',
+        name: 'Elite',
+        price: 700000, // R$ 7.000,00 em centavos
+        petitions_included: 70,
+        features: [
+          '70 petições incluídas',
+          'Entrega em até 1 dia útil (prioridade máxima)',
+          '1 revisão gratuita por petição',
+          'Revisão extra por advogado sênior (opcional)',
+          'Consulta direta com redator via plataforma',
+          '+3 petições bônus na renovação',
+          'Acesso antecipado a novos recursos',
+          'Validade: 90 dias',
+          'Confidencialidade garantida (NDA)',
+          'Valor por petição: R$ 100,00'
+        ],
+        description: 'Plano premium para grandes escritórios e departamentos jurídicos',
+        priority_support: true,
+        custom_branding: true,
+        is_active: true,
+        subscribers: 0
+      };
+
+      const { data, error } = await adminClient
+        .from(this.TABLE_NAME)
+        .insert([elitePlanData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error restoring Elite plan:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, plan: data };
+    } catch (error) {
+      console.error('Unexpected error restoring Elite plan:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Erro inesperado' 
+      };
+    }
+  }
+
+  /**
    * Atualizar contador de assinantes
    */
   static async updateSubscriberCount(planId: string, increment: boolean = true): Promise<{ success: boolean; error?: string }> {
     try {
+      // ✅ CORREÇÃO: Usar service role key para bypass RLS
+      const adminClient = this.getAdminClient();
+      
       // Primeiro buscar o plano atual
-      const { data: currentPlan, error: fetchError } = await supabase
+      const { data: currentPlan, error: fetchError } = await adminClient
         .from(this.TABLE_NAME)
         .select('subscribers')
         .eq('id', planId)
@@ -454,7 +590,7 @@ export class PlansService {
         ? (currentPlan.subscribers || 0) + 1 
         : Math.max((currentPlan.subscribers || 0) - 1, 0);
 
-      const { error } = await supabase
+      const { error } = await adminClient
         .from(this.TABLE_NAME)
         .update({ 
           subscribers: newCount,

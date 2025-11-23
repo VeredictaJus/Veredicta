@@ -142,7 +142,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   try {
     chatContext = useChat();
   } catch (error) {
-    console.log('🔍 ChatContext não disponível no ChatWindow');
     return (
       <div className="p-4 text-center text-muted-foreground">
         Chat não disponível no momento. Tente recarregar a página.
@@ -174,7 +173,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   // Selecionar conversa quando conversationId for passado como prop
   useEffect(() => {
     if (conversationId && conversationId !== currentConversation?.id) {
-      console.log('[ChatWindow] Selecionando conversa:', conversationId);
       selectConversation(conversationId).catch((error) => {
         console.error('Erro ao selecionar conversa:', error);
         // Se a conversa não existir, tentar recarregar as conversas primeiro
@@ -188,12 +186,17 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   }, [conversationId, currentConversation?.id, selectConversation, loadConversations]);
 
   useEffect(() => {
-    console.log('[ChatWindow] contextMessages recebido', {
-      conversationId: currentConversation?.id,
-      total: contextMessages.length,
-      latest: contextMessages.at(-1)?.content,
-    });
-    setMessages(contextMessages);
+    // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
+    if (currentConversation?.id) {
+      const filteredMessages = contextMessages.filter(
+        (msg) => msg.conversation_id === currentConversation.id
+      );
+      setMessages(filteredMessages);
+    } else {
+      // Se não há conversa selecionada, limpar mensagens
+      setMessages([]);
+    }
+    
     // Resetar estado de scroll quando a conversa mudar
     isNearBottomRef.current = true;
     isUserScrollingRef.current = false;
@@ -209,12 +212,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     if (!currentConversation) return;
     
     try {
-      console.log('🔄 Forçando recarregamento das mensagens...');
-      const messages = await ChatService.getConversationMessages(currentConversation.id);
-      console.log('✅ Mensagens recarregadas manualmente:', messages.length);
+      await ChatService.getConversationMessages(currentConversation.id);
       // As mensagens serão atualizadas via tempo real ou seleção de conversa
     } catch (error) {
-      console.error('❌ Erro ao recarregar mensagens:', error);
+      console.error('Erro ao recarregar mensagens:', error);
     }
   };
   const [isTyping, setIsTyping] = useState(false);
@@ -325,7 +326,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         );
         
         if (clientOrWriterParticipant) {
-          console.log('✅ [Admin] Participante encontrado (cliente ou redator):', clientOrWriterParticipant.user_id, clientOrWriterParticipant.role);
           return clientOrWriterParticipant;
         }
       } else {
@@ -336,7 +336,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         );
         
         if (adminOrSupportParticipant) {
-          console.log('✅ [Cliente/Redator] Participante encontrado (admin/suporte):', adminOrSupportParticipant.user_id, adminOrSupportParticipant.role);
           return adminOrSupportParticipant;
         }
       }
@@ -380,7 +379,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
   const getMetadataDisplayName = (): string | null => {
     if (!currentConversation?.metadata) {
-      console.log('🔍 getMetadataDisplayName: Sem metadata na conversa');
       return null;
     }
     const metadata = currentConversation.metadata as any;
@@ -390,16 +388,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       metadata.partnerName ||
       metadata.partner_name ||
       null;
-    
-    console.log('🔍 getMetadataDisplayName:', {
-      hasMetadata: !!currentConversation.metadata,
-      otherParticipantName: metadata.otherParticipantName,
-      other_participant_name: metadata.other_participant_name,
-      partnerName: metadata.partnerName,
-      partner_name: metadata.partner_name,
-      resolvedName: name,
-      fullMetadata: metadata
-    });
     
     return name;
   };
@@ -421,45 +409,28 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     const metadataName = getMetadataDisplayName();
     const userRole = user?.role || 'client';
 
-    console.log('🔍 getConversationDisplayName:', {
-      conversationId: currentConversation.id,
-      type: currentConversation.type,
-      title: currentConversation.title,
-      userRole,
-      hasOtherParticipant: !!otherParticipant,
-      otherParticipantId: otherParticipant?.user_id,
-      otherParticipantRole: otherParticipant?.role,
-      metadataName,
-      participants: participants.map(p => ({ id: p.user_id, role: p.role }))
-    });
-
     // PRIORIDADE 1: Para conversas de suporte, a lógica depende de quem está visualizando
     if (currentConversation.type === 'support') {
       // Se é admin visualizando, mostrar nome do cliente/redator
       if (userRole === 'admin') {
         // Primeiro tentar pelo metadata (otherParticipantName) - mais confiável
         if (metadataName && metadataName !== 'Usuário' && metadataName !== 'Suporte Veredicta') {
-          console.log('✅ [Admin] Usando nome do metadata:', metadataName);
           return metadataName;
         }
         
         // Se há outro participante, mostrar o nome dele usando getUserDisplayName
         if (otherParticipant) {
           const name = getUserDisplayName(otherParticipant);
-          console.log('🔍 [Admin] Nome do participante:', name);
           // Se o nome não for "Suporte Veredicta" e não for genérico, retornar
           if (name && name !== 'Suporte Veredicta' && name !== 'Usuário') {
-            console.log('✅ [Admin] Usando nome do participante:', name);
             return name;
           }
         }
         
         // Último fallback para admin
-        console.log('⚠️ [Admin] Usando fallback "Cliente"');
         return 'Cliente';
       } else {
         // Se é cliente/redator visualizando, mostrar "Suporte Veredicta"
-        console.log('✅ [Cliente/Redator] Usando "Suporte Veredicta"');
         return 'Suporte Veredicta';
       }
     }
@@ -598,7 +569,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
     // Se o usuário está fazendo scroll manualmente, NUNCA fazer scroll automático
     if (isUserScrollingRef.current) {
-      console.log('🚫 Scroll automático bloqueado: usuário está fazendo scroll manual');
       return;
     }
 
@@ -610,7 +580,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
     // Se não está próximo do final, não fazer scroll automático
     if (!isNearBottomRef.current) {
-      console.log('🚫 Scroll automático bloqueado: usuário não está no final');
       return;
     }
 
@@ -622,7 +591,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     // 1. O usuário está próximo do final (já estava vendo as mensagens mais recentes), OU
     // 2. É uma mensagem própria (o usuário acabou de enviar)
     if (isNearBottomRef.current || isOwnMessage) {
-      console.log('✅ Fazendo scroll automático:', { isNearBottom: isNearBottomRef.current, isOwnMessage });
       scrollToBottom();
     }
   }, [messages, scrollToBottom, user?.uid, checkIfNearBottom]);
@@ -729,11 +697,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       };
 
       setMessages(prev => [...prev, optimisticMessage]);
-      console.log('[ChatWindow] mensagem otimista adicionada', {
-        conversationId: currentConversation.id,
-        optimisticId: optimisticMessage.id,
-        total: messages.length + 1,
-      });
 
       await sendMessage(filteredContent); // Envia a mensagem filtrada
     } catch (error) {
@@ -1061,8 +1024,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     try {
       if (fileUrl.startsWith('data:')) {
         // Para arquivos base64
-        console.log('📥 Iniciando download:', fileName);
-        
         // Criar elemento link temporário
         const link = document.createElement('a');
         link.href = fileUrl;
@@ -1081,8 +1042,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
             document.body.removeChild(link);
           }
         }, 100);
-        
-        console.log('✅ Download iniciado com sucesso');
       } else {
         // Para URLs externas
         window.open(fileUrl, '_blank');
@@ -1225,14 +1184,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     const metadata = (participant as any).metadata || {};
     if (metadata.full_name) possibleNames.unshift(metadata.full_name);
     if (metadata.name) possibleNames.unshift(metadata.name);
-    
-    console.log('🔍 getUserDisplayName - possibleNames:', {
-      participantUserId: participant.user_id,
-      user_name: participant.user?.name,
-      user_full_name: (participant.user as any)?.full_name,
-      possibleNames,
-      selected: possibleNames[0]
-    });
     
     if (possibleNames.length > 0) {
       return possibleNames[0];
@@ -1417,13 +1368,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         convAny.petition_display_id ??
         convAny.petitionId ??
         convAny.petition_id;
-      
-      console.log('🏷️ [CHAT HEADER] Type label para petição:', {
-        conversationId: currentConversation.id,
-        petitionId: convAny.petition_id,
-        displayId,
-        metadata
-      });
       
       // Sempre mostrar o número, mesmo que seja o petition_id
       if (displayId) {
@@ -1920,18 +1864,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                 </div>
               );
             })}
-            
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 px-3 py-2 rounded-lg">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
             
             <div ref={messagesEndRef} />
           </div>

@@ -74,3 +74,5 @@ Marque cada variável conforme adiciona:
 
 **Copie e cole cada valor no Vercel!** 😊
 
+
+

@@ -584,14 +584,7 @@ export default function AdminDashboard() {
 
       {/* cards resumo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {loading ? (
-          <div className="col-span-full flex items-center justify-center py-12">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent mr-3" />
-              <span className="text-muted-foreground">Carregando dados do painel...</span>
-            </div>
-          </div>
-        ) : (
+        {!loading && (
           <>
             {/* Clientes */}
             <Card className="bg-container-primary border-border shadow-sm">
@@ -670,11 +663,7 @@ export default function AdminDashboard() {
                 <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
               </ComposedChart>
             </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                  Carregando dados do gráfico...
-                </div>
-              )}
+              ) : null}
           </CardContent>
         </Card>
 
@@ -699,11 +688,7 @@ export default function AdminDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                  Carregando dados do gráfico...
-                </div>
-              )}
+              ) : null}
           </CardContent>
         </Card>
       </div>

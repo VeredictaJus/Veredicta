@@ -267,30 +267,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // 🚀 CORREÇÃO: Garantir que o provider só seja considerado pronto após inicialização
   useEffect(() => {
-    console.log('🔍 ChatProvider useEffect - verificando readiness:', {
-      loading,
-      user: !!user,
-      userId: user?.uid,
-      willSetReady: !loading && !!user
-    });
-    
     if (!loading && user) {
       setIsProviderReady(true);
     } else {
       setIsProviderReady(false);
     }
   }, [loading, user]);
-
-  console.log('ChatProvider renderizado:', { 
-    user: !!user, 
-    loading, 
-    userId: user?.uid,
-    isProviderReady: isProviderReady ? '🟢 TRUE' : '🔴 FALSE',
-    isLoading: isLoading ? '🔴 TRUE' : '🟢 FALSE', // Visual para debug
-    isLoadingRef: isLoadingRef.current ? '🔴 TRUE' : '🟢 FALSE', // Visual para debug
-    conversationsCount: conversations.length,
-    isLoadingConversations: isLoadingConversationsRef.current ? '🔴 TRUE' : '🟢 FALSE'
-  });
 
   // Criar valor padrão do contexto
   const defaultContextValue: ChatContextType = {
@@ -322,25 +304,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const fetchConversations = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    // 🔍 DEBUG: Log de stack trace para identificar quem está chamando
-    if (!silent) {
-      console.log('🔍 loadConversations: chamado manualmente ou por polling');
-    }
-
     if (!user) {
-      console.log('🔍 loadConversations: Usuário não disponível');
       return;
     }
 
     if (isLoadingConversationsRef.current) {
-      if (!silent) {
-        console.log('🔍 loadConversations: Já está carregando, pulando...');
-      }
       return;
     }
 
     if (!silent) {
-      console.log('🔍 loadConversations: Iniciando carregamento para usuário:', user.uid);
       setIsLoading(true);
       setError(null);
     }
@@ -397,7 +369,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } catch (err) {
       console.error('❌ Erro ao carregar conversas:', err);
 
-      console.log('✅ Usando fallback vazio (SEM CONVERSA FANTASMA)');
       setConversations([]);
       if (!silent) {
         setError('Erro ao carregar conversas');
@@ -417,7 +388,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const handleIncomingMessages = useCallback(
     (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
-      setMessages(messagesList);
+      // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
+      if (currentConversation?.id) {
+        const filteredMessages = messagesList.filter(
+          (msg) => msg.conversation_id === currentConversation.id
+        );
+        setMessages(filteredMessages);
+      } else if (messagesList.length > 0) {
+        // Se não há conversa selecionada mas há mensagens, usar todas (pode ser inicialização)
+        setMessages(messagesList);
+      } else {
+        setMessages([]);
+      }
 
       if (!messagesList.length) {
         return;
@@ -475,14 +457,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // 🚀 NOVA FUNÇÃO: Carregar mensagens de uma conversa específica
   const loadConversationMessages = useCallback(async (conversationId: string): Promise<Message[]> => {
     try {
-      console.log(`📥 Carregando mensagens da conversa: ${conversationId}`);
       const messagesData = await ChatService.getConversationMessages(conversationId, {
         limit: MESSAGE_PAGE_SIZE,
-      });
-      console.log('📥 ChatContext: mensagens recebidas', {
-        conversationId,
-        total: messagesData.length,
-        latest: messagesData.at(-1)?.content,
       });
 
       const latestMessage = messagesData.at(-1);
@@ -516,11 +492,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
         setIsLoadingOlderMessages(false);
         isLoadingOlderMessagesRef.current = false;
-        console.log('[ChatContext] loadConversationMessages -> messages set', {
-          conversationId,
-          total: messagesData.length,
-          latest: messagesData.at(-1)?.content,
-        });
       }
 
       return messagesData;
@@ -532,27 +503,23 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const loadOlderMessages = useCallback(async (): Promise<number> => {
     if (!currentConversation) {
-      console.log('[ChatContext] loadOlderMessages -> nenhuma conversa selecionada');
       return 0;
     }
 
     if (isLoadingOlderMessagesRef.current) {
-      console.log('[ChatContext] loadOlderMessages -> já carregando, ignorando');
       return 0;
     }
 
     if (!hasMoreOlderMessages) {
-      console.log('[ChatContext] loadOlderMessages -> não há mais mensagens antigas');
       return 0;
     }
 
     const cursor =
       oldestMessageRef.current ??
-      messages[0]?.created_at ??
+      messages.filter((msg) => msg.conversation_id === currentConversation.id)[0]?.created_at ??
       null;
 
     if (!cursor) {
-      console.log('[ChatContext] loadOlderMessages -> cursor inválido, nenhuma mensagem carregada ainda');
       return 0;
     }
 
@@ -565,12 +532,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         before: cursor,
       });
 
-      console.log('[ChatContext] loadOlderMessages -> mensagens antigas carregadas', {
-        conversationId: currentConversation.id,
-        requestedBefore: cursor,
-        fetched: olderMessages.length,
-      });
-
       if (!olderMessages.length) {
         setHasMoreOlderMessages(false);
         return 0;
@@ -579,10 +540,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       oldestMessageRef.current = olderMessages[0]?.created_at ?? cursor;
 
       setMessages((prev) => {
-        const existingIds = new Set(prev.map((msg) => msg.id));
+        // ✅ CORREÇÃO: Filtrar apenas mensagens da conversa atual
+        const currentConversationId = currentConversation.id;
+        const filteredPrev = prev.filter((msg) => msg.conversation_id === currentConversationId);
+        const filteredOlder = olderMessages.filter((msg) => msg.conversation_id === currentConversationId);
+        
+        const existingIds = new Set(filteredPrev.map((msg) => msg.id));
         const merged = [
-          ...olderMessages.filter((msg) => !existingIds.has(msg.id)),
-          ...prev,
+          ...filteredOlder.filter((msg) => !existingIds.has(msg.id)),
+          ...filteredPrev,
         ];
 
         merged.sort(
@@ -613,11 +579,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const selectConversation = useCallback(async (conversationId: string) => {
     // 🚀 CORREÇÃO: Usar ref para evitar loop
     if (isLoadingRef.current) {
-      console.log('🔍 selectConversation: Já está carregando, pulando...');
       return;
     }
     
-    console.log('🔍 selectConversation: Iniciando seleção para conversa:', conversationId);
     setIsLoadingMessages(true);
     isLoadingRef.current = true;
     setError(null);
@@ -626,41 +590,49 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // Buscar conversa na lista local
       let conversation = conversations.find(c => c.id === conversationId);
       
-      // Se não encontrou na lista local, tentar recarregar as conversas primeiro
+      // Se não encontrou na lista local, tentar buscar diretamente primeiro (mais rápido)
       if (!conversation) {
-        console.log('⚠️ Conversa não encontrada na lista local, recarregando conversas...');
-        await loadConversations();
-        
-        // Aguardar um pouco para o estado atualizar
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Buscar novamente do estado atualizado
-        const updatedConversations = await ChatService.getUserConversations();
-        conversation = updatedConversations.find(c => c.id === conversationId);
-        
-        // Se encontrou, atualizar a lista de conversas
-        if (conversation) {
-          setConversations(prev => {
-            const exists = prev.find(c => c.id === conversationId);
-            if (!exists) {
-              return [...prev, conversation!];
+        try {
+          // ✅ OTIMIZAÇÃO: Buscar diretamente do banco primeiro (mais rápido que recarregar tudo)
+          const directConversation = await ChatService.getConversationById(conversationId);
+          
+          if (directConversation) {
+            conversation = directConversation;
+            // Adicionar à lista de conversas
+            setConversations(prev => {
+              const exists = prev.find(c => c.id === conversationId);
+              if (!exists) {
+                return [...prev, conversation!];
+              }
+              return prev.map(c => c.id === conversationId ? conversation! : c);
+            });
+          } else {
+            // Se não encontrou diretamente, tentar recarregar todas as conversas
+            await loadConversations();
+            const updatedConversations = await ChatService.getUserConversations();
+            conversation = updatedConversations.find(c => c.id === conversationId);
+            
+            if (conversation) {
+              setConversations(prev => {
+                const exists = prev.find(c => c.id === conversationId);
+                if (!exists) {
+                  return [...prev, conversation!];
+                }
+                return prev.map(c => c.id === conversationId ? conversation! : c);
+              });
             }
-            return prev.map(c => c.id === conversationId ? conversation! : c);
-          });
-        } else {
-          // Se ainda não encontrou, limpar erro e continuar (a conversa pode estar sendo carregada)
-          console.log('⚠️ Conversa ainda não encontrada após recarregar, mas continuando...');
-          setError(null); // Limpar erro anterior
+          }
+        } catch (error) {
+          console.error('Erro ao buscar conversa:', error);
         }
-      }
-      
-      // Se ainda não encontrou após todas as tentativas, definir erro
-      if (!conversation) {
-        console.log('⚠️ Conversa não encontrada após todas as tentativas');
-        setError('Conversa não encontrada');
-        setIsLoadingMessages(false);
-        isLoadingRef.current = false;
-        return;
+        
+        // Se ainda não encontrou, definir erro
+        if (!conversation) {
+          setError('Conversa não encontrada');
+          setIsLoadingMessages(false);
+          isLoadingRef.current = false;
+          return;
+        }
       }
       
       setCurrentConversation(conversation);
@@ -668,7 +640,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setHasMoreOlderMessages(true);
       setIsLoadingOlderMessages(false);
       isLoadingOlderMessagesRef.current = false;
-      console.log('✅ Conversa selecionada:', conversation.title);
       
       // Carregar mensagens
       const messagesData = await ChatService.getConversationMessages(conversationId, {
@@ -712,11 +683,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           if (latestMessages.length < MESSAGE_PAGE_SIZE) {
             setHasMoreOlderMessages(false);
           }
-          console.log('[ChatContext] polling -> messages set', {
-            conversationId,
-            total: latestMessages.length,
-            latest: latestMessages.at(-1)?.content,
-          });
 
           const lastMessage = latestMessages.at(-1);
           const serverPreview = getPreviewFromMessage(lastMessage);
@@ -867,14 +833,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         },
       };
 
-      setMessages((prev) => [...prev, optimisticMessage]);
-      lastMessageIdRef.current = optimisticMessage.id;
-      console.log('[ChatContext] sendSingleMessage -> optimistic appended', {
-        conversationId: currentConversation.id,
-        optimisticId,
-        total: messages.length + 1,
-        content,
+      // ✅ CORREÇÃO: Verificar se a mensagem otimista pertence à conversa atual
+      setMessages((prev) => {
+        if (optimisticMessage.conversation_id === currentConversation.id) {
+          return [...prev.filter((msg) => msg.conversation_id === currentConversation.id), optimisticMessage];
+        }
+        return prev;
       });
+      lastMessageIdRef.current = optimisticMessage.id;
       localPreviewOverridesRef.current.set(currentConversation.id, {
         preview: getPreviewFromMessage(optimisticMessage),
         createdAt: optimisticMessage.created_at,
@@ -894,13 +860,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
       let messageId: string | null = null;
 
-      console.log('[ChatContext] sendSingleMessage -> Chamando ChatService.sendMessage', {
-        conversationId: currentConversation.id,
-        content: content.substring(0, 50) + '...',
-        messageType,
-        hasFileData: !!fileData,
-      });
-
       try {
         messageId = await ChatService.sendMessage(
           currentConversation.id,
@@ -909,22 +868,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           fileData,
           replyToId
         );
-        
-        console.log('[ChatContext] sendSingleMessage -> ChatService.sendMessage retornou:', messageId);
 
+        // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === optimisticMessage.id
-              ? { ...msg, id: messageId as string, status: 'sent' as const }
-              : msg
-          )
+          prev
+            .filter((msg) => msg.conversation_id === currentConversation.id)
+            .map((msg) =>
+              msg.id === optimisticMessage.id
+                ? { ...msg, id: messageId as string, status: 'sent' as const }
+                : msg
+            )
         );
         lastMessageIdRef.current = messageId as string;
-        console.log('[ChatContext] sendSingleMessage -> optimistic replaced with real id', {
-          conversationId: currentConversation.id,
-          optimisticId,
-          realId: messageId,
-        });
         localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: getPreviewFromMessage({
             ...optimisticMessage,
@@ -965,33 +920,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
         await queueMessageNotification(currentConversation, content);
         await loadConversationMessages(currentConversation.id);
-        await queueMessageNotification(currentConversation, content);
-        await loadConversationMessages(currentConversation.id);
       } catch (err) {
-        console.error('[ChatContext] sendSingleMessage -> ERRO CAPTURADO:', {
-          error: err,
-          message: err instanceof Error ? err.message : 'Erro desconhecido',
-          stack: err instanceof Error ? err.stack : undefined,
-          conversationId: currentConversation.id,
-          optimisticId,
-        });
+        console.error('Erro ao enviar mensagem:', err);
         
+        // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
         setMessages((prev) =>
-          prev.map((msg): Message => {
-            if (msg.id === optimisticMessage.id) {
-              return {
-                ...msg,
-                status: 'failed' as const,
-                content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
-              } as Message;
-            }
-            return msg;
-          })
+          prev
+            .filter((msg) => msg.conversation_id === currentConversation.id)
+            .map((msg): Message => {
+              if (msg.id === optimisticMessage.id) {
+                return {
+                  ...msg,
+                  status: 'failed' as const,
+                  content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                } as Message;
+              }
+              return msg;
+            })
         );
-        console.log('[ChatContext] sendSingleMessage -> optimistic marked as failed', {
-          conversationId: currentConversation.id,
-          optimisticId,
-        });
         localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
           createdAt: optimisticMessage.created_at,
@@ -1144,7 +1090,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       };
       
       setConversations(prev => [newConversation, ...prev]);
-      console.log('✅ Conversa criada e adicionada à lista local:', conversationId);
       
       return conversationId;
     } catch (err) {
@@ -1216,7 +1161,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         lastMessageIdRef.current = null;
       }
       
-      console.log('✅ Conversa excluída com sucesso');
     } catch (error) {
       console.error('❌ Erro ao excluir conversa:', error);
       setError('Erro ao excluir conversa');
@@ -1230,17 +1174,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const getAvailableUsers = useCallback(async () => {
     try {
       if (!user) {
-        console.log('🔍 getAvailableUsers: Usuário não disponível');
         return [];
       }
 
-      console.log('🔍 Buscando usuários disponíveis para comunicação...');
       const availableUsers = await ConversationPermissionService.getAvailableUsersForCommunication(
         user.uid,
         'client' // TODO: Obter role real do usuário
       );
 
-      console.log('✅ Usuários disponíveis encontrados:', availableUsers.length);
       return availableUsers;
 
     } catch (error) {
@@ -1256,7 +1197,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   ) => {
     try {
       setIsLoading(true);
-      console.log('🔍 Criando conversa com usuário:', { targetUserId, title });
 
       const conversationId = await ChatService.createConversationWithPermission(
         targetUserId,
@@ -1267,7 +1207,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // Recarregar conversas para incluir a nova
       await loadConversations();
 
-      console.log('✅ Conversa criada com sucesso:', conversationId);
       return conversationId;
 
     } catch (error) {
@@ -1283,29 +1222,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const archiveConversation = useCallback(async (conversationId: string) => {
     try {
       setIsLoading(true);
-      console.log('🔄 ChatContext: Iniciando arquivamento da conversa:', conversationId);
       
       await ChatService.archiveConversation(conversationId);
       
       // Atualizar status na lista local
       setConversations(prev => {
-        const updated = prev.map(c => 
+        return prev.map(c => 
           c.id === conversationId 
             ? { ...c, status: 'archived' as const }
             : c
         );
-        
-        console.log('🔄 ChatContext: Atualizando estado das conversas:', {
-          conversationId,
-          beforeUpdate: prev.find(c => c.id === conversationId)?.status,
-          afterUpdate: updated.find(c => c.id === conversationId)?.status,
-          allConversations: updated.map(c => ({ id: c.id, title: c.title, status: c.status }))
-        });
-        
-        return updated;
       });
-      
-      console.log('✅ ChatContext: Conversa arquivada com sucesso');
     } catch (error) {
       console.error('❌ ChatContext: Erro ao arquivar conversa:', error);
       setError('Erro ao arquivar conversa');
@@ -1318,7 +1245,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // Efeitos - Carregar conversas quando usuário estiver pronto
   useEffect(() => {
     if (user && !loading && isProviderReady) {
-      console.log('🔍 useEffect: Usuário pronto, chamando loadConversations para:', user.uid);
       loadConversations();
     }
   }, [user, loading, isProviderReady]); // 🔧 CORREÇÃO: Removido loadConversations das dependências para evitar loop
@@ -1405,14 +1331,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     createConversationWithUser,
   };
 
-  // 🚀 DEBUG: Log do valor do contexto
-  console.log('🔍 ChatContext valor:', {
-    isProviderReady,
-    conversationsCount: conversations?.length || 0,
-    conversations: conversations,
-    isLoading,
-    error
-  });
 
   // 🚀 CORREÇÃO: Usar valor padrão apenas se não houver usuário, mas sempre fornecer conversas se disponíveis
   const contextValue = !user ? defaultContextValue : value;

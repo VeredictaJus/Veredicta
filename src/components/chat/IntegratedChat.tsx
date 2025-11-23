@@ -26,7 +26,6 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   try {
     chatContext = useChat();
   } catch (error) {
-    console.log('🔍 ChatContext não disponível no IntegratedChat');
     return (
       <div className="p-4 text-center text-gray-500">
         Chat não disponível no momento. Tente recarregar a página.
@@ -53,11 +52,6 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   // 🚀 Detectar se o usuário é um admin usando a propriedade role
   const userIsAdmin = user?.role === 'admin';
   
-  // Debug: Log do tipo de usuário
-  useEffect(() => {
-    console.log('🔍 IntegratedChat - Tipo de usuário:', user?.role);
-    console.log('🔍 IntegratedChat - É admin?', userIsAdmin);
-  }, [user?.role, userIsAdmin]);
 
   // 🚀 Garantir que não-admins sempre usem tipo "support"
   useEffect(() => {
@@ -70,7 +64,6 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   useEffect(() => {
     // Por enquanto, não carregamos redatores reais
     // O sistema funciona apenas com "Suporte"
-    console.log('💬 Sistema de chat simplificado - apenas suporte disponível');
     setWriters([]);
     setIsLoadingWriters(false);
   }, [user]);
@@ -100,7 +93,6 @@ export default function IntegratedChat({ className, selectedConversationId: exte
 
       const conversationExists = conversations.find(conv => conv.id === conversationId);
       if (conversationExists && conversationId !== selectedConversationId) {
-        console.log('🔍 IntegratedChat: Selecionando conversa da URL:', conversationId);
         lastProcessedConversationRef.current = conversationId;
         handleSelectConversation(conversationId);
       }
@@ -110,30 +102,25 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   useEffect(() => {
     const handleExternalConversation = async () => {
       if (externalSelectedConversationId && externalSelectedConversationId !== selectedConversationId) {
-        console.log('🔍 IntegratedChat: Selecionando conversa externa:', externalSelectedConversationId);
         lastProcessedConversationRef.current = externalSelectedConversationId;
         
-        // Sempre selecionar a conversa, mesmo que não esteja na lista ainda
-        // O ChatWindow vai tentar recarregar se necessário
+        // ✅ OTIMIZAÇÃO: Definir selectedConversationId imediatamente para mostrar o chat
         setSelectedConversationId(externalSelectedConversationId);
         
-        // Verificar se a conversa existe na lista de conversas do ChatContext
+        // ✅ OTIMIZAÇÃO: Verificar se a conversa já existe na lista antes de recarregar
         const conversationExists = conversations.find(conv => conv.id === externalSelectedConversationId);
         
         if (!conversationExists) {
-          // Se a conversa não existe, recarregar as conversas primeiro
-          console.log('🔄 Conversa não encontrada, recarregando conversas...');
-          await loadConversations();
-          
-          // Aguardar um pouco para o estado atualizar
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          // Tentar selecionar novamente
-          handleSelectConversation(externalSelectedConversationId);
-        } else {
-          // Se a conversa existe, apenas selecionar no ChatContext
-          handleSelectConversation(externalSelectedConversationId);
+          // Se não existe, recarregar conversas em paralelo com a seleção
+          loadConversations().catch(error => {
+            console.error('Erro ao recarregar conversas:', error);
+          });
         }
+        
+        // ✅ OTIMIZAÇÃO: Selecionar a conversa imediatamente (o selectConversation vai buscar se necessário)
+        handleSelectConversation(externalSelectedConversationId).catch(error => {
+          console.error('Erro ao selecionar conversa:', error);
+        });
       }
 
       if (!externalSelectedConversationId && selectedConversationId) {

@@ -34,7 +34,9 @@ const getAdminClient = () => {
         }
       );
     } else {
-      console.warn('⚠️ Service role key não encontrada, usando cliente normal');
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ Service role key não encontrada, usando cliente normal');
+      }
       adminClientInstance = supabase;
     }
   }
@@ -754,16 +756,56 @@ export default function Revisoes() {
   useEffect(() => {
     loadPending();
 
-    const channel = supabase
-      .channel('realtime-corrections')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corrections' }, loadPending)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corrections' }, loadPending)
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Função para criar/ativar subscription
+    const activateSubscription = () => {
+      if (channel) {
+        return; // Já existe
+      }
+
+      channel = supabase
+        .channel('realtime-corrections')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'corrections' }, loadPending)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'corrections' }, loadPending)
+        .subscribe();
+    };
+
+    // Função para desativar subscription
+    const deactivateSubscription = () => {
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+        channel = null;
+      }
+    };
+
+    // ✅ OTIMIZAÇÃO: Gerenciar subscription baseado na visibilidade da aba
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        deactivateSubscription();
+      } else {
+        activateSubscription();
+        loadPending(); // Recarregar ao voltar
+      }
+    };
+
+    // Ativar subscription inicialmente (se a aba estiver visível)
+    if (!document.hidden) {
+      activateSubscription();
+    }
+
+    // Escutar mudanças de visibilidade da aba
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      try {
-        supabase.removeChannel(channel);
-      } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
   }, []);
 
@@ -785,8 +827,8 @@ export default function Revisoes() {
             <p className="text-sm text-muted-foreground mt-1">Itens que aguardam revisão humana.</p>
           </div>
           <Button variant="outline" onClick={loadPending} className="gap-2 flex-shrink-0 ml-4" disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-            {loading ? 'Carregando...' : 'Atualizar'}
+            <RefreshCcw className="h-4 w-4" />
+            Atualizar
           </Button>
         </CardHeader>
 

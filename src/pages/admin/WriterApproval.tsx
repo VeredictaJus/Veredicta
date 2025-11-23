@@ -228,14 +228,7 @@ export default function WriterApproval() {
       </div>
 
       <div className="grid gap-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent mr-3" />
-              <span className="text-muted-foreground">Carregando redatores...</span>
-            </div>
-          </div>
-        ) : (
+        {!loading && (
           <>
             {filteredWriters.map((writer) => (
           <Card key={writer.id}>

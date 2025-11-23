@@ -151,3 +151,5 @@ As otimizações estão prontas para deploy! Para aplicar:
 **Data:** $(date)
 **Versão:** v2.0
 
+
+

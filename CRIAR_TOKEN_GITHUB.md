@@ -52,3 +52,5 @@ Se preferir algo mais visual:
 
 **Crie o token e me avise quando estiver pronto!** 😊
 
+
+

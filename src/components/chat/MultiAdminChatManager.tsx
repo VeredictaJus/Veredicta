@@ -13,10 +13,16 @@ import {
   Pause,
   RotateCcw,
   Eye,
-  EyeOff
+  EyeOff,
+  Archive
 } from 'lucide-react';
-import { MultiAdminChatService, AdminStatus, AvailableConversation, AdminConversation } from '@/services/multiAdminChatService';
+import { MultiAdminChatService, AdminStatus, AdminConversation } from '@/services/multiAdminChatService';
+import { UserSearchService, UserSearchResult } from '@/services/userSearchService';
+import { useChat } from '@/contexts/ChatContext';
+import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 interface ConversationSummary {
   conversation_id: string;
@@ -39,9 +45,17 @@ export default function MultiAdminChatManager({
   selectedConversationId 
 }: MultiAdminChatManagerProps) {
   const { toast } = useToast();
+  const { createConversationWithUser } = useChat();
+  const { user } = useNewAuth();
   const [adminStatus, setAdminStatus] = useState<AdminStatus[]>([]);
-  const [availableConversations, setAvailableConversations] = useState<AvailableConversation[]>([]);
   const [myConversations, setMyConversations] = useState<AdminConversation[]>([]);
+  const [activeUsers, setActiveUsers] = useState<UserSearchResult[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [isUsersExpanded, setIsUsersExpanded] = useState(false);
+  const [isMyConversationsExpanded, setIsMyConversationsExpanded] = useState(true);
+  const [isClosedConversationsExpanded, setIsClosedConversationsExpanded] = useState(true);
+  const [isAdminsExpanded, setIsAdminsExpanded] = useState(true);
+  const [isControlsExpanded, setIsControlsExpanded] = useState(true);
   const [stats, setStats] = useState({
     total_conversations: 0,
     open_conversations: 0,
@@ -64,6 +78,9 @@ export default function MultiAdminChatManager({
   // Carregar dados iniciais
   useEffect(() => {
     loadData();
+    if (user?.uid) {
+      loadActiveUsers();
+    }
     updatePresence(true);
     
     // Atualizar presença a cada 30 segundos
@@ -75,20 +92,18 @@ export default function MultiAdminChatManager({
       clearInterval(interval);
       updatePresence(false);
     };
-  }, []);
+  }, [user?.uid]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [adminStatusData, availableData, myConversationsData, statsData] = await Promise.all([
+      const [adminStatusData, myConversationsData, statsData] = await Promise.all([
         MultiAdminChatService.getAdminStatus(),
-        MultiAdminChatService.getAvailableConversations(),
         MultiAdminChatService.getAdminConversations(),
         MultiAdminChatService.getChatStats()
       ]);
 
       setAdminStatus(adminStatusData || []);
-      setAvailableConversations(Array.isArray(availableData) ? availableData : []);
       setMyConversations(Array.isArray(myConversationsData) ? myConversationsData : []);
       setStats(statsData || {
         total_conversations: 0,
@@ -108,6 +123,86 @@ export default function MultiAdminChatManager({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ NOVO: Carregar usuários ativos da plataforma
+  const loadActiveUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const users = await UserSearchService.getAllUsers(user?.uid);
+      // Filtrar apenas clientes e redatores (não admins)
+      const filteredUsers = users.filter(u => u.role === 'client' || u.role === 'writer');
+      setActiveUsers(filteredUsers);
+    } catch (error) {
+      console.error('Erro ao carregar usuários ativos:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao carregar usuários ativos',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // ✅ NOVO: Iniciar conversa com usuário ativo
+  const handleStartConversationWithUser = async (targetUser: UserSearchResult) => {
+    try {
+      if (!user?.uid) {
+        toast({
+          title: 'Erro',
+          description: 'Usuário não autenticado',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Verificar se já existe conversa
+      const existingConversationId = await UserSearchService.checkExistingConversation(
+        user.uid,
+        targetUser.firebase_uid
+      );
+
+      let conversationId: string;
+
+      if (existingConversationId) {
+        // Se já existe, abrir a conversa existente
+        conversationId = existingConversationId;
+        toast({
+          title: 'Sucesso',
+          description: 'Conversa existente aberta'
+        });
+      } else {
+        // Criar nova conversa
+        const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
+        conversationId = await createConversationWithUser(
+          targetUser.firebase_uid,
+          title,
+          `Olá ${targetUser.full_name || 'usuário'}! Como posso ajudar?`
+        );
+        toast({
+          title: 'Sucesso',
+          description: 'Conversa criada com sucesso'
+        });
+      }
+
+      // Abrir a conversa
+      emitConversationSelection(conversationId, {
+        conversation_id: conversationId,
+        title: `Conversa com ${targetUser.full_name || targetUser.email}`,
+        client_name: targetUser.full_name || targetUser.email,
+        priority: 'normal',
+        status: 'active',
+        type: 'support',
+      });
+    } catch (error) {
+      console.error('Erro ao iniciar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao iniciar conversa',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -146,40 +241,6 @@ export default function MultiAdminChatManager({
     updatePresence(!isOnline);
   };
 
-  const handleAssignConversation = async (conversation: AvailableConversation) => {
-    try {
-      const success = await MultiAdminChatService.assignConversation(conversation.conversation_id);
-      if (success) {
-        toast({
-          title: 'Sucesso',
-          description: 'Conversa atribuída com sucesso'
-        });
-        await loadData();
-        emitConversationSelection(conversation.conversation_id, {
-          conversation_id: conversation.conversation_id,
-          title: conversation.title,
-          client_name: conversation.client_name,
-          priority: conversation.priority,
-          status: 'assigned',
-          type: conversation.type,
-          unread_count: conversation.unread_count,
-        });
-      } else {
-        toast({
-          title: 'Erro',
-          description: 'Erro ao atribuir conversa',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao atribuir conversa:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao atribuir conversa',
-        variant: 'destructive'
-      });
-    }
-  };
 
   const handleReleaseConversation = async (conversationId: string) => {
     try {
@@ -243,9 +304,8 @@ export default function MultiAdminChatManager({
           'Esta conversa foi encerrada pelo administrador. Se precisar de mais ajuda, abra uma nova conversa.',
           'system'
         );
-        console.log('✅ Mensagem automática de encerramento enviada');
       } catch (messageError) {
-        console.warn('⚠️ Erro ao enviar mensagem automática:', messageError);
+        console.error('Erro ao enviar mensagem automática:', messageError);
         // Não falhar o encerramento se a mensagem falhar
       }
 
@@ -387,186 +447,307 @@ export default function MultiAdminChatManager({
         </Card>
       </div>
 
-      {/* Status dos Admins */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Status dos Admins</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {adminStatus.map((admin) => (
-              <div key={admin.admin_id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={getAdminAvatarUrl()} alt={admin.admin_name} />
-                    <AvatarFallback>
-                      {admin.admin_name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{admin.admin_name}</p>
-                    <p className="text-sm text-gray-500">{admin.admin_email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge 
-                    variant="secondary" 
-                    className={`${getAdminStatusColor(admin.status)} text-white`}
-                  >
-                    {getAdminStatusLabel(admin.status)}
-                  </Badge>
-                  <Badge variant="outline">
-                    {admin.active_conversations_count} conversas
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Conversas Disponíveis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="h-5 w-5" />
-            <span>Conversas Disponíveis</span>
-            <Badge variant="secondary">{availableConversations.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {availableConversations.map((conversation) => (
-              <div
-                key={conversation.conversation_id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${getPriorityColor(conversation.priority)}`} />
-                  <div>
-                    <p className="font-medium">{conversation.title}</p>
-                    <p className="text-sm text-gray-500">
-                      {conversation.client_name} • {conversation.unread_count} não lidas
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">{conversation.priority}</Badge>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAssignConversation(conversation)}
-                  >
-                    Atribuir
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Minhas Conversas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CheckCircle className="h-5 w-5" />
-            <span>Minhas Conversas</span>
-            <Badge variant="secondary">{myConversations.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {myConversations.map((conversation) => {
-              const isSelected = selectedConversationId === conversation.conversation_id;
-              return (
-                <div
-                  key={conversation.conversation_id}
-                  className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                    isSelected ? 'border-orange-500 bg-orange-50/40' : ''
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${getStatusColor(conversation.status)}`} />
-                    <div>
-                      <p className="font-medium">{conversation.title}</p>
-                      <p className="text-sm text-gray-500">
-                        {conversation.client_name} • {conversation.response_count} respostas
-                      </p>
+      {/* Status dos Admins - Colapsável */}
+      <Collapsible open={isAdminsExpanded} onOpenChange={setIsAdminsExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5" />
+                <span>Status dos Admins</span>
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${isAdminsExpanded ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-3">
+                {adminStatus.map((admin) => (
+                  <div key={admin.admin_id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarImage src={getAdminAvatarUrl()} alt={admin.admin_name} />
+                        <AvatarFallback>
+                          {admin.admin_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{admin.admin_name}</p>
+                        <p className="text-sm text-gray-500">{admin.admin_email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant="secondary" 
+                        className={`${getAdminStatusColor(admin.status)} text-white`}
+                      >
+                        {getAdminStatusLabel(admin.status)}
+                      </Badge>
+                      <Badge variant="outline">
+                        {admin.active_conversations_count} conversas
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="outline">{getStatusLabel(conversation.status)}</Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        emitConversationSelection(conversation.conversation_id, {
-                          conversation_id: conversation.conversation_id,
-                          title: conversation.title,
-                          client_name: conversation.client_name,
-                          priority: conversation.priority,
-                          status: conversation.status,
-                          type: conversation.type,
-                          response_count: conversation.response_count,
-                          unread_count: conversation.unread_count,
-                        })
-                      }
-                    >
-                      Abrir
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleReleaseConversation(conversation.conversation_id)}
-                    >
-                      Liberar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCloseConversation(conversation.conversation_id)}
-                      disabled={conversation.status === 'closed'}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >
-                      Encerrar
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
-      {/* Controles */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Controles</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant={isOnline ? "default" : "outline"}
-              onClick={handleToggleOnline}
-              disabled={isUpdatingPresence}
-            >
-              {isOnline ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
-              {isUpdatingPresence ? 'Atualizando...' : (isOnline ? 'Online' : 'Offline')}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={loadData}
-              disabled={loading}
-            >
-              <RotateCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Atualizando...' : 'Atualizar'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
+      {/* ✅ NOVO: Usuários Ativos - Colapsável */}
+      <Collapsible open={isUsersExpanded} onOpenChange={setIsUsersExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardTitle className="flex items-center space-x-2">
+                <Users className="h-5 w-5" />
+                <span>Usuários Ativos</span>
+                <Badge variant="secondary">{activeUsers.length}</Badge>
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${isUsersExpanded ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              {loadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {activeUsers.map((activeUser) => (
+                    <div
+                      key={activeUser.firebase_uid}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarImage src={activeUser.avatar_url} alt={activeUser.full_name} />
+                          <AvatarFallback>
+                            {activeUser.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{activeUser.full_name || activeUser.email}</p>
+                          <p className="text-sm text-gray-500">
+                            {activeUser.email} • {activeUser.role === 'client' ? 'Cliente' : 'Redator'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleStartConversationWithUser(activeUser)}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Iniciar Conversa
+                      </Button>
+                    </div>
+                  ))}
+                  {activeUsers.length === 0 && !loadingUsers && (
+                    <p className="text-center text-gray-500 py-4">Nenhum usuário ativo encontrado</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Minhas Conversas - Colapsável */}
+      <Collapsible open={isMyConversationsExpanded} onOpenChange={setIsMyConversationsExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardTitle className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5" />
+                <span>Minhas Conversas</span>
+                <Badge variant="secondary">{myConversations.filter(c => c.status !== 'closed').length}</Badge>
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${isMyConversationsExpanded ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-3">
+                {myConversations
+                  .filter(conversation => conversation.status !== 'closed')
+                  .map((conversation) => {
+                    const isSelected = selectedConversationId === conversation.conversation_id;
+                    return (
+                      <div
+                        key={conversation.conversation_id}
+                        className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                          isSelected ? 'border-orange-500 bg-orange-50/40' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-3 h-3 rounded-full ${getStatusColor(conversation.status)}`} />
+                          <div>
+                            <p className="font-medium">{conversation.title}</p>
+                            <p className="text-sm text-gray-500">
+                              {conversation.client_name} • {conversation.response_count} respostas
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">{getStatusLabel(conversation.status)}</Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              emitConversationSelection(conversation.conversation_id, {
+                                conversation_id: conversation.conversation_id,
+                                title: conversation.title,
+                                client_name: conversation.client_name,
+                                priority: conversation.priority,
+                                status: conversation.status,
+                                type: conversation.type,
+                                response_count: conversation.response_count,
+                                unread_count: conversation.unread_count,
+                              });
+                            }}
+                          >
+                            Abrir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReleaseConversation(conversation.conversation_id)}
+                          >
+                            Liberar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCloseConversation(conversation.conversation_id)}
+                            disabled={conversation.status === 'closed'}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          >
+                            Encerrar
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {myConversations.filter(c => c.status !== 'closed').length === 0 && (
+                  <p className="text-center text-gray-500 py-4">Nenhuma conversa ativa</p>
+                )}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ✅ NOVO: Conversas Encerradas - Colapsável */}
+      <Collapsible open={isClosedConversationsExpanded} onOpenChange={setIsClosedConversationsExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardTitle className="flex items-center space-x-2">
+                <Archive className="h-5 w-5" />
+                <span>Conversas Encerradas</span>
+                <Badge variant="secondary">{myConversations.filter(c => c.status === 'closed').length}</Badge>
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${isClosedConversationsExpanded ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {myConversations
+                  .filter(conversation => conversation.status === 'closed')
+                  .map((conversation) => {
+                    const isSelected = selectedConversationId === conversation.conversation_id;
+                    return (
+                      <div
+                        key={conversation.conversation_id}
+                        className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                          isSelected ? 'border-orange-500 bg-orange-50/40' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-3 h-3 rounded-full ${getStatusColor(conversation.status)}`} />
+                          <div>
+                            <p className="font-medium">{conversation.title}</p>
+                            <p className="text-sm text-gray-500">
+                              {conversation.client_name} • {conversation.response_count} respostas
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">{getStatusLabel(conversation.status)}</Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              emitConversationSelection(conversation.conversation_id, {
+                                conversation_id: conversation.conversation_id,
+                                title: conversation.title,
+                                client_name: conversation.client_name,
+                                priority: conversation.priority,
+                                status: conversation.status,
+                                type: conversation.type,
+                                response_count: conversation.response_count,
+                                unread_count: conversation.unread_count,
+                              });
+                            }}
+                          >
+                            Abrir
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {myConversations.filter(c => c.status === 'closed').length === 0 && (
+                  <p className="text-center text-gray-500 py-4">Nenhuma conversa encerrada</p>
+                )}
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Controles - Colapsável */}
+      <Collapsible open={isControlsExpanded} onOpenChange={setIsControlsExpanded}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+              <CardTitle className="flex items-center space-x-2">
+                <span>Controles</span>
+                <ChevronDown className={`h-4 w-4 ml-auto transition-transform duration-200 ${isControlsExpanded ? 'rotate-180' : ''}`} />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <Button
+                  variant={isOnline ? "default" : "outline"}
+                  onClick={handleToggleOnline}
+                  disabled={isUpdatingPresence}
+                >
+                  {isOnline ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                  {isUpdatingPresence ? 'Atualizando...' : (isOnline ? 'Online' : 'Offline')}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={loadData}
+                  disabled={loading}
+                >
+                  <RotateCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Atualizando...' : 'Atualizar'}
+                </Button>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 }

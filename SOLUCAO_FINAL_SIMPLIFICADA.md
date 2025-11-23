@@ -93,3 +93,5 @@ Com essas informações, posso identificar exatamente o problema e criar uma sol
 
 **Me diga o que está acontecendo agora e vou criar a solução certa!** 😊
 
+
+

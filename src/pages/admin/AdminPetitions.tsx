@@ -128,8 +128,10 @@ export default function AdminPetitions() {
   const [selectedWriterId, setSelectedWriterId] = useState<string>('');
   const [reassigning, setReassigning] = useState(false);
 
-  const loadPetitions = async () => {
-    setLoading(true);
+  const loadPetitions = async (showLoading: boolean = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const { data, error } = await supabase
@@ -156,16 +158,18 @@ export default function AdminPetitions() {
           return acc;
         }, {} as Record<string, number>);
         
-        console.log('✅ [ADMIN PETITIONS] Petições carregadas:', {
-          total: mapped.length,
-          statusCounts: statusCounts,
-          rawStatusCounts: rawStatusCounts,
-          hasApproved: rawStatusCounts['approved'] > 0
-        });
-        
-        // Se houver status "approved" no banco mas não mapeado, logar aviso
-        if (rawStatusCounts['approved'] > 0 && !statusCounts['approved']) {
-          console.warn('⚠️ [ADMIN PETITIONS] Petições com status "approved" encontradas mas não mapeadas corretamente!');
+        if (import.meta.env.DEV) {
+          console.log('✅ [ADMIN PETITIONS] Petições carregadas:', {
+            total: mapped.length,
+            statusCounts: statusCounts,
+            rawStatusCounts: rawStatusCounts,
+            hasApproved: rawStatusCounts['approved'] > 0
+          });
+          
+          // Se houver status "approved" no banco mas não mapeado, logar aviso
+          if (rawStatusCounts['approved'] > 0 && !statusCounts['approved']) {
+            console.warn('⚠️ [ADMIN PETITIONS] Petições com status "approved" encontradas mas não mapeadas corretamente!');
+          }
         }
       }
       
@@ -174,7 +178,9 @@ export default function AdminPetitions() {
       setError(e.message || 'Erro ao carregar petições');
       console.error('❌ [ADMIN PETITIONS] Erro ao carregar:', e);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -182,97 +188,145 @@ export default function AdminPetitions() {
     // Carregar petições inicialmente
     loadPetitions();
 
-    // Configurar subscription para atualização em tempo real
-    const channel = supabase
-      .channel('admin-petitions-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Escutar INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'petitions'
-        },
-        (payload) => {
-          const statusChanged = payload.new?.status !== payload.old?.status;
-          
-          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-          if (import.meta.env.DEV) {
-            console.log('🔄 [ADMIN PETITIONS] Mudança detectada:', {
-              eventType: payload.eventType,
-              table: payload.table,
-              id: payload.new?.id || payload.old?.id,
-              statusChanged: statusChanged,
-              oldStatus: payload.old?.status,
-              newStatus: payload.new?.status
-            });
-          }
-          
-          // Se for uma atualização de status, atualizar imediatamente no estado local
-          if (payload.eventType === 'UPDATE' && payload.new?.id) {
-            try {
-              // Buscar a petição completa do banco para garantir que temos todos os dados
-              // Mas primeiro atualizar com os dados do payload para feedback imediato
-              const updatedPetition = mapRow(payload.new);
-              const oldPetition = payload.old ? mapRow(payload.old) : null;
-              
-              setPetitions(prev => {
-                const currentPetition = prev.find(p => p.id === updatedPetition.id);
-                const updated = prev.map(p => 
-                  p.id === updatedPetition.id ? updatedPetition : p
-                );
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    // Função para criar/ativar subscription
+    const activateSubscription = () => {
+      if (channel) {
+        // Se já existe, não criar novamente
+        return;
+      }
+
+      // Configurar subscription para atualização em tempo real
+      channel = supabase
+        .channel('admin-petitions-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escutar INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'petitions'
+          },
+          (payload: any) => {
+            const newData = payload.new as any;
+            const oldData = payload.old as any;
+            const statusChanged = newData?.status !== oldData?.status;
+            
+            // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+            if (import.meta.env.DEV) {
+              console.log('🔄 [ADMIN PETITIONS] Mudança detectada:', {
+                eventType: payload.eventType,
+                table: payload.table,
+                id: newData?.id || oldData?.id,
+                statusChanged: statusChanged,
+                oldStatus: oldData?.status,
+                newStatus: newData?.status
+              });
+            }
+            
+            // Se for uma atualização de status, atualizar imediatamente no estado local
+            if (payload.eventType === 'UPDATE' && newData?.id) {
+              try {
+                // Buscar a petição completa do banco para garantir que temos todos os dados
+                // Mas primeiro atualizar com os dados do payload para feedback imediato
+                const updatedPetition = mapRow(payload.new);
+                const oldPetition = payload.old ? mapRow(payload.old) : null;
                 
-                // Se o status mudou, mostrar toast
-                if (statusChanged && oldPetition && currentPetition) {
-                  const oldStatusLabel = statusConfig[oldPetition.status]?.label || oldPetition.status;
-                  const newStatusLabel = statusConfig[updatedPetition.status]?.label || updatedPetition.status;
-                  toast.success(`Status atualizado: ${oldStatusLabel} → ${newStatusLabel}`, {
-                    description: `Petição: ${updatedPetition.title}`
+                setPetitions(prev => {
+                  const currentPetition = prev.find(p => p.id === updatedPetition.id);
+                  const updated = prev.map(p => 
+                    p.id === updatedPetition.id ? updatedPetition : p
+                  );
+                  
+                  // Se o status mudou, mostrar toast
+                  if (statusChanged && oldPetition && currentPetition) {
+                    const oldStatusLabel = statusConfig[oldPetition.status]?.label || oldPetition.status;
+                    const newStatusLabel = statusConfig[updatedPetition.status]?.label || updatedPetition.status;
+                    toast.success(`Status atualizado: ${oldStatusLabel} → ${newStatusLabel}`, {
+                      description: `Petição: ${updatedPetition.title}`
+                    });
+                  }
+                  
+                  return updated;
+                });
+                
+                // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+                if (import.meta.env.DEV) {
+                  console.log('✅ [ADMIN PETITIONS] Status atualizado localmente:', {
+                    id: updatedPetition.id,
+                    oldStatus: oldPetition?.status,
+                    newStatus: updatedPetition.status,
+                    title: updatedPetition.title
                   });
                 }
-                
-                return updated;
-              });
-              
-              // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-              if (import.meta.env.DEV) {
-                console.log('✅ [ADMIN PETITIONS] Status atualizado localmente:', {
-                  id: updatedPetition.id,
-                  oldStatus: oldPetition?.status,
-                  newStatus: updatedPetition.status,
-                  title: updatedPetition.title
-                });
+              } catch (error) {
+                console.error('❌ [ADMIN PETITIONS] Erro ao atualizar petição localmente:', error);
               }
-            } catch (error) {
-              console.error('❌ [ADMIN PETITIONS] Erro ao atualizar petição localmente:', error);
+            }
+            
+            // ✅ OTIMIZAÇÃO: Removido loadPetitions() para evitar "piscar"
+            // A atualização local já é suficiente, e o polling de 10s garante sincronização periódica
+            // Isso evita re-renders desnecessários que causam o efeito de "piscar" na tela
+          }
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('❌ [ADMIN PETITIONS] Erro na subscription:', err);
+          } else if (status === 'SUBSCRIBED') {
+            // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+            if (import.meta.env.DEV) {
+              console.log('✅ [ADMIN PETITIONS] Subscription ativa - atualizações em tempo real habilitadas');
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // ✅ OTIMIZAÇÃO: Console.warn apenas em desenvolvimento
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ [ADMIN PETITIONS] Realtime não disponível, usando polling como fallback');
             }
           }
-          
-          // ✅ OTIMIZAÇÃO: Removido loadPetitions() para evitar "piscar"
-          // A atualização local já é suficiente, e o polling de 10s garante sincronização periódica
-          // Isso evita re-renders desnecessários que causam o efeito de "piscar" na tela
+        });
+    };
+
+    // Função para desativar subscription
+    const deactivateSubscription = () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+        if (import.meta.env.DEV) {
+          console.log('⏸️ [ADMIN PETITIONS] Subscription pausada (aba não visível)');
         }
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error('❌ [ADMIN PETITIONS] Erro na subscription:', err);
-        } else if (status === 'SUBSCRIBED') {
-          // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-          if (import.meta.env.DEV) {
-            console.log('✅ [ADMIN PETITIONS] Subscription ativa - atualizações em tempo real habilitadas');
-          }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // ✅ OTIMIZAÇÃO: Console.warn apenas em desenvolvimento
-          if (import.meta.env.DEV) {
-            console.warn('⚠️ [ADMIN PETITIONS] Realtime não disponível, usando polling como fallback');
-          }
-        }
-      });
+      }
+    };
+
+    // ✅ OTIMIZAÇÃO: Gerenciar subscription baseado na visibilidade da aba
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Aba não está visível - pausar subscription para economizar recursos
+        deactivateSubscription();
+      } else {
+        // Aba voltou a ficar visível - reativar subscription
+        activateSubscription();
+        // Recarregar dados ao voltar para garantir sincronização (sem mostrar loading)
+        loadPetitions(false);
+      }
+    };
+
+    // Ativar subscription inicialmente (se a aba estiver visível)
+    if (!document.hidden) {
+      activateSubscription();
+    }
+
+    // Escutar mudanças de visibilidade da aba
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Polling como fallback (a cada 10 segundos) caso o realtime não funcione
     // Isso garante que mesmo sem realtime, os dados sejam atualizados
-    const pollInterval = setInterval(() => {
-      // Recarregar petições periodicamente para garantir que está atualizado
-      loadPetitions();
+    pollInterval = setInterval(() => {
+      // Só fazer polling se a aba estiver visível
+      if (!document.hidden) {
+        // ✅ OTIMIZAÇÃO: Polling silencioso (sem mostrar loading) para não interromper o usuário
+        loadPetitions(false);
+      }
     }, 10000); // 10 segundos é um bom equilíbrio entre atualização e performance
 
     // Cleanup: remover subscription e polling quando componente desmontar
@@ -281,8 +335,13 @@ export default function AdminPetitions() {
       if (import.meta.env.DEV) {
         console.log('🔌 [ADMIN PETITIONS] Removendo subscription e polling');
       }
-      supabase.removeChannel(channel);
-      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -579,16 +638,7 @@ export default function AdminPetitions() {
     return Math.ceil(d / (1000 * 60 * 60 * 24));
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-80">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-orange-500 border-t-transparent mx-auto" />
-          <p className="mt-4 text-muted-foreground">Carregando petições...</p>
-        </div>
-      </div>
-    );
-  }
+  // Removido indicador de loading - carrega silenciosamente
 
   if (error) {
     return (
@@ -599,7 +649,7 @@ export default function AdminPetitions() {
           <pre className="text-xs bg-red-50 p-3 rounded border border-red-200 overflow-auto">
             {error}
           </pre>
-          <Button onClick={loadPetitions} className="mt-4">Tentar novamente</Button>
+          <Button onClick={() => loadPetitions()} className="mt-4">Tentar novamente</Button>
         </div>
       </div>
     );

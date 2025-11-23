@@ -633,16 +633,7 @@ export default function Users() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent mr-3" />
-                          <span className="text-muted-foreground">Carregando usuários...</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filtered.length === 0 ? (
+                  {!loading && filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Nenhum usuário encontrado

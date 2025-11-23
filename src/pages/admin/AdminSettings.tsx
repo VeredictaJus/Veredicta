@@ -312,8 +312,9 @@ export default function AdminSettings() {
     }
   };
 
+  // Removido indicador de loading - carrega silenciosamente
   if (!settings) {
-    return <div>Carregando configurações...</div>;
+    return null;
   }
 
   return (

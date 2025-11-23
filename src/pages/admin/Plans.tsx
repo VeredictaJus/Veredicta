@@ -45,6 +45,26 @@ export default function Plans() {
     fetchPlans();
   }, []);
 
+  // ✅ Restaurar plano Elite
+  const handleRestoreElitePlan = async () => {
+    try {
+      const result = await PlansService.restoreElitePlan();
+      
+      if (result.success && result.plan) {
+        setPlans(prev => [...prev, result.plan!]);
+        toast.success('Plano Elite restaurado com sucesso!');
+        // Recarregar planos para garantir sincronização
+        const allPlans = await PlansService.getAllPlans();
+        setPlans(allPlans);
+      } else {
+        toast.error(result.error || 'Erro ao restaurar plano Elite');
+      }
+    } catch (error) {
+      console.error('Error restoring Elite plan:', error);
+      toast.error('Erro ao restaurar plano Elite');
+    }
+  };
+
   // ✅ Criar novo plano
   const handleCreatePlan = async () => {
     const { name, price, petitions_included } = newPlanData;
@@ -137,13 +157,24 @@ export default function Plans() {
           <h1 className="text-2xl font-bold tracking-tight">Gerenciar Planos</h1>
           <p className="text-sm text-muted-foreground">Configure e gerencie os planos de preço</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-600 hover:bg-orange-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Plano
+        <div className="flex gap-2">
+          {!plans.some(p => p.plan_code === 'elite' || p.name.toLowerCase() === 'elite') && (
+            <Button 
+              variant="outline"
+              onClick={handleRestoreElitePlan}
+              className="border-orange-600 text-orange-600 hover:bg-orange-50"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Restaurar Plano Elite
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-orange-600 hover:bg-orange-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Plano
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Novo Plano</DialogTitle>
@@ -206,6 +237,7 @@ export default function Plans() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats */}

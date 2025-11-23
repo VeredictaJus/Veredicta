@@ -68,3 +68,5 @@ Fix: Corrigir VITE_APP_URL vazia causando erro de URL inválida
 
 **Use a extensão se preferir, ou me diga e eu faço pelo terminal!** 😊
 
+
+

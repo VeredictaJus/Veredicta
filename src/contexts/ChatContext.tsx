@@ -803,7 +803,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           user_id: recipientId,
           type: 'message',
           title: `Nova mensagem de ${senderName}`,
-          message: preview,
+          body: preview, // ✅ CORREÇÃO: usar 'body' ao invés de 'message'
           priority: 'normal',
           is_read: false,
           related_entity_type: 'conversation',
@@ -816,9 +816,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
 
       if (notifications.length > 0) {
-        await supabase
+        const { error: insertError } = await supabase
           .from('app_2d8133c678_notifications')
           .insert(notifications);
+        
+        if (insertError) {
+          // ✅ CORREÇÃO: Não bloquear o envio de mensagem se a notificação falhar
+          console.error('⚠️ Erro ao criar notificações de mensagem:', insertError);
+        }
       }
     } catch (error) {
       console.error('⚠️ Erro ao enfileirar notificação de nova mensagem:', error);

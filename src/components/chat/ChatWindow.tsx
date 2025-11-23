@@ -173,6 +173,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   // Selecionar conversa quando conversationId for passado como prop
   useEffect(() => {
     if (conversationId && conversationId !== currentConversation?.id) {
+      // ✅ CORREÇÃO: Limpar mensagens imediatamente quando a conversa mudar
+      setMessages([]);
       selectConversation(conversationId).catch((error) => {
         console.error('Erro ao selecionar conversa:', error);
         // Se a conversa não existir, tentar recarregar as conversas primeiro

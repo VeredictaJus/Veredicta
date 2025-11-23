@@ -635,24 +635,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
       }
       
+      // ✅ CORREÇÃO: Limpar mensagens da conversa anterior ANTES de definir a nova conversa
+      setMessages([]);
       setCurrentConversation(conversation);
       oldestMessageRef.current = null;
       setHasMoreOlderMessages(true);
       setIsLoadingOlderMessages(false);
       isLoadingOlderMessagesRef.current = false;
       
-      // Carregar mensagens
+      // Carregar mensagens da nova conversa
       const messagesData = await ChatService.getConversationMessages(conversationId, {
         limit: MESSAGE_PAGE_SIZE,
       });
-      handleIncomingMessages(messagesData, { skipSound: true });
-      oldestMessageRef.current = messagesData[0]?.created_at ?? null;
-      setHasMoreOlderMessages(messagesData.length === MESSAGE_PAGE_SIZE);
-      if (messagesData.length === 0) {
+      
+      // ✅ CORREÇÃO: Garantir que apenas mensagens da conversa atual sejam adicionadas
+      const filteredMessages = messagesData.filter(
+        (msg) => msg.conversation_id === conversationId
+      );
+      handleIncomingMessages(filteredMessages, { skipSound: true });
+      oldestMessageRef.current = filteredMessages[0]?.created_at ?? null;
+      setHasMoreOlderMessages(filteredMessages.length === MESSAGE_PAGE_SIZE);
+      if (filteredMessages.length === 0) {
         setHasMoreOlderMessages(false);
       }
 
-      const latestMessage = messagesData.at(-1);
+      const latestMessage = filteredMessages.at(-1);
       setConversations(prev =>
         prev.map(conv =>
           conv.id === conversationId

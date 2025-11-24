@@ -95,48 +95,7 @@ END;
 $$;
 
 -- ========================================
--- 3️⃣ FUNÇÃO: Notificar Admins sobre Disputa
--- ========================================
-CREATE OR REPLACE FUNCTION notify_admins_dispute()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  petition_title TEXT;
-  petition_display_id TEXT;
-  client_name TEXT;
-BEGIN
-  -- Só notificar se o status mudou para 'disputed'
-  IF TG_OP = 'UPDATE' AND OLD.status != 'disputed' AND NEW.status = 'disputed' THEN
-    -- Buscar informações da petição
-    SELECT p.title, p.display_id, p.client_name
-    INTO petition_title, petition_display_id, client_name
-    FROM petitions p
-    WHERE p.id = NEW.id;
-    
-    petition_title := COALESCE(petition_title, 'Petição sem título');
-    petition_display_id := COALESCE(petition_display_id, NEW.id::TEXT);
-    client_name := COALESCE(client_name, 'Cliente');
-    
-    -- Notificar todos os admins
-    PERFORM notify_all_admins(
-      p_title := '⚠️ Petição em Disputa',
-      p_body := format('A petição "%s" (#%s) do cliente %s foi marcada como disputada.', petition_title, petition_display_id, client_name),
-      p_type := 'system',
-      p_priority := 'urgent',
-      p_related_entity_type := 'petition',
-      p_related_entity_id := NEW.id::TEXT
-    );
-    
-    RAISE NOTICE '✅ Notificações enviadas para admins sobre disputa: %', NEW.id;
-  END IF;
-  
-  RETURN NEW;
-END;
-$$;
-
--- ========================================
--- 4️⃣ FUNÇÃO: Notificar Admins sobre Petição sem Redator há muito tempo
+-- 3️⃣ FUNÇÃO: Notificar Admins sobre Petição sem Redator há muito tempo
 -- ========================================
 CREATE OR REPLACE FUNCTION notify_admins_unassigned_petition()
 RETURNS TRIGGER
@@ -178,7 +137,7 @@ END;
 $$;
 
 -- ========================================
--- 5️⃣ TRIGGERS: Ativar Notificações Automáticas
+-- 4️⃣ TRIGGERS: Ativar Notificações Automáticas
 -- ========================================
 
 -- Trigger 1: Notificar quando novo redator se cadastra
@@ -189,19 +148,11 @@ FOR EACH ROW
 WHEN (NEW.role = 'writer')
 EXECUTE FUNCTION notify_admins_new_writer();
 
--- Trigger 2: Notificar quando petição entra em disputa
-DROP TRIGGER IF EXISTS trigger_notify_admins_dispute ON petitions;
-CREATE TRIGGER trigger_notify_admins_dispute
-AFTER UPDATE OF status ON petitions
-FOR EACH ROW
-WHEN (OLD.status != 'disputed' AND NEW.status = 'disputed')
-EXECUTE FUNCTION notify_admins_dispute();
-
--- Trigger 3: Notificar quando petição fica sem redator há muito tempo
+-- Trigger 2: Notificar quando petição fica sem redator há muito tempo
 -- Este trigger será executado via cron job (ver abaixo)
 
 -- ========================================
--- 6️⃣ FUNÇÃO: Verificar Petições sem Redator há mais de 24h
+-- 5️⃣ FUNÇÃO: Verificar Petições sem Redator há mais de 24h
 -- ========================================
 CREATE OR REPLACE FUNCTION check_unassigned_petitions()
 RETURNS INTEGER
@@ -255,7 +206,7 @@ END;
 $$;
 
 -- ========================================
--- 7️⃣ CRON JOB: Verificar Petições sem Redator (a cada 6 horas)
+-- 6️⃣ CRON JOB: Verificar Petições sem Redator (a cada 6 horas)
 -- ========================================
 -- REQUER pg_cron habilitado
 SELECT cron.schedule(
@@ -265,7 +216,7 @@ SELECT cron.schedule(
 );
 
 -- ========================================
--- 8️⃣ FUNÇÃO: Notificar Admins sobre Necessidade de Revisão
+-- 7️⃣ FUNÇÃO: Notificar Admins sobre Necessidade de Revisão
 -- ========================================
 CREATE OR REPLACE FUNCTION notify_admins_review_needed()
 RETURNS TRIGGER
@@ -327,7 +278,7 @@ END;
 $$;
 
 -- ========================================
--- 9️⃣ FUNÇÃO: Verificar Notas Fiscais Pendentes e Notificar Admins
+-- 8️⃣ FUNÇÃO: Verificar Notas Fiscais Pendentes e Notificar Admins
 -- ========================================
 CREATE OR REPLACE FUNCTION check_pending_invoices_for_payment()
 RETURNS INTEGER
@@ -423,7 +374,7 @@ END;
 $$;
 
 -- ========================================
--- 🔟 TRIGGERS ADICIONAIS
+-- 9️⃣ TRIGGERS ADICIONAIS
 -- ========================================
 
 -- Trigger 4: Notificar quando petição precisa de revisão
@@ -438,7 +389,7 @@ WHEN (
 EXECUTE FUNCTION notify_admins_review_needed();
 
 -- ========================================
--- 1️⃣1️⃣ CRON JOB: Verificar Notas Fiscais Pendentes (dia 05 de cada mês)
+-- 🔟 CRON JOB: Verificar Notas Fiscais Pendentes (dia 05 de cada mês)
 -- ========================================
 -- REQUER pg_cron habilitado
 SELECT cron.schedule(
@@ -448,7 +399,7 @@ SELECT cron.schedule(
 );
 
 -- ========================================
--- 1️⃣2️⃣ GRANT PERMISSIONS
+-- 1️⃣1️⃣ GRANT PERMISSIONS
 -- ========================================
 GRANT EXECUTE ON FUNCTION notify_all_admins TO authenticated;
 GRANT EXECUTE ON FUNCTION notify_all_admins TO anon;
@@ -465,10 +416,9 @@ GRANT EXECUTE ON FUNCTION check_pending_invoices_for_payment TO anon;
 -- Este script cria:
 -- 1. Função para notificar todos os admins
 -- 2. Trigger para notificar quando novo redator se cadastra
--- 3. Trigger para notificar quando petição entra em disputa
--- 4. Função e cron job para verificar petições sem redator há mais de 24h
--- 5. Trigger para notificar quando petição precisa de revisão
--- 6. Função e cron job para lembrar pagamento de notas fiscais (dia 05)
+-- 3. Função e cron job para verificar petições sem redator há mais de 24h
+-- 4. Trigger para notificar quando petição precisa de revisão
+-- 5. Função e cron job para lembrar pagamento de notas fiscais (dia 05)
 --
 -- Para ativar:
 -- 1. Execute este script no Supabase SQL Editor
@@ -478,7 +428,6 @@ GRANT EXECUTE ON FUNCTION check_pending_invoices_for_payment TO anon;
 -- NOTIFICAÇÕES PARA ADMINS:
 -- ✅ Novo redator aguardando aprovação
 -- ✅ Revisão humana solicitada (via código frontend)
--- ✅ Petição em disputa
 -- ✅ Petição sem redator há mais de 24h
 -- ✅ Petição necessita revisão (pending_review/review)
 -- ✅ Lembrete de pagamento de notas fiscais (dia 05 de cada mês)

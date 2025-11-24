@@ -909,7 +909,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   };
 
   // Função para processar arquivo (usada tanto no input quanto no drag and drop)
-  const processFile = (file: File) => {
+  const processFile = useCallback((file: File) => {
     // Verificar tamanho do arquivo (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Arquivo muito grande', {
@@ -918,7 +918,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
     setSelectedFile(file);
-  };
+  }, []);
 
   // Handlers para drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -927,11 +927,11 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     
     // Verificar se há arquivos sendo arrastados
     if (e.dataTransfer.types.includes('Files')) {
-      if (!isDragOver && currentConversation && currentConversation.status !== 'archived') {
+      if (currentConversation && currentConversation.status !== 'archived') {
         setIsDragOver(true);
       }
     }
-  }, [isDragOver, currentConversation]);
+  }, [currentConversation]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -972,7 +972,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // (pode ser expandido para múltiplos arquivos no futuro)
       processFile(files[0]);
     }
-  }, [currentConversation]);
+  }, [currentConversation, processFile]);
 
   // Função para enviar arquivo
   const sendFile = async () => {

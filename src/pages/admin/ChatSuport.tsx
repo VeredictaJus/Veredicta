@@ -174,17 +174,18 @@ export default function ChatSuport() {
     
     if (conversationId && !hasProcessedConversationIdRef.current) {
       hasProcessedConversationIdRef.current = true;
-      setViewMode('chat'); // ✅ Mudar para 'chat' imediatamente para não mostrar o gerenciador
       
-      // Abrir a conversa diretamente
+      // ✅ DEFINIR IMEDIATAMENTE para garantir que a UI atualize
+      setSelectedConversationId(conversationId);
+      setViewMode('chat'); // ✅ Mudar para 'chat' imediatamente para não mostrar o gerenciador
+      setSelectedConversation({
+        conversation_id: conversationId,
+        title: 'Conversa',
+      });
+      
+      // Abrir a conversa diretamente em background
       const openConversation = async () => {
         try {
-          setSelectedConversationId(conversationId);
-          setSelectedConversation({
-            conversation_id: conversationId,
-            title: 'Conversa',
-          });
-          
           // ✅ Carregar a conversa no contexto em background (não bloqueia a UI)
           await selectConversation(conversationId);
           
@@ -196,6 +197,7 @@ export default function ChatSuport() {
           console.error('Erro ao abrir conversa:', error);
           toast.error('Erro ao abrir conversa');
           setViewMode('manager'); // Voltar para o gerenciador em caso de erro
+          setSelectedConversationId(null);
         }
       };
 

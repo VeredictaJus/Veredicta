@@ -36,7 +36,8 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   const { createConversation, selectConversation, conversations, loadConversations } = chatContext;
   const { user } = useNewAuth();
   const [searchParams] = useSearchParams();
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  // ✅ Inicializar com externalSelectedConversationId se disponível
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(externalSelectedConversationId || null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [writers, setWriters] = useState<Writer[]>([]);
@@ -101,7 +102,12 @@ export default function IntegratedChat({ className, selectedConversationId: exte
 
   useEffect(() => {
     const handleExternalConversation = async () => {
-      if (externalSelectedConversationId && externalSelectedConversationId !== selectedConversationId) {
+      if (externalSelectedConversationId) {
+        // Se já está processado, não fazer nada
+        if (lastProcessedConversationRef.current === externalSelectedConversationId && selectedConversationId === externalSelectedConversationId) {
+          return;
+        }
+        
         lastProcessedConversationRef.current = externalSelectedConversationId;
         
         // ✅ OTIMIZAÇÃO: Definir selectedConversationId imediatamente para mostrar o chat
@@ -121,10 +127,10 @@ export default function IntegratedChat({ className, selectedConversationId: exte
         handleSelectConversation(externalSelectedConversationId).catch(error => {
           console.error('Erro ao selecionar conversa:', error);
         });
-      }
-
-      if (!externalSelectedConversationId && selectedConversationId) {
+      } else if (!externalSelectedConversationId && selectedConversationId) {
+        // Limpar apenas se não há externalSelectedConversationId
         setSelectedConversationId(null);
+        lastProcessedConversationRef.current = null;
       }
     };
 
@@ -204,7 +210,9 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   };
 
   // Se há uma conversa selecionada externamente (do admin), mostrar apenas o chat em tela cheia
-  const showFullChat = !!externalSelectedConversationId && !!selectedConversationId;
+  // Usar externalSelectedConversationId diretamente se disponível, senão usar selectedConversationId interno
+  const activeConversationId = externalSelectedConversationId || selectedConversationId;
+  const showFullChat = !!externalSelectedConversationId;
 
   return (
     <div className={`flex h-full space-x-4 min-h-0 ${className}`}>
@@ -222,8 +230,14 @@ export default function IntegratedChat({ className, selectedConversationId: exte
       <div className={showFullChat ? "w-full h-full flex flex-col min-h-0" : "flex-1 h-full flex flex-col min-h-0"}>
         <div className="flex-1 min-h-0 overflow-hidden">
           <ChatWindow
-            conversationId={selectedConversationId || undefined}
-            onClose={() => setSelectedConversationId(null)}
+            conversationId={activeConversationId || undefined}
+            onClose={() => {
+              if (externalSelectedConversationId) {
+                // Se é externo, não fazer nada (o componente pai controla)
+                return;
+              }
+              setSelectedConversationId(null);
+            }}
           />
         </div>
       </div>

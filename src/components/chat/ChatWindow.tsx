@@ -262,6 +262,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const dragCounterRef = useRef(0);
   const isProcessingDropRef = useRef(false);
   const isSendingFileRef = useRef(false);
+  const lastProcessedFileRef = useRef<{ name: string; size: number; timestamp: number } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -913,10 +914,27 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
   // Função para processar arquivo (usada tanto no input quanto no drag and drop)
   const processFile = useCallback((file: File) => {
-    // Prevenir processamento se já estiver enviando
-    if (isSendingFileRef.current || isUploading) {
+    // Prevenir processamento se já estiver enviando ou processando drop
+    if (isSendingFileRef.current || isUploading || isProcessingDropRef.current) {
       return;
     }
+    
+    // Prevenir processamento do mesmo arquivo em um curto período (1 segundo)
+    const now = Date.now();
+    if (lastProcessedFileRef.current) {
+      const { name, size, timestamp } = lastProcessedFileRef.current;
+      if (name === file.name && size === file.size && (now - timestamp) < 1000) {
+        // Mesmo arquivo processado há menos de 1 segundo - ignorar
+        return;
+      }
+    }
+    
+    // Registrar arquivo processado
+    lastProcessedFileRef.current = {
+      name: file.name,
+      size: file.size,
+      timestamp: now
+    };
     
     // Verificar tamanho do arquivo (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -999,13 +1017,26 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     if (files.length > 0) {
       // Por enquanto, processar apenas o primeiro arquivo
       // (pode ser expandido para múltiplos arquivos no futuro)
-      processFile(files[0]);
+      const fileToProcess = files[0];
+      
+      // Verificar se não é o mesmo arquivo que acabou de ser processado
+      const now = Date.now();
+      if (lastProcessedFileRef.current) {
+        const { name, size, timestamp } = lastProcessedFileRef.current;
+        if (name === fileToProcess.name && size === fileToProcess.size && (now - timestamp) < 2000) {
+          // Mesmo arquivo processado há menos de 2 segundos - ignorar
+          isProcessingDropRef.current = false;
+          return;
+        }
+      }
+      
+      processFile(fileToProcess);
     }
     
-    // Resetar flag após um pequeno delay para garantir que o processamento terminou
+    // Resetar flag após um delay maior para garantir que o processamento terminou
     setTimeout(() => {
       isProcessingDropRef.current = false;
-    }, 100);
+    }, 2000);
   }, [currentConversation, processFile]);
 
   // Função para enviar arquivo

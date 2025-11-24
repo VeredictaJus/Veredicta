@@ -110,3 +110,5 @@ SELECT
   COUNT(*) as total_renovacoes
 FROM subscription_renewals;
 
+
+

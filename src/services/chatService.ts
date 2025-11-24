@@ -493,7 +493,7 @@ export class ChatService {
         query = query.gt('created_at', after);
       }
 
-      query = query.order('created_at', { ascending: false }).limit(limit);
+      query = query.order('created_at', { ascending: false }).limit(Math.min(limit, 100)); // Limitar a 100 para evitar erros
 
       const { data: messages, error } = await query;
 
@@ -514,7 +514,7 @@ export class ChatService {
           simpleQuery = simpleQuery.gt('created_at', after);
         }
 
-        simpleQuery = simpleQuery.order('created_at', { ascending: false }).limit(limit);
+        simpleQuery = simpleQuery.order('created_at', { ascending: false }).limit(Math.min(limit, 100)); // Limitar a 100 para evitar erros
 
         const { data: simpleMessages, error: simpleError } = await simpleQuery;
 

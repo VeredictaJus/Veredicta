@@ -396,8 +396,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         
         // ✅ CORREÇÃO: Mesclar mensagens ao invés de substituir completamente (preserva mensagens otimistas)
         setMessages(prev => {
+          // Filtrar apenas mensagens da conversa atual do estado anterior
+          const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
+          
           // Manter mensagens otimistas que ainda não foram confirmadas
-          const optimisticMessages = prev.filter(msg => msg.id.startsWith('temp-'));
+          const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
           const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
           
           // Remover mensagens otimistas que já foram confirmadas
@@ -426,9 +429,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       } else if (messagesList.length > 0) {
         // Se não há conversa selecionada mas há mensagens, usar todas (pode ser inicialização)
         setMessages(messagesList);
-      } else {
-        setMessages([]);
       }
+      // Não limpar mensagens se não há conversa selecionada - pode estar em transição
 
       if (!messagesList.length) {
         return;
@@ -664,8 +666,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
       }
       
-      // ✅ CORREÇÃO: Limpar mensagens da conversa anterior ANTES de definir a nova conversa
-      setMessages([]);
+      // ✅ CORREÇÃO: Limpar apenas mensagens da conversa anterior, preservando otimistas da nova conversa
+      setMessages(prev => prev.filter(msg => msg.conversation_id === conversationId || msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')));
       setCurrentConversation(conversation);
       oldestMessageRef.current = null;
       setHasMoreOlderMessages(true);
@@ -725,7 +727,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
       messagePollingRef.current = setInterval(async () => {
         try {
-          const latestMessages = await ChatService.getConversationMessages(conversationId);
+          const latestMessages = await ChatService.getConversationMessages(conversationId, {
+            limit: MESSAGE_PAGE_SIZE,
+          });
 
           handleIncomingMessages(latestMessages);
           oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
@@ -921,15 +925,21 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         );
 
         // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
-        setMessages((prev) =>
-          prev
-            .filter((msg) => msg.conversation_id === currentConversation.id)
-            .map((msg) =>
+        setMessages((prev) => {
+          const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+          const hasMessage = filtered.some(msg => msg.id === optimisticMessage.id);
+          
+          if (hasMessage) {
+            return filtered.map((msg) =>
               msg.id === optimisticMessage.id
                 ? { ...msg, id: messageId as string, status: 'sent' as const }
                 : msg
-            )
-        );
+            );
+          } else {
+            // Se a mensagem otimista não está mais no estado, adicionar a mensagem confirmada
+            return [...filtered, { ...optimisticMessage, id: messageId as string, status: 'sent' as const }];
+          }
+        });
         lastMessageIdRef.current = messageId as string;
         localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: getPreviewFromMessage({

@@ -16,3 +16,4 @@ DROP FUNCTION IF EXISTS notify_admins_dispute();
 -- A notificação de disputa foi removida do sistema.
 -- O trigger e a função foram deletados.
 
+

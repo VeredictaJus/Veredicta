@@ -198,7 +198,11 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // ✅ CORREÇÃO: Mesclar mensagens otimistas (temporárias) com as do contexto
       // Manter mensagens otimistas que ainda não foram confirmadas
       setMessages(prev => {
-        const optimisticMessages = prev.filter(msg => msg.id.startsWith('temp-'));
+        // Filtrar apenas mensagens da conversa atual do estado anterior
+        const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
+        
+        // Manter mensagens otimistas que ainda não foram confirmadas
+        const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
         const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
         
         // Remover mensagens otimistas que já foram confirmadas (mesmo conteúdo e remetente)
@@ -216,10 +220,14 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         // Combinar mensagens confirmadas com otimistas restantes
         const allMessages = [...filteredMessages, ...remainingOptimistic];
         
-        // Ordenar por data de criação
-        return allMessages.sort((a, b) => 
+        // Remover duplicatas e ordenar por data de criação
+        const uniqueMessages = Array.from(
+          new Map(allMessages.map(msg => [msg.id, msg])).values()
+        ).sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
+        
+        return uniqueMessages;
       });
     } else {
       // Se não há conversa selecionada, limpar mensagens

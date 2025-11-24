@@ -81,3 +81,5 @@ Após configurar essas variáveis, o Vercel:
 - ✅ Ocultará automaticamente valores sensíveis
 - ✅ Funcionará perfeitamente com o código atualizado
 
+
+

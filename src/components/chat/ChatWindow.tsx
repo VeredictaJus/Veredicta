@@ -260,6 +260,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const [selectedImageName, setSelectedImageName] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+  const isProcessingDropRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -962,10 +963,18 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Prevenir processamento duplicado
+    if (isProcessingDropRef.current) {
+      return;
+    }
+    
+    isProcessingDropRef.current = true;
     dragCounterRef.current = 0;
     setIsDragOver(false);
 
     if (!currentConversation) {
+      isProcessingDropRef.current = false;
       toast.error('Nenhuma conversa selecionada', {
         description: 'Selecione uma conversa para enviar arquivos'
       });
@@ -973,6 +982,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
 
     if (currentConversation.status === 'archived') {
+      isProcessingDropRef.current = false;
       toast.error('Conversa arquivada', {
         description: 'Não é possível enviar arquivos em conversas arquivadas'
       });
@@ -985,6 +995,11 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // (pode ser expandido para múltiplos arquivos no futuro)
       processFile(files[0]);
     }
+    
+    // Resetar flag após um pequeno delay para garantir que o processamento terminou
+    setTimeout(() => {
+      isProcessingDropRef.current = false;
+    }, 100);
   }, [currentConversation, processFile]);
 
   // Função para enviar arquivo
@@ -1560,7 +1575,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
       {/* Header */}
       <CardHeader className="pb-3">
@@ -1739,7 +1753,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
         >
           <div className="space-y-4 w-full max-w-full overflow-hidden messageContainer chat-messages-container">
             {isLoadingOlderMessages && messages.length > 0 && (

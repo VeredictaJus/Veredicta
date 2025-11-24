@@ -45,39 +45,42 @@ const getTypeColor = (type: string) => {
   }
 };
 
+// Mapear tipo de notificação para ícone
+const getIconForType = (type: string): keyof typeof iconMap => {
+  switch (type) {
+    case 'user':
+    case 'approval':
+      return 'Users';
+    case 'payment':
+      return 'CreditCard';
+    case 'report':
+    case 'system':
+      return 'TrendingUp';
+    case 'chat':
+    case 'chat_report':
+      return 'MessageSquare';
+    case 'petition':
+      return 'FileText';
+    default:
+      return 'FileText';
+  }
+};
+
 export default function AdminNotifications() {
-  const { notifications, markAsRead, markAllAsRead, unreadCount } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, unreadCount, loading } = useNotifications();
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Get chat reports from localStorage
-  const chatReports = JSON.parse(localStorage.getItem('admin_notifications') || '[]');
-  
-  // Mock admin notifications
-  const adminNotifications = [
-    ...chatReports.map(report => ({
-      ...report,
-      timestamp: new Date(report.timestamp)
-    })),
-    {
-      id: 'admin1',
-      type: 'user',
-      title: 'Novo Usuário Cadastrado',
-      message: 'Maria Silva se cadastrou como redatora',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000),
-      read: false,
-      icon: 'Users'
-    },
-    {
-      id: 'admin2', 
-      type: 'system',
-      title: 'Relatório Mensal Disponível',
-      message: 'Relatório de performance de Janeiro está pronto',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      read: false,
-      icon: 'TrendingUp'
-    }
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Mapear notificações reais para o formato esperado
+  const adminNotifications = notifications.map(notification => ({
+    id: notification.id,
+    type: notification.type || 'system',
+    title: notification.title,
+    message: notification.message || '',
+    timestamp: new Date(notification.created_at),
+    read: notification.is_read,
+    icon: getIconForType(notification.type || 'system')
+  }));
 
   const filteredNotifications = adminNotifications.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -89,27 +92,26 @@ export default function AdminNotifications() {
     return matchesSearch && matchesFilter;
   });
 
-  const handleMarkAsRead = (id: string) => {
-    // In real implementation, this would mark admin notification as read
-    console.log('Marking admin notification as read:', id);
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
   };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
             <Bell className="h-7 w-7" />
             Notificações Administrativas
-            {filteredNotifications.filter(n => !n.read).length > 0 && (
+            {unreadCount > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {filteredNotifications.filter(n => !n.read).length}
+                {unreadCount}
               </Badge>
             )}
           </h1>
           <p className="text-muted-foreground mt-1">Monitore atividades do sistema e aprovações pendentes</p>
         </div>
-        {filteredNotifications.filter(n => !n.read).length > 0 && (
+        {unreadCount > 0 && (
           <Button onClick={markAllAsRead} variant="outline">
             Marcar todas como lidas
           </Button>
@@ -150,7 +152,13 @@ export default function AdminNotifications() {
 
         {/* Lista de notificações */}
         <div className="space-y-4">
-          {filteredNotifications.length > 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">Carregando notificações...</p>
+              </CardContent>
+            </Card>
+          ) : filteredNotifications.length > 0 ? (
             filteredNotifications.map((notification) => {
               const IconComponent = iconMap[notification.icon as keyof typeof iconMap] || FileText;
               

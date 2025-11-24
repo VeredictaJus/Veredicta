@@ -2133,10 +2133,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                   variant="default" 
                   size="sm" 
                   onClick={sendFile} 
-                  disabled={isUploading || isSendingFileRef.current}
+                  disabled={isUploading}
                   className="bg-green-600 hover:bg-green-700 text-white rounded-full w-8 h-8 p-0"
                 >
-                  {isUploading || isSendingFileRef.current ? '...' : <Send className="h-4 w-4" />}
+                  {isUploading ? '...' : <Send className="h-4 w-4" />}
                 </Button>
               </div>
             </div>

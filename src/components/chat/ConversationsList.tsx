@@ -261,14 +261,27 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
   };
 
   const getConversationDisplayName = (conversation: Conversation): string => {
+    const userRole = user?.role || 'client';
+    
+    // Para conversas de suporte, a lógica depende de quem está visualizando
+    if (conversation.type === 'support') {
+      // Se é admin visualizando, mostrar nome do cliente/redator
+      if (userRole === 'admin') {
+        const otherName = getOtherParticipantName(conversation);
+        if (otherName && otherName !== 'Suporte Veredicta') {
+          return otherName;
+        }
+        return 'Cliente'; // Fallback para admin
+      } else {
+        // Se é cliente/redator visualizando, mostrar "Suporte Veredicta"
+        return 'Suporte Veredicta';
+      }
+    }
+    
+    // Para outras conversas, buscar nome do outro participante
     const otherName = getOtherParticipantName(conversation);
-
     if (otherName) {
       return otherName;
-    }
-
-    if (conversation.type === 'support') {
-      return 'Suporte Veredicta';
     }
 
     return conversation.title;

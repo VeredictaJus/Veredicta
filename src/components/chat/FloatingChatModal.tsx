@@ -119,11 +119,25 @@ export default function FloatingChatModal() {
         };
 
       const metadata = (conv.metadata || {}) as Record<string, any>;
+      const userRole = user?.role || 'client';
       let displayName = conv.title || 'Usuário';
+      
       if (conv.type === 'support') {
-        displayName = 'Suporte Veredicta';
-      } else if (metadata.otherParticipantName) {
-        displayName = metadata.otherParticipantName;
+        // Se é admin visualizando, mostrar nome do cliente/redator
+        if (userRole === 'admin') {
+          displayName = metadata.otherParticipantName || 
+                       metadata.other_participant_name || 
+                       metadata.partnerName || 
+                       metadata.partner_name || 
+                       'Cliente';
+        } else {
+          // Se é cliente/redator visualizando, mostrar "Suporte Veredicta"
+          displayName = 'Suporte Veredicta';
+        }
+      } else if (metadata.otherParticipantName || metadata.other_participant_name) {
+        displayName = metadata.otherParticipantName || metadata.other_participant_name;
+      } else if (metadata.partnerName || metadata.partner_name) {
+        displayName = metadata.partnerName || metadata.partner_name;
       }
 
         // Limitar mensagem a 50 caracteres e adicionar "..."

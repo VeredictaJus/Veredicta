@@ -460,10 +460,32 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           return metadataName;
         }
         
-        // Se há outro participante, mostrar o nome dele usando getUserDisplayName
+        // Se há outro participante, buscar o nome dele de forma mais robusta
         if (otherParticipant) {
+          // PRIORIDADE 1: Metadata do participante
+          const participantMetadata = (otherParticipant as any).metadata || {};
+          if (participantMetadata.full_name && participantMetadata.full_name !== 'Suporte Veredicta') {
+            return participantMetadata.full_name;
+          }
+          if (participantMetadata.name && participantMetadata.name !== 'Suporte Veredicta') {
+            return participantMetadata.name;
+          }
+          
+          // PRIORIDADE 2: User object do participante
+          const possibleNames = [
+            otherParticipant.user?.name,
+            (otherParticipant.user as any)?.full_name,
+            (otherParticipant as any).display_name,
+            (otherParticipant as any).user_name,
+            (otherParticipant.user as any)?.email ? (otherParticipant.user as any).email.split('@')[0] : null,
+          ].filter(Boolean) as string[];
+          
+          if (possibleNames.length > 0 && possibleNames[0] !== 'Suporte Veredicta' && possibleNames[0] !== 'Usuário') {
+            return possibleNames[0];
+          }
+          
+          // PRIORIDADE 3: Usar getUserDisplayName como fallback
           const name = getUserDisplayName(otherParticipant);
-          // Se o nome não for "Suporte Veredicta" e não for genérico, retornar
           if (name && name !== 'Suporte Veredicta' && name !== 'Usuário') {
             return name;
           }
@@ -1332,10 +1354,17 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         
         // Se não é suporte, buscar o nome do participante (cliente/redator) diretamente
         if (senderParticipant) {
+          // PRIORIDADE 1: Buscar do metadata do participante
+          const metadata = (senderParticipant as any).metadata || {};
+          if (metadata.full_name) return metadata.full_name;
+          if (metadata.name) return metadata.name;
+          
+          // PRIORIDADE 2: Buscar do user object
           const possibleNames = [
             senderParticipant.user?.name,
             (senderParticipant.user as any)?.full_name,
             (senderParticipant as any).display_name,
+            (senderParticipant as any).user_name,
             (senderParticipant.user as any)?.email ? (senderParticipant.user as any).email.split('@')[0] : null,
           ].filter(Boolean) as string[];
           
@@ -1344,7 +1373,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           }
         }
         
-        // Fallback: tentar metadata
+        // Fallback: tentar metadata da conversa
         const metadataName = getMetadataDisplayName();
         if (metadataName && metadataName !== 'Usuário' && metadataName !== 'Suporte Veredicta') {
           return metadataName;
@@ -1372,7 +1401,12 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
     
     // PRIORIDADE 1: Buscar nome completo do participante
-    // O ChatService coloca o nome em participant.user.name
+    // Primeiro verificar metadata do participante (mais confiável)
+    const metadata = (participant as any).metadata || {};
+    if (metadata.full_name) return metadata.full_name;
+    if (metadata.name) return metadata.name;
+    
+    // PRIORIDADE 2: Buscar do user object
     const possibleNames = [
       participant.user?.name, // PRIMEIRO: nome do ChatService
       (participant.user as any)?.full_name, // Segundo: full_name direto
@@ -1380,11 +1414,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       (participant as any).user_name,
       (participant.user as any)?.email ? (participant.user as any).email.split('@')[0] : null,
     ].filter(Boolean) as string[];
-    
-    // Adicionar metadata do participante
-    const metadata = (participant as any).metadata || {};
-    if (metadata.full_name) possibleNames.unshift(metadata.full_name);
-    if (metadata.name) possibleNames.unshift(metadata.name);
     
     if (possibleNames.length > 0) {
       return possibleNames[0];

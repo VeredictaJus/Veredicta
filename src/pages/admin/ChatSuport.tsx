@@ -26,13 +26,15 @@ export default function ChatSuport() {
   const location = useLocation();
   const { selectConversation, loadConversations } = useChat();
   
-  // ✅ CORREÇÃO: Verificar se há petitionId na URL no estado inicial
+  // ✅ CORREÇÃO: Verificar se há petitionId ou conversation na URL no estado inicial
   const initialPetitionId = searchParams.get('petitionId');
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const initialConversationId = searchParams.get('conversation');
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(initialConversationId || null);
   const [selectedConversation, setSelectedConversation] = useState<SelectedConversationInfo | null>(null);
-  const [viewMode, setViewMode] = useState<'manager' | 'chat'>(initialPetitionId ? 'chat' : 'manager');
+  const [viewMode, setViewMode] = useState<'manager' | 'chat'>((initialPetitionId || initialConversationId) ? 'chat' : 'manager');
   const isSelectingRef = useRef(false);
   const hasProcessedPetitionIdRef = useRef(false);
+  const hasProcessedConversationIdRef = useRef(false);
 
   const handleConversationSelect = React.useCallback(async (
     conversationId: string,
@@ -165,6 +167,48 @@ export default function ChatSuport() {
       }
     };
   }, [searchParams, location.state, setSearchParams, selectConversation]);
+
+  // ✅ CORREÇÃO: Buscar e abrir conversa quando conversation está na URL
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    
+    if (conversationId && !hasProcessedConversationIdRef.current) {
+      hasProcessedConversationIdRef.current = true;
+      setViewMode('chat'); // ✅ Mudar para 'chat' imediatamente para não mostrar o gerenciador
+      
+      // Abrir a conversa diretamente
+      const openConversation = async () => {
+        try {
+          setSelectedConversationId(conversationId);
+          setSelectedConversation({
+            conversation_id: conversationId,
+            title: 'Conversa',
+          });
+          
+          // ✅ Carregar a conversa no contexto em background (não bloqueia a UI)
+          await selectConversation(conversationId);
+          
+          // Limpar parâmetro da URL após processar
+          const newSearchParams = new URLSearchParams(searchParams.toString());
+          newSearchParams.delete('conversation');
+          setSearchParams(newSearchParams, { replace: true });
+        } catch (error) {
+          console.error('Erro ao abrir conversa:', error);
+          toast.error('Erro ao abrir conversa');
+          setViewMode('manager'); // Voltar para o gerenciador em caso de erro
+        }
+      };
+
+      openConversation();
+    }
+
+    // Resetar flag quando o componente desmonta ou quando não há mais conversation
+    return () => {
+      if (!searchParams.get('conversation')) {
+        hasProcessedConversationIdRef.current = false;
+      }
+    };
+  }, [searchParams, setSearchParams, selectConversation, toast]);
 
   return (
     <div className="space-y-6">

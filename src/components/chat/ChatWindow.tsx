@@ -261,6 +261,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const isProcessingDropRef = useRef(false);
+  const isSendingFileRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -912,6 +913,11 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
   // Função para processar arquivo (usada tanto no input quanto no drag and drop)
   const processFile = useCallback((file: File) => {
+    // Prevenir processamento se já estiver enviando
+    if (isSendingFileRef.current || isUploading) {
+      return;
+    }
+    
     // Verificar tamanho do arquivo (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Arquivo muito grande', {
@@ -920,7 +926,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
     setSelectedFile(file);
-  }, []);
+  }, [isUploading]);
 
   // Handlers para drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -1006,6 +1012,12 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const sendFile = async () => {
     if (!selectedFile || !currentConversation) return;
     
+    // Prevenir envio duplicado
+    if (isSendingFileRef.current || isUploading) {
+      return;
+    }
+    
+    isSendingFileRef.current = true;
     setIsUploading(true);
     try {
       // 🔒 VERIFICAR SE É IMAGEM E SE CONTÉM INFORMAÇÕES SENSÍVEIS
@@ -1061,9 +1073,15 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       
     } catch (error) {
       console.error('Erro ao enviar arquivo:', error);
-      alert('Erro ao enviar arquivo. Tente novamente.');
+      toast.error('Erro ao enviar arquivo', {
+        description: 'Tente novamente'
+      });
     } finally {
       setIsUploading(false);
+      // Resetar flag após um pequeno delay
+      setTimeout(() => {
+        isSendingFileRef.current = false;
+      }, 500);
     }
   };
 

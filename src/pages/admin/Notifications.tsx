@@ -71,19 +71,6 @@ export default function AdminNotifications() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  // Debug: verificar notificações carregadas
-  if (import.meta.env.DEV) {
-    console.log('🔔 AdminNotifications - Notificações carregadas:', {
-      total: notifications.length,
-      notifications: notifications.map(n => ({
-        id: n.id,
-        title: n.title,
-        type: n.type,
-        is_read: n.is_read
-      }))
-    });
-  }
-
   // Mapear notificações reais para o formato esperado
   const adminNotifications = notifications.map(notification => ({
     id: notification.id,

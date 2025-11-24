@@ -259,6 +259,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [selectedImageName, setSelectedImageName] = useState<string>('');
   const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -928,6 +929,19 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     // Verificar se há arquivos sendo arrastados
     if (e.dataTransfer.types.includes('Files')) {
       if (currentConversation && currentConversation.status !== 'archived') {
+        dragCounterRef.current = 0;
+        setIsDragOver(true);
+      }
+    }
+  }, [currentConversation]);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer.types.includes('Files')) {
+      dragCounterRef.current += 1;
+      if (currentConversation && currentConversation.status !== 'archived') {
         setIsDragOver(true);
       }
     }
@@ -937,12 +951,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     e.preventDefault();
     e.stopPropagation();
     
-    // Verificar se realmente saiu da área (não apenas passou por um elemento filho)
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
+    dragCounterRef.current -= 1;
     
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    // Só desativar quando realmente sair da área (contador chegar a 0)
+    if (dragCounterRef.current === 0) {
       setIsDragOver(false);
     }
   }, []);
@@ -950,6 +962,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounterRef.current = 0;
     setIsDragOver(false);
 
     if (!currentConversation) {
@@ -1544,6 +1557,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   return (
     <Card 
       className="bg-container-primary border-border w-full h-full max-h-full flex flex-col overflow-hidden"
+      onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -1700,6 +1714,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         {isDragOver && (
           <div
             className="absolute inset-0 bg-blue-500/20 dark:bg-blue-500/30 border-4 border-dashed border-blue-500 dark:border-blue-400 z-50 flex items-center justify-center backdrop-blur-sm"
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -1721,6 +1736,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           ref={scrollContainerRef}
           className="flex-1 p-2 chatContainer overflow-y-auto overflow-x-hidden min-h-0"
           onScroll={handleScroll}
+          onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

@@ -183,25 +183,18 @@ export default function ChatSuport() {
         title: 'Conversa',
       });
       
-      // Abrir a conversa diretamente em background
-      const openConversation = async () => {
-        try {
-          // ✅ Carregar a conversa no contexto em background (não bloqueia a UI)
-          await selectConversation(conversationId);
-          
-          // Limpar parâmetro da URL após processar
-          const newSearchParams = new URLSearchParams(searchParams.toString());
-          newSearchParams.delete('conversation');
-          setSearchParams(newSearchParams, { replace: true });
-        } catch (error) {
-          console.error('Erro ao abrir conversa:', error);
-          toast.error('Erro ao abrir conversa');
-          setViewMode('manager'); // Voltar para o gerenciador em caso de erro
-          setSelectedConversationId(null);
-        }
-      };
-
-      openConversation();
+      // ✅ Limpar parâmetro da URL imediatamente (não esperar selectConversation)
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.delete('conversation');
+      setSearchParams(newSearchParams, { replace: true });
+      
+      // ✅ Carregar a conversa no contexto em background (não bloqueia a UI)
+      selectConversation(conversationId).catch((error) => {
+        console.error('Erro ao abrir conversa:', error);
+        toast.error('Erro ao abrir conversa');
+        setViewMode('manager'); // Voltar para o gerenciador em caso de erro
+        setSelectedConversationId(null);
+      });
     }
 
     // Resetar flag quando o componente desmonta ou quando não há mais conversation

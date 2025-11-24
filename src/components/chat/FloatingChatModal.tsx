@@ -166,14 +166,20 @@ export default function FloatingChatModal() {
     navigate(chatPath);
   };
 
-  const handleConversationClick = async (conversationId: string) => {
+  const handleConversationClick = (conversationId: string) => {
     const role = user?.role?.toLowerCase();
     const chatPath = role === 'client' ? '/client/chat' : 
                     role === 'writer' ? '/writer/chat' : 
                     role === 'admin' ? '/admin/chat-suporte' : '/chat';
-    await selectConversation(conversationId);
-    navigate(`${chatPath}` + `?conversation=${conversationId}`);
+    
+    // ✅ Navegar imediatamente sem esperar selectConversation
+    navigate(`${chatPath}?conversation=${conversationId}`);
     setIsOpen(false);
+    
+    // ✅ Fazer selectConversation em background (não bloqueia a navegação)
+    selectConversation(conversationId).catch((error) => {
+      console.error('Erro ao selecionar conversa em background:', error);
+    });
   };
 
   const totalUnreadCount = displayConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);

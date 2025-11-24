@@ -924,16 +924,25 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isDragOver && currentConversation?.status !== 'archived') {
-      setIsDragOver(true);
+    
+    // Verificar se há arquivos sendo arrastados
+    if (e.dataTransfer.types.includes('Files')) {
+      if (!isDragOver && currentConversation && currentConversation.status !== 'archived') {
+        setIsDragOver(true);
+      }
     }
-  }, [isDragOver, currentConversation?.status]);
+  }, [isDragOver, currentConversation]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Só desativar se não estiver arrastando sobre um elemento filho
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+    
+    // Verificar se realmente saiu da área (não apenas passou por um elemento filho)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       setIsDragOver(false);
     }
   }, []);
@@ -943,7 +952,14 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     e.stopPropagation();
     setIsDragOver(false);
 
-    if (currentConversation?.status === 'archived') {
+    if (!currentConversation) {
+      toast.error('Nenhuma conversa selecionada', {
+        description: 'Selecione uma conversa para enviar arquivos'
+      });
+      return;
+    }
+
+    if (currentConversation.status === 'archived') {
       toast.error('Conversa arquivada', {
         description: 'Não é possível enviar arquivos em conversas arquivadas'
       });
@@ -956,7 +972,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // (pode ser expandido para múltiplos arquivos no futuro)
       processFile(files[0]);
     }
-  }, [currentConversation?.status]);
+  }, [currentConversation]);
 
   // Função para enviar arquivo
   const sendFile = async () => {
@@ -1526,7 +1542,12 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   }
 
   return (
-    <Card className="bg-container-primary border-border w-full h-full max-h-full flex flex-col overflow-hidden">
+    <Card 
+      className="bg-container-primary border-border w-full h-full max-h-full flex flex-col overflow-hidden"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">

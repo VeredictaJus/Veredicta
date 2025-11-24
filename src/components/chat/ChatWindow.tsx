@@ -258,6 +258,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [selectedImageName, setSelectedImageName] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -903,14 +904,59 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Verificar tamanho do arquivo (máximo 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Arquivo muito grande. Tamanho máximo permitido: 10MB');
-        return;
-      }
-      setSelectedFile(file);
+      processFile(file);
     }
   };
+
+  // Função para processar arquivo (usada tanto no input quanto no drag and drop)
+  const processFile = (file: File) => {
+    // Verificar tamanho do arquivo (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande', {
+        description: 'Tamanho máximo permitido: 10MB'
+      });
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  // Handlers para drag and drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragOver && currentConversation?.status !== 'archived') {
+      setIsDragOver(true);
+    }
+  }, [isDragOver, currentConversation?.status]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Só desativar se não estiver arrastando sobre um elemento filho
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    if (currentConversation?.status === 'archived') {
+      toast.error('Conversa arquivada', {
+        description: 'Não é possível enviar arquivos em conversas arquivadas'
+      });
+      return;
+    }
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      // Por enquanto, processar apenas o primeiro arquivo
+      // (pode ser expandido para múltiplos arquivos no futuro)
+      processFile(files[0]);
+    }
+  }, [currentConversation?.status]);
 
   // Função para enviar arquivo
   const sendFile = async () => {
@@ -1628,11 +1674,35 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       )}
 
       {/* Messages */}
-      <CardContent className="bg-container-inner rounded-b-lg flex-1 p-0 min-h-0 overflow-hidden chat-container flex flex-col">
+      <CardContent className="bg-container-inner rounded-b-lg flex-1 p-0 min-h-0 overflow-hidden chat-container flex flex-col relative">
+        {/* Overlay de drag and drop */}
+        {isDragOver && (
+          <div
+            className="absolute inset-0 bg-blue-500/20 dark:bg-blue-500/30 border-4 border-dashed border-blue-500 dark:border-blue-400 z-50 flex items-center justify-center backdrop-blur-sm"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="bg-background dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center border border-border">
+              <Paperclip className="h-12 w-12 mx-auto mb-4 text-blue-500 dark:text-blue-400" />
+              <p className="text-xl font-semibold mb-2">Solte o arquivo aqui</p>
+              <p className="text-sm text-muted-foreground">
+                Arraste e solte uma imagem ou arquivo para fazer upload
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Tamanho máximo: 10MB
+              </p>
+            </div>
+          </div>
+        )}
+        
         <div
           ref={scrollContainerRef}
           className="flex-1 p-2 chatContainer overflow-y-auto overflow-x-hidden min-h-0"
           onScroll={handleScroll}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         >
           <div className="space-y-4 w-full max-w-full overflow-hidden messageContainer chat-messages-container">
             {isLoadingOlderMessages && messages.length > 0 && (

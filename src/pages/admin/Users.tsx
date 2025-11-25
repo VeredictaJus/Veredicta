@@ -463,11 +463,12 @@ export default function Users() {
       let errorUserProfiles: any = null;
       let errorProfilesV2: any = null;
 
-      // Tentar query completa primeiro
+      // ✅ CORREÇÃO: Tentar query completa para user_profiles, mas usar campos básicos para profiles_v2
+      // profiles_v2 pode não ter os campos opcionais, então começamos com campos básicos
       try {
         const [
           resultUserProfiles,
-          resultProfilesV2
+          resultProfilesV2Basic
         ] = await Promise.all([
           supabase
             .from('user_profiles')
@@ -475,14 +476,26 @@ export default function Users() {
             .limit(2000),
           supabase
             .from('profiles_v2')
-            .select(`${baseColumnsProfilesV2}, ${optionalColumns}`)
+            .select(baseColumnsProfilesV2)
             .limit(2000)
         ]);
 
         rowsUserProfiles = resultUserProfiles.data || [];
-        rowsProfilesV2 = resultProfilesV2.data || [];
+        rowsProfilesV2 = resultProfilesV2Basic.data || [];
         errorUserProfiles = resultUserProfiles.error;
-        errorProfilesV2 = resultProfilesV2.error;
+        errorProfilesV2 = resultProfilesV2Basic.error;
+
+        // Adicionar campos opcionais com valores padrão para profiles_v2
+        if (rowsProfilesV2.length > 0) {
+          rowsProfilesV2 = rowsProfilesV2.map(row => ({
+            ...row,
+            is_active: true,
+            suspended_until: null,
+            is_blocked: false,
+            suspension_reason: null,
+            suspension_type: null
+          }));
+        }
 
         // ✅ CORREÇÃO: Se der erro 400 (Bad Request), tentar apenas com campos básicos
         // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem

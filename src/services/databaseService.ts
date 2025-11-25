@@ -134,10 +134,16 @@ export class DatabaseService {
   }
 
   static async getWriterPetitions(writerId: string): Promise<Petition[]> {
+    // ✅ CORREÇÃO: Validar writerId antes de fazer a query
+    if (!writerId || typeof writerId !== 'string' || writerId.trim() === '') {
+      console.warn('⚠️ getWriterPetitions: writerId inválido:', writerId);
+      return [];
+    }
+
     // ✅ OTIMIZAÇÃO: Selecionar apenas campos necessários e adicionar limit
     const { data, error } = await supabase
       .from('petitions')
-      .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, client_name, client_id, price, description, requires_labor_calculation, calculation_id, delivered_file, correction_count, correction_requested_at, display_id, updated_at')
+      .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, client_name, client_id, price, description, requires_labor_calculation, calculation_id, correction_count, correction_requested_at, display_id, updated_at')
       .eq('assigned_writer_id', writerId)
       .order('created_at', { ascending: false })
       .limit(1000); // Limitar a 1000 petições mais recentes
@@ -1006,6 +1012,10 @@ export class DatabaseService {
     writerUid?: string,
     useSpecialtyFilter: boolean = false
   ) {
+    // 🚀 OTIMIZAÇÃO: Debounce para evitar múltiplas queries em sequência
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const DEBOUNCE_DELAY = 1000; // 1000ms de debounce para reduzir violations
+
     const subscription = supabase
       .channel('available-petitions')
       .on(
@@ -1017,8 +1027,16 @@ export class DatabaseService {
           // Removido filtro de status - pega todas as mudanças e filtra no código
         },
         () => {
-          // Refresh data when changes occur
-          this.getAvailablePetitions(writerUid, useSpecialtyFilter).then(callback);
+          // Limpar timer anterior se existir
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          
+          // Agendar nova query com debounce
+          debounceTimer = setTimeout(() => {
+            this.getAvailablePetitions(writerUid, useSpecialtyFilter).then(callback);
+            debounceTimer = null;
+          }, DEBOUNCE_DELAY);
         }
       )
       .subscribe();
@@ -1048,6 +1066,19 @@ export class DatabaseService {
   }
 
   static subscribeToWriterPetitions(writerId: string, callback: (petitions: Petition[]) => void) {
+    // ✅ CORREÇÃO: Validar writerId antes de criar subscription
+    if (!writerId || typeof writerId !== 'string' || writerId.trim() === '') {
+      console.warn('⚠️ subscribeToWriterPetitions: writerId inválido:', writerId);
+      // Retornar subscription vazia que pode ser descartada
+      return {
+        unsubscribe: () => {}
+      };
+    }
+
+    // 🚀 OTIMIZAÇÃO: Debounce para evitar múltiplas queries em sequência
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const DEBOUNCE_DELAY = 1000; // 1000ms de debounce para reduzir violations
+
     const subscription = supabase
       .channel(`writer-petitions-${writerId}`)
       .on(
@@ -1059,8 +1090,16 @@ export class DatabaseService {
           filter: `assigned_writer_id=eq.${writerId}`
         },
         () => {
-          // Refresh writer petitions when changes occur
-          this.getWriterPetitions(writerId).then(callback);
+          // Limpar timer anterior se existir
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          
+          // Agendar nova query com debounce
+          debounceTimer = setTimeout(() => {
+            this.getWriterPetitions(writerId).then(callback);
+            debounceTimer = null;
+          }, DEBOUNCE_DELAY);
         }
       )
       .subscribe();
@@ -1250,6 +1289,10 @@ export class DatabaseService {
   }
 
   static subscribeToWriterRatings(writerId: string, callback: (stats: WriterRatingStats) => void) {
+    // 🚀 OTIMIZAÇÃO: Debounce para evitar múltiplas queries em sequência
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const DEBOUNCE_DELAY = 1000; // 1000ms de debounce para reduzir violations
+
     const subscription = supabase
       .channel(`writer-ratings-${writerId}`)
       .on(
@@ -1261,8 +1304,16 @@ export class DatabaseService {
           filter: `writer_id=eq.${writerId}`
         },
         () => {
-          // Refresh writer ratings when changes occur
-          this.getWriterRatingStats(writerId).then(callback);
+          // Limpar timer anterior se existir
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          
+          // Agendar nova query com debounce
+          debounceTimer = setTimeout(() => {
+            this.getWriterRatingStats(writerId).then(callback);
+            debounceTimer = null;
+          }, DEBOUNCE_DELAY);
         }
       )
       .subscribe();

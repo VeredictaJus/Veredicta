@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -108,14 +108,6 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
   // ========= Hook de Alerta de Deadline (1h antes) =========
   const { alerts: deadlineAlerts, dismissAll: dismissDeadlineAlerts } = useDeadlineAlert();
   
-  // Debug: Log quando alertas mudarem
-  useEffect(() => {
-    if (deadlineAlerts.length > 0) {
-      console.log('🔔 [DASHBOARD] Alertas de deadline recebidos:', deadlineAlerts.length, deadlineAlerts);
-    } else {
-      console.log('🔕 [DASHBOARD] Nenhum alerta de deadline no momento');
-    }
-  }, [deadlineAlerts]);
 
   // ========= Função para verificar se há correção pendente =========
   const checkPendingCorrection = async (petitionId: string): Promise<boolean> => {
@@ -156,11 +148,64 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
 
   // Verificar se é o primeiro acesso após aprovação
   useEffect(() => {
-    const checkFirstAccess = () => {
-      const hasSeenWelcome = localStorage.getItem(`writer_welcome_${user?.uid}`);
-      if (!hasSeenWelcome && user?.uid) {
+    const checkFirstAccess = async () => {
+      if (!user?.uid) return;
+
+      // Primeiro, verificar localStorage (mais rápido e confiável)
+      const hasSeenInLocalStorage = localStorage.getItem(`writer_welcome_${user.uid}`);
+      if (hasSeenInLocalStorage === 'true') {
+        return; // Já viu, não mostrar
+      }
+
+      // Se não viu no localStorage, verificar no banco de dados
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles_v2')
+          .select('has_seen_welcome_modal, metadata')
+          .eq('firebase_uid', user.uid)
+          .maybeSingle();
+
+        // Se encontrou no banco e já viu, não mostrar e atualizar localStorage
+        if (profile && (profile.has_seen_welcome_modal || (profile.metadata as any)?.has_seen_welcome_modal)) {
+          localStorage.setItem(`writer_welcome_${user.uid}`, 'true');
+          return;
+        }
+
+        // Se chegou aqui, é a primeira vez - mostrar modal
         setShowWelcomeModal(true);
+        
+        // Marcar como visto no localStorage imediatamente (antes mesmo de fechar)
         localStorage.setItem(`writer_welcome_${user.uid}`, 'true');
+        
+        // Tentar marcar no banco de dados (não crítico se falhar)
+        try {
+          // Tentar atualizar a coluna has_seen_welcome_modal se existir
+          await supabase
+            .from('profiles_v2')
+            .update({ has_seen_welcome_modal: true })
+            .eq('firebase_uid', user.uid);
+        } catch (dbError) {
+          // Se a coluna não existir, tentar salvar no metadata
+          try {
+            const currentMetadata = (profile?.metadata as any) || {};
+            await supabase
+              .from('profiles_v2')
+              .update({ 
+                metadata: { ...currentMetadata, has_seen_welcome_modal: true }
+              })
+              .eq('firebase_uid', user.uid);
+          } catch (metadataError) {
+            // Se falhar, não é crítico - localStorage já está marcado
+            console.warn('Não foi possível salvar no banco, mas localStorage está marcado');
+          }
+        }
+      } catch (error) {
+        // Em caso de erro, usar apenas localStorage
+        console.error('Erro ao verificar modal de boas-vindas:', error);
+        if (!hasSeenInLocalStorage) {
+          setShowWelcomeModal(true);
+          localStorage.setItem(`writer_welcome_${user.uid}`, 'true');
+        }
       }
     };
 
@@ -196,44 +241,12 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
             })
         ]);
         
-        console.log('⭐ Rating stats recebidos:', ratings);
-        console.log('   - average_rating:', ratings.average_rating);
-        console.log('   - total_ratings:', ratings.total_ratings);
-        console.log('   - rating_distribution:', ratings.rating_distribution);
-        
-        setAvailablePetitions(available);
-        setMyPetitions(mine);
-        setPayments(paymentData);
-        setRatingStats(ratings);
-        setWriterBalance(balanceData || null);
-        
-        // Armazenar saldo para usar no cálculo
-        if (balanceData) {
-          console.log('💰 Saldo do redator:', balanceData);
-        }
-        
-        // Logs detalhados para debug
-        console.log('📊 Dashboard - Dados carregados:', {
-          available: available.length,
-          mine: mine.length,
-          payments: paymentData.length,
-          ratings: ratings.total_ratings
-        });
-        console.log('📊 Dashboard - Status das petições do redator:', {
-          in_progress: mine.filter(p => p.status === 'in_progress').length,
-          assigned: mine.filter(p => p.status === 'assigned').length,
-          revision: mine.filter(p => p.status === 'revision').length,
-          pending_review: mine.filter(p => p.status === 'pending_review').length,
-          completed: mine.filter(p => p.status === 'completed').length,
-          approved: mine.filter(p => p.status === 'approved').length,
-          delivered: mine.filter(p => p.status === 'delivered').length,
-          all: mine.map(p => ({ id: p.id, status: p.status }))
-        });
-        console.log('💰 Dashboard - Pagamentos:', {
-          total: paymentData.length,
-          paid: paymentData.filter(p => p.status === 'paid').length,
-          pending: paymentData.filter(p => p.status === 'pending' || p.status === 'processing').length,
-          pendingAmount: paymentData.filter(p => p.status === 'pending' || p.status === 'processing').reduce((sum, p) => sum + p.amount, 0)
+        startTransition(() => {
+          setAvailablePetitions(available);
+          setMyPetitions(mine);
+          setPayments(paymentData);
+          setRatingStats(ratings);
+          setWriterBalance(balanceData || null);
         });
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -245,21 +258,42 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
     loadDashboardData();
 
     // Setup real-time subscriptions
-    if (user?.uid) {
-      const availableSubscription = DatabaseService.subscribeToAvailablePetitions(
-        setAvailablePetitions,
-        user.uid,
-        false
-      );
-      const myPetitionsSubscription = DatabaseService.subscribeToWriterPetitions(user.uid, setMyPetitions);
-      const ratingsSubscription = DatabaseService.subscribeToWriterRatings(user.uid, setRatingStats);
-      
-      return () => {
-        availableSubscription?.unsubscribe();
-        myPetitionsSubscription?.unsubscribe();
-        ratingsSubscription?.unsubscribe();
-      };
-    }
+    if (!user?.uid) return;
+    
+    const availableSubscription = DatabaseService.subscribeToAvailablePetitions(
+      (petitions) => {
+        startTransition(() => {
+          setAvailablePetitions(petitions);
+        });
+      },
+      user.uid,
+      false
+    );
+    
+    // ✅ CORREÇÃO: Subscription será validada dentro do método
+    const myPetitionsSubscription = DatabaseService.subscribeToWriterPetitions(
+      user.uid, 
+      (petitions) => {
+        startTransition(() => {
+          setMyPetitions(petitions);
+        });
+      }
+    );
+    
+    const ratingsSubscription = DatabaseService.subscribeToWriterRatings(
+      user.uid, 
+      (stats) => {
+        startTransition(() => {
+          setRatingStats(stats);
+        });
+      }
+    );
+    
+    return () => {
+      availableSubscription?.unsubscribe();
+      myPetitionsSubscription?.unsubscribe();
+      ratingsSubscription?.unsubscribe();
+    };
   }, [user?.uid]);
 
   // Calculate real statistics from database data
@@ -296,18 +330,6 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
     rating: ratingStats.average_rating,
     totalRatings: ratingStats.total_ratings
   };
-  
-  // Logs para debug
-  console.log('📊 Dashboard - Stats calculadas:', {
-    available: availableCount,
-    active: activeCount,
-    completed: completedCount,
-    pendingPayment: pendingEarnings,
-    pendingFromBalance: writerBalance?.available_balance,
-    pendingFromPayments: payments.filter(p => p.status === 'pending' || p.status === 'processing').reduce((sum, p) => sum + p.amount, 0),
-    rating: ratingStats.average_rating,
-    totalRatings: ratingStats.total_ratings
-  });
 
   const filteredAvailablePetitions = availablePetitions.filter(petition => {
     if (selectedPetitionType === 'TODOS') return true;
@@ -1025,7 +1047,44 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       )}
 
       {/* Modal de Boas-Vindas - Primeiro Acesso Após Aprovação */}
-      <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
+      <Dialog 
+        open={showWelcomeModal} 
+        onOpenChange={async (open) => {
+          if (!open && user?.uid) {
+            // Quando fechar o modal, garantir que está marcado
+            // (já deve estar marcado no localStorage, mas garantir no banco também)
+            try {
+              // Tentar atualizar a coluna has_seen_welcome_modal se existir
+              await supabase
+                .from('profiles_v2')
+                .update({ has_seen_welcome_modal: true })
+                .eq('firebase_uid', user.uid);
+            } catch (dbError) {
+              // Se a coluna não existir, tentar salvar no metadata
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles_v2')
+                  .select('metadata')
+                  .eq('firebase_uid', user.uid)
+                  .maybeSingle();
+                
+                const currentMetadata = (profile?.metadata as any) || {};
+                await supabase
+                  .from('profiles_v2')
+                  .update({ 
+                    metadata: { ...currentMetadata, has_seen_welcome_modal: true }
+                  })
+                  .eq('firebase_uid', user.uid);
+              } catch (metadataError) {
+                // Não é crítico - localStorage já está marcado
+              }
+            }
+            // Garantir localStorage (já deve estar, mas garantir)
+            localStorage.setItem(`writer_welcome_${user.uid}`, 'true');
+          }
+          setShowWelcomeModal(open);
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
@@ -1096,7 +1155,38 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
 
             <div className="flex justify-center pt-2">
               <Button 
-                onClick={() => setShowWelcomeModal(false)}
+                onClick={async () => {
+                  setShowWelcomeModal(false);
+                  // Garantir que está marcado (já deve estar, mas garantir)
+                  if (user?.uid) {
+                    try {
+                      await supabase
+                        .from('profiles_v2')
+                        .update({ has_seen_welcome_modal: true })
+                        .eq('firebase_uid', user.uid);
+                    } catch (dbError) {
+                      // Se a coluna não existir, tentar salvar no metadata
+                      try {
+                        const { data: profile } = await supabase
+                          .from('profiles_v2')
+                          .select('metadata')
+                          .eq('firebase_uid', user.uid)
+                          .maybeSingle();
+                        
+                        const currentMetadata = (profile?.metadata as any) || {};
+                        await supabase
+                          .from('profiles_v2')
+                          .update({ 
+                            metadata: { ...currentMetadata, has_seen_welcome_modal: true }
+                          })
+                          .eq('firebase_uid', user.uid);
+                      } catch (metadataError) {
+                        // Não é crítico - localStorage já está marcado
+                      }
+                    }
+                    localStorage.setItem(`writer_welcome_${user.uid}`, 'true');
+                  }
+                }}
                 className="bg-orange-600 hover:bg-orange-700 px-8"
                 size="lg"
               >

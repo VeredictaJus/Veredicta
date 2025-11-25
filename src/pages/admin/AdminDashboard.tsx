@@ -48,9 +48,9 @@ export default function AdminDashboard() {
   const addAlert = useCallback((a) => setAlerts(prev => [a, ...prev]), []);
   const dismissAlert = useCallback((id) => setAlerts(prev => prev.filter(a => a.id !== id)), []);
 
-  const getColorForType = useMemo(() => {
+  const getColorForType = useCallback((_: string, i: number = 0) => {
     const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#F97316'];
-    return (_: string, i = 0) => colors[i % colors.length];
+    return colors[i % colors.length];
   }, []);
 
   const handleAssignPetition = async (petitionId: string) => {
@@ -537,11 +537,12 @@ export default function AdminDashboard() {
 
       // Processar tipos de petições
       const total = petitionsArray.length || 1;
+      const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#F97316'];
       setPetitionTypeData(
         Object.entries(typeCounts).map(([name, count], idx) => ({
           name,
           value: Math.round((Number(count) / total) * 100),
-          color: getColorForType(name, idx),
+          color: colors[idx % colors.length],
         }))
       );
     } catch (err) {
@@ -552,7 +553,10 @@ export default function AdminDashboard() {
     }
   };
 
-  useEffect(() => { loadDashboardData(); }, []);
+  useEffect(() => { 
+    loadDashboardData(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const fmtPct = (n) => `${n >= 0 ? '+' : ''}${n}%`;
 
 
@@ -654,16 +658,22 @@ export default function AdminDashboard() {
             <CardDescription>Evolução mensal da plataforma</CardDescription>
           </CardHeader>
           <CardContent className="bg-container-inner rounded-b-lg">
-              {monthlyData.length > 0 ? (
+              {monthlyData && monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" /><YAxis /><Tooltip />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
                 <Bar dataKey="petitions" name="Petições" fill="#3B82F6" />
                 <Line type="monotone" dataKey="revenue" name="Receita" stroke="#10B981" strokeWidth={2} />
               </ComposedChart>
             </ResponsiveContainer>
-              ) : null}
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Sem dados para exibir
+                </div>
+              )}
           </CardContent>
         </Card>
 
@@ -673,22 +683,33 @@ export default function AdminDashboard() {
             <CardDescription>Distribuição por categoria</CardDescription>
           </CardHeader>
           <CardContent className="bg-container-inner rounded-b-lg">
-              {petitionTypeData.length > 0 ? (
+              {petitionTypeData && petitionTypeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                      data={petitionTypeData}
-                  dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={2}
-                  label={(e) => `${e.name} : ${e.value}`}
+                  data={petitionTypeData}
+                  dataKey="value" 
+                  nameKey="name" 
+                  innerRadius={60} 
+                  outerRadius={100} 
+                  paddingAngle={2}
+                  label={(entry: any) => {
+                    if (!entry || typeof entry !== 'object') return '';
+                    return `${entry.name || ''} : ${entry.value || 0}%`;
+                  }}
                 >
-                      {petitionTypeData.map((d, i) => (
-                    <Cell key={i} fill={d.color} />
+                  {petitionTypeData.map((d, i) => (
+                    <Cell key={`cell-${i}`} fill={d.color || '#3B82F6'} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-              ) : null}
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Sem dados para exibir
+                </div>
+              )}
           </CardContent>
         </Card>
       </div>

@@ -130,14 +130,46 @@ export default function Users() {
   };
 
   const fetchSuspensionProfile = async (firebaseUid: string) => {
-    const columns =
-      'firebase_uid, email, full_name, suspended_until, total_late_deliveries, suspension_type, suspension_email_sent_at';
+    // ✅ CORREÇÃO: Campos básicos primeiro
+    const baseColumns = 'firebase_uid, email, full_name';
+    const optionalColumns = 'suspended_until, total_late_deliveries, suspension_type, suspension_email_sent_at';
 
-    const { data: profile, error } = await supabase
+    // Tentar query completa primeiro
+    let { data: profile, error } = await supabase
       .from('profiles_v2')
-      .select(columns)
+      .select(`${baseColumns}, ${optionalColumns}`)
       .eq('firebase_uid', firebaseUid)
       .maybeSingle();
+
+    // ✅ CORREÇÃO: Se der erro 400, tentar apenas campos básicos
+    // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
+    const isBadRequest = error && (
+      error.code === '42703' || // Column does not exist
+      error.message?.includes('column') && error.message?.includes('does not exist') ||
+      error.message?.includes('Bad Request')
+    );
+    
+    if (isBadRequest && error.code !== 'PGRST116') {
+      console.warn('⚠️ Erro ao buscar campos opcionais, tentando apenas campos básicos:', error.message);
+      const { data: basicData, error: basicError } = await supabase
+        .from('profiles_v2')
+        .select(baseColumns)
+        .eq('firebase_uid', firebaseUid)
+        .maybeSingle();
+      
+      if (!basicError && basicData) {
+        profile = {
+          ...basicData,
+          suspended_until: null,
+          total_late_deliveries: 0,
+          suspension_type: null,
+          suspension_email_sent_at: null
+        };
+        error = null;
+      } else if (basicError && basicError.code !== 'PGRST116') {
+        error = basicError;
+      }
+    }
 
     if (error && error.code !== 'PGRST116') {
       throw error;
@@ -145,11 +177,42 @@ export default function Users() {
 
     if (profile) return profile;
 
-    const { data: legacyProfile, error: legacyError } = await supabase
+    // Tentar user_profiles como fallback
+    let { data: legacyProfile, error: legacyError } = await supabase
       .from('user_profiles')
-      .select(columns)
+      .select(`${baseColumns}, ${optionalColumns}`)
       .eq('firebase_uid', firebaseUid)
       .maybeSingle();
+
+    // ✅ CORREÇÃO: Se der erro 400, tentar apenas campos básicos
+    // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
+    const isLegacyBadRequest = legacyError && (
+      legacyError.code === '42703' || // Column does not exist
+      legacyError.message?.includes('column') && legacyError.message?.includes('does not exist') ||
+      legacyError.message?.includes('Bad Request')
+    );
+    
+    if (isLegacyBadRequest && legacyError.code !== 'PGRST116') {
+      console.warn('⚠️ Erro ao buscar campos opcionais de user_profiles, tentando apenas campos básicos:', legacyError.message);
+      const { data: basicData, error: basicError } = await supabase
+        .from('user_profiles')
+        .select(baseColumns)
+        .eq('firebase_uid', firebaseUid)
+        .maybeSingle();
+      
+      if (!basicError && basicData) {
+        legacyProfile = {
+          ...basicData,
+          suspended_until: null,
+          total_late_deliveries: 0,
+          suspension_type: null,
+          suspension_email_sent_at: null
+        };
+        legacyError = null;
+      } else if (basicError && basicError.code !== 'PGRST116') {
+        legacyError = basicError;
+      }
+    }
 
     if (legacyError && legacyError.code !== 'PGRST116') {
       throw legacyError;
@@ -386,20 +449,115 @@ export default function Users() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ OTIMIZAÇÃO: Paralelizar queries (antes eram sequenciais)
-      const [
-        { data: rowsUserProfiles, error: errorUserProfiles },
-        { data: rowsProfilesV2, error: errorProfilesV2 }
-      ] = await Promise.all([
-        supabase
-          .from('user_profiles')
-          .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
-          .limit(2000),
-        supabase
-          .from('profiles_v2')
-          .select('id, firebase_uid, email, full_name, role, is_active, created_at, updated_at, suspended_until, is_blocked, suspension_reason, suspension_type')
-          .limit(2000)
-      ]);
+      // ✅ CORREÇÃO: Query com campos básicos primeiro, depois tentar campos opcionais
+      // Campos básicos para user_profiles (inclui is_active)
+      const baseColumnsUserProfiles = 'id, firebase_uid, email, full_name, role, is_active, created_at, updated_at';
+      // Campos básicos para profiles_v2 (NÃO inclui is_active, pois não existe nessa tabela)
+      const baseColumnsProfilesV2 = 'id, firebase_uid, email, full_name, role, created_at, updated_at';
+      
+      // Campos opcionais de suspensão (podem não existir em todas as tabelas)
+      const optionalColumns = 'suspended_until, is_blocked, suspension_reason, suspension_type';
+      
+      let rowsUserProfiles: any[] = [];
+      let rowsProfilesV2: any[] = [];
+      let errorUserProfiles: any = null;
+      let errorProfilesV2: any = null;
+
+      // Tentar query completa primeiro
+      try {
+        const [
+          resultUserProfiles,
+          resultProfilesV2
+        ] = await Promise.all([
+          supabase
+            .from('user_profiles')
+            .select(`${baseColumnsUserProfiles}, ${optionalColumns}`)
+            .limit(2000),
+          supabase
+            .from('profiles_v2')
+            .select(`${baseColumnsProfilesV2}, ${optionalColumns}`)
+            .limit(2000)
+        ]);
+
+        rowsUserProfiles = resultUserProfiles.data || [];
+        rowsProfilesV2 = resultProfilesV2.data || [];
+        errorUserProfiles = resultUserProfiles.error;
+        errorProfilesV2 = resultProfilesV2.error;
+
+        // ✅ CORREÇÃO: Se der erro 400 (Bad Request), tentar apenas com campos básicos
+        // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
+        // O erro pode vir como código, status HTTP ou na mensagem
+        const isProfilesV2BadRequest = errorProfilesV2 && (
+          errorProfilesV2.code === '42703' || // Column does not exist (PostgreSQL)
+          errorProfilesV2.code === 'PGRST116' || // No rows returned
+          (errorProfilesV2.message?.includes('column') && errorProfilesV2.message?.includes('does not exist')) ||
+          errorProfilesV2.message?.includes('Bad Request') ||
+          errorProfilesV2.message?.includes('400') ||
+          (errorProfilesV2.status && (errorProfilesV2.status === 400 || String(errorProfilesV2.status) === '400')) ||
+          (errorProfilesV2.details && (errorProfilesV2.details.includes('column') || errorProfilesV2.details.includes('does not exist')))
+        );
+        
+        // Se houver erro E não houver dados, tentar com campos básicos
+        if (isProfilesV2BadRequest && !rowsProfilesV2.length) {
+          console.warn('⚠️ Erro ao buscar campos opcionais de profiles_v2, tentando apenas campos básicos:', errorProfilesV2?.message);
+          
+          const { data: basicData, error: basicError } = await supabase
+            .from('profiles_v2')
+            .select(baseColumnsProfilesV2)
+            .limit(2000);
+          
+          if (!basicError && basicData) {
+            rowsProfilesV2 = basicData.map(row => ({
+              ...row,
+              is_active: true, // ✅ CORREÇÃO: Adicionar is_active como padrão para profiles_v2
+              suspended_until: null,
+              is_blocked: false,
+              suspension_reason: null,
+              suspension_type: null
+            }));
+            errorProfilesV2 = null;
+          } else if (basicError) {
+            // Se também falhar com campos básicos, manter o erro original
+            console.error('❌ Erro ao buscar campos básicos de profiles_v2:', basicError);
+          }
+        }
+
+        // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
+        const isUserProfilesBadRequest = errorUserProfiles && (
+          errorUserProfiles.code === '42703' || // Column does not exist
+          errorUserProfiles.code === 'PGRST116' || // No rows returned (mas também pode ser Bad Request)
+          (errorUserProfiles.message?.includes('column') && errorUserProfiles.message?.includes('does not exist')) ||
+          errorUserProfiles.message?.includes('Bad Request') ||
+          errorUserProfiles.message?.includes('400') ||
+          (errorUserProfiles.status && errorUserProfiles.status === 400)
+        );
+        
+        if (isUserProfilesBadRequest) {
+          console.warn('⚠️ Erro ao buscar campos opcionais de user_profiles, tentando apenas campos básicos:', errorUserProfiles?.message);
+          
+          const { data: basicData, error: basicError } = await supabase
+            .from('user_profiles')
+            .select(baseColumnsUserProfiles)
+            .limit(2000);
+          
+          if (!basicError && basicData) {
+            rowsUserProfiles = basicData.map(row => ({
+              ...row,
+              suspended_until: null,
+              is_blocked: false,
+              suspension_reason: null,
+              suspension_type: null
+            }));
+            errorUserProfiles = null;
+          } else if (basicError) {
+            // Se também falhar com campos básicos, manter o erro original
+            console.error('❌ Erro ao buscar campos básicos de user_profiles:', basicError);
+          }
+        }
+      } catch (err) {
+        console.error('❌ Erro ao carregar usuários:', err);
+        throw err;
+      }
 
       // Combinar resultados de ambas as tabelas
       const rows = [

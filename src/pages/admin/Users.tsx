@@ -497,42 +497,10 @@ export default function Users() {
           }));
         }
 
-        // ✅ CORREÇÃO: Se der erro 400 (Bad Request), tentar apenas com campos básicos
-        // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
-        // O erro pode vir como código, status HTTP ou na mensagem
-        const isProfilesV2BadRequest = errorProfilesV2 && (
-          errorProfilesV2.code === '42703' || // Column does not exist (PostgreSQL)
-          errorProfilesV2.code === 'PGRST116' || // No rows returned
-          (errorProfilesV2.message?.includes('column') && errorProfilesV2.message?.includes('does not exist')) ||
-          errorProfilesV2.message?.includes('Bad Request') ||
-          errorProfilesV2.message?.includes('400') ||
-          (errorProfilesV2.status && (errorProfilesV2.status === 400 || String(errorProfilesV2.status) === '400')) ||
-          (errorProfilesV2.details && (errorProfilesV2.details.includes('column') || errorProfilesV2.details.includes('does not exist')))
-        );
-        
-        // Se houver erro E não houver dados, tentar com campos básicos
-        if (isProfilesV2BadRequest && !rowsProfilesV2.length) {
-          console.warn('⚠️ Erro ao buscar campos opcionais de profiles_v2, tentando apenas campos básicos:', errorProfilesV2?.message);
-          
-          const { data: basicData, error: basicError } = await supabase
-            .from('profiles_v2')
-            .select(baseColumnsProfilesV2)
-            .limit(2000);
-          
-          if (!basicError && basicData) {
-            rowsProfilesV2 = basicData.map(row => ({
-              ...row,
-              is_active: true, // ✅ CORREÇÃO: Adicionar is_active como padrão para profiles_v2
-              suspended_until: null,
-              is_blocked: false,
-              suspension_reason: null,
-              suspension_type: null
-            }));
-            errorProfilesV2 = null;
-          } else if (basicError) {
-            // Se também falhar com campos básicos, manter o erro original
-            console.error('❌ Erro ao buscar campos básicos de profiles_v2:', basicError);
-          }
+        // ✅ CORREÇÃO: Se houver erro em profiles_v2 (mesmo que seja PGRST116 - nenhuma linha), apenas registrar
+        // Não precisamos fazer fallback pois já começamos com campos básicos
+        if (errorProfilesV2 && errorProfilesV2.code !== 'PGRST116') {
+          console.warn('⚠️ Erro ao buscar profiles_v2:', errorProfilesV2?.message);
         }
 
         // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem

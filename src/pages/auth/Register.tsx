@@ -1034,6 +1034,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     placeholder="Mínimo 8 caracteres"
+                    autoComplete="new-password"
                     className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <Button
@@ -1064,6 +1065,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     placeholder="Confirme sua senha"
+                    autoComplete="new-password"
                     className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <Button

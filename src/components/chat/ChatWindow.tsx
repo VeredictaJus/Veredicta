@@ -642,25 +642,30 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   // Scroll para última mensagem
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {
-      // ✅ OTIMIZAÇÃO: Usar setTimeout ao invés de scrollIntoView para evitar reflow forçado
+      // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para ler propriedades após o layout ser calculado
+      // Isso evita forced reflow ao ler scrollHeight/clientHeight antes do navegador recalcular
       if (messagesEndRef.current && scrollContainerRef.current) {
         const container = scrollContainerRef.current;
-        const targetScrollTop = container.scrollHeight - container.clientHeight;
         
-        // ✅ OTIMIZAÇÃO: Usar scrollTo ao invés de scrollIntoView para melhor performance
-        if (behavior === 'smooth') {
-          container.scrollTo({
-            top: targetScrollTop,
-            behavior: 'smooth'
-          });
-        } else {
-          container.scrollTop = targetScrollTop;
-        }
-        
-        // ✅ OTIMIZAÇÃO: Atualizar estado de forma assíncrona
-        setTimeout(() => {
-          isNearBottomRef.current = true;
-        }, 0);
+        // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para garantir que o layout já foi calculado
+        requestAnimationFrame(() => {
+          const targetScrollTop = container.scrollHeight - container.clientHeight;
+          
+          // ✅ OTIMIZAÇÃO: Usar scrollTo ao invés de scrollIntoView para melhor performance
+          if (behavior === 'smooth') {
+            container.scrollTo({
+              top: targetScrollTop,
+              behavior: 'smooth'
+            });
+          } else {
+            container.scrollTop = targetScrollTop;
+          }
+          
+          // Atualizar estado de forma assíncrona
+          setTimeout(() => {
+            isNearBottomRef.current = true;
+          }, 0);
+        });
       }
     },
     []
@@ -678,27 +683,31 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
 
-    // Verificar novamente se está próximo do final (atualizar estado)
-    const container = scrollContainerRef.current;
-    if (container) {
+    // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para ler propriedades após o layout ser calculado
+    // Isso evita forced reflow ao verificar scrollHeight/scrollTop antes do navegador recalcular
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      
+      // Verificar novamente se está próximo do final (atualizar estado)
       isNearBottomRef.current = checkIfNearBottom();
-    }
 
-    // Se não está próximo do final, não fazer scroll automático
-    if (!isNearBottomRef.current) {
-      return;
-    }
+      // Se não está próximo do final, não fazer scroll automático
+      if (!isNearBottomRef.current) {
+        return;
+      }
 
-    // Verificar se a última mensagem é do próprio usuário
-    const lastMessage = messages[messages.length - 1];
-    const isOwnMessage = lastMessage && user?.uid && lastMessage.sender_id === user.uid;
+      // Verificar se a última mensagem é do próprio usuário
+      const lastMessage = messages[messages.length - 1];
+      const isOwnMessage = lastMessage && user?.uid && lastMessage.sender_id === user.uid;
 
-    // Só fazer scroll automático se:
-    // 1. O usuário está próximo do final (já estava vendo as mensagens mais recentes), OU
-    // 2. É uma mensagem própria (o usuário acabou de enviar)
-    if (isNearBottomRef.current || isOwnMessage) {
-      scrollToBottom();
-    }
+      // Só fazer scroll automático se:
+      // 1. O usuário está próximo do final (já estava vendo as mensagens mais recentes), OU
+      // 2. É uma mensagem própria (o usuário acabou de enviar)
+      if (isNearBottomRef.current || isOwnMessage) {
+        scrollToBottom();
+      }
+    });
   }, [messages, scrollToBottom, user?.uid, checkIfNearBottom]);
 
   const handleLoadOlderMessages = useCallback(async () => {

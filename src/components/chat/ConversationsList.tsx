@@ -38,13 +38,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
   
   const { conversations, isLoading, getUnreadCount, deleteConversation, archiveConversation, updateConversationStatus, loadConversations, createConversation, selectConversation } = useChat();
   
-  // 🚀 DEBUG: Log das conversas recebidas
-  console.log('🔍 ConversationsList renderizado:', {
-    conversationsCount: conversations?.length || 0,
-    isLoading,
-    conversations: conversations,
-    user: user?.uid
-  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'support' | 'writers' | 'clients' | 'lawyers' | 'archived'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -138,7 +131,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
         return;
       }
       
-      console.log('✅ Admin pode desarquivar conversa arquivada automaticamente');
       // Continuar com o desarquivamento normalmente para admin
     }
     
@@ -156,7 +148,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
       }
       
       // 🔧 CORREÇÃO: Não recarregar conversas para evitar sobrescrever estado
-      console.log('✅ Arquivamento concluído, não recarregando lista para preservar estado');
       
     } catch (error) {
       console.error('Erro ao alterar status da conversa:', error);
@@ -179,7 +170,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
 
       if (existingConversationId) {
         // Conversa já existe, apenas abrir
-        console.log('✅ Conversa existente encontrada, abrindo...', existingConversationId);
         await onSelectConversation(existingConversationId);
         await selectConversation(existingConversationId);
         setUserSelectionModalOpen(false);
@@ -199,8 +189,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
         participants
       );
 
-      console.log('✅ Conversa criada com sucesso:', conversationId);
-      
       // Abrir a conversa criada
       await onSelectConversation(conversationId);
       await selectConversation(conversationId);
@@ -340,51 +328,8 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
       matchesFilter = true;
     }
     
-    // 🔍 DEBUG DETALHADO: Log de cada conversa individual
-    console.log('🔍 Conversa individual:', {
-      id: conversation.id,
-      title: conversation.title,
-      type: conversation.type,
-      status: conversation.status,
-      matchesSearch,
-      matchesFilter,
-      filterType,
-      finalResult: matchesSearch && matchesFilter
-    });
-    
     return matchesSearch && matchesFilter;
   });
-
-  // 🚀 DEBUG: Log do filtro aplicado
-  console.log('🔍 Filtro aplicado:', {
-    filterType,
-    searchTerm,
-    totalConversations: conversations?.length || 0,
-    filteredConversations: filteredConversations?.length || 0,
-    conversations: conversations?.map(c => ({
-      id: c.id,
-      title: c.title,
-      type: c.type,
-      status: c.status,
-      matchesFilter: filterType === 'archived' ? c.status === 'archived' : c.status !== 'archived'
-    }))
-  });
-
-  // 🔍 DEBUG: Logs adicionais para renderização
-  if (filteredConversations.length === 0) {
-    console.log('🚨 DEBUG: Nenhuma conversa filtrada encontrada!', {
-      totalConversations: conversations.length,
-      filteredConversations: filteredConversations.length,
-      filterType,
-      searchTerm,
-      conversations: conversations.map(c => ({ id: c.id, title: c.title, status: c.status, type: c.type }))
-    });
-  } else {
-    console.log('✅ DEBUG: Renderizando conversas filtradas!', {
-      filteredConversations: filteredConversations.length,
-      conversations: filteredConversations.map(c => ({ id: c.id, title: c.title, status: c.status, type: c.type }))
-    });
-  }
 
   // Obter ícone do tipo de conversa
   const getConversationIcon = (type: string) => {
@@ -457,13 +402,6 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
         convAny.petitionId ??
         convAny.petition_id;
 
-      console.log('🏷️ [BADGE] Type label para petição:', {
-        conversationId: conversation.id,
-        petitionId: convAny.petition_id,
-        displayId,
-        metadata,
-        fullConversation: conversation
-      });
 
       // Sempre mostrar o número, mesmo que seja o petition_id
       if (displayId) {

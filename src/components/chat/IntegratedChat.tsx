@@ -35,13 +35,23 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   
   const { createConversation, selectConversation, conversations, loadConversations } = chatContext;
   const { user } = useNewAuth();
-  const [searchParams] = useSearchParams();
-  // ✅ Inicializar com externalSelectedConversationId se disponível
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(externalSelectedConversationId || null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ✅ CORREÇÃO: Inicializar com externalSelectedConversationId ou parâmetro da URL
+  const initialConversationId = externalSelectedConversationId || searchParams.get('conversation') || null;
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(initialConversationId);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [writers, setWriters] = useState<Writer[]>([]);
   const [isLoadingWriters, setIsLoadingWriters] = useState(false);
+  
+  // ✅ CORREÇÃO: Garantir que selectedConversationId seja atualizado quando searchParams mudar na montagem
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId && conversationId !== selectedConversationId && !externalSelectedConversationId) {
+      // Atualizar imediatamente quando houver parâmetro na URL
+      setSelectedConversationId(conversationId);
+    }
+  }, [searchParams]); // Executar quando searchParams mudar
   
   // Form para criar conversa
   const [formData, setFormData] = useState({
@@ -71,34 +81,105 @@ export default function IntegratedChat({ className, selectedConversationId: exte
 
   // 🚀 CORREÇÃO: Lidar com parâmetro conversation da URL (sem causar loop)
   const lastProcessedConversationRef = useRef<string | null>(null);
+  const conversationIdFromUrlRef = useRef<string | null>(null);
+  
+  // ✅ CORREÇÃO: Carregar conversas na montagem se houver parâmetro na URL
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId && conversations.length === 0 && user) {
+      // Carregar conversas imediatamente se houver parâmetro na URL
+      loadConversations().catch((error) => {
+        console.error('Erro ao carregar conversas na montagem:', error);
+      });
+    }
+  }, [user, searchParams, conversations.length, loadConversations]); // Executar quando necessário
 
   // Selecionar conversa
   const handleSelectConversation = React.useCallback(
     async (conversationId: string) => {
+      // ✅ CORREÇÃO: Atualizar URL quando seleção é manual (antes de resetar o ref)
+      const currentConversationParam = searchParams.get('conversation');
+      if (currentConversationParam !== conversationId) {
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('conversation', conversationId);
+        setSearchParams(newSearchParams, { replace: true });
+      }
+      
+      // ✅ CORREÇÃO: Resetar lastProcessedConversationRef para permitir mudanças
+      // Mas marcar como processado após atualizar a URL
+      lastProcessedConversationRef.current = conversationId;
+      
       setSelectedConversationId(conversationId);
+      
       try {
         await selectConversation(conversationId);
       } catch (error) {
         console.error('Erro ao selecionar conversa:', error);
       }
     },
-    [selectConversation]
+    [selectConversation, searchParams, setSearchParams, selectedConversationId]
   );
 
   useEffect(() => {
     const conversationId = searchParams.get('conversation');
-    if (conversationId && conversations.length > 0) {
-      if (lastProcessedConversationRef.current === conversationId) {
-        return;
-      }
-
-      const conversationExists = conversations.find(conv => conv.id === conversationId);
-      if (conversationExists && conversationId !== selectedConversationId) {
-        lastProcessedConversationRef.current = conversationId;
-        handleSelectConversation(conversationId);
-      }
+    const currentSelected = selectedConversationId; // Capturar valor atual
+    const currentLastProcessed = lastProcessedConversationRef.current; // Capturar valor atual
+    
+    // ✅ CORREÇÃO: Se o conversationId da URL não mudou, não fazer nada
+    if (conversationIdFromUrlRef.current === conversationId) {
+      return;
     }
-  }, [searchParams, conversations, selectedConversationId, handleSelectConversation]);
+    
+    // Atualizar ref do conversationId da URL
+    conversationIdFromUrlRef.current = conversationId;
+    
+    if (!conversationId) {
+      // Se não há parâmetro na URL, limpar seleção se necessário
+      if (currentSelected && !externalSelectedConversationId) {
+        setSelectedConversationId(null);
+        lastProcessedConversationRef.current = null;
+      }
+      return;
+    }
+    
+    // ✅ CORREÇÃO CRÍTICA: Se já foi processado, não fazer nada (evitar loops)
+    // Usar apenas lastProcessedConversationRef para verificar, não selectedConversationId
+    if (currentLastProcessed === conversationId) {
+      return;
+    }
+
+    // ✅ CORREÇÃO: Se não há conversas carregadas, carregar primeiro
+    if (conversations.length === 0) {
+      loadConversations().then(() => {
+        // Após carregar, tentar selecionar novamente
+        // O useEffect será executado novamente quando conversations mudar
+        // Mas garantir que selectedConversationId esteja definido
+        if (conversationId !== currentSelected) {
+          setSelectedConversationId(conversationId);
+        }
+      }).catch((error) => {
+        console.error('Erro ao carregar conversas:', error);
+      });
+      return;
+    }
+
+    // ✅ CORREÇÃO: Marcar como processado ANTES de fazer qualquer atualização
+    // Isso evita que o useEffect seja executado novamente
+    lastProcessedConversationRef.current = conversationId;
+    
+    // ✅ CORREÇÃO: Atualizar selectedConversationId apenas se for diferente
+    if (conversationId !== currentSelected) {
+      setSelectedConversationId(conversationId);
+    }
+    
+    // ✅ CORREÇÃO: Chamar selectConversation diretamente (sem handleSelectConversation)
+    // para evitar atualizar a URL novamente (já está na URL)
+    // Isso é apenas para mudanças na URL, não para cliques manuais
+    selectConversation(conversationId).catch((error) => {
+      console.error('Erro ao selecionar conversa:', error);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, conversations.length]); // ✅ CORREÇÃO: Usar searchParams e conversations.length, mas verificar mudança do conversationId internamente
 
   useEffect(() => {
     const handleExternalConversation = async () => {

@@ -135,24 +135,46 @@ const UFS = [
   { value: 'TO', label: 'Tocantins' }
 ];
 
+// Função para formatar Agência (formato: XXXX ou XXXX-X)
+const formatAgency = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Limita a 5 dígitos (4 + 1 dígito verificador)
+  const limited = numbers.slice(0, 5);
+  
+  // Formata: XXXX ou XXXX-X
+  if (limited.length <= 4) {
+    return limited;
+  } else {
+    return `${limited.slice(0, 4)}-${limited.slice(4)}`;
+  }
+};
+
+// Função para formatar Conta (formato: XXXXX-X ou XXXXXXXX-X)
+const formatAccount = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '');
+  
+  // Limita a 9 dígitos (8 + 1 dígito verificador)
+  const limited = numbers.slice(0, 9);
+  
+  // Formata: XXXXX-X ou XXXXXXXX-X
+  if (limited.length <= 5) {
+    return limited;
+  } else if (limited.length <= 8) {
+    return `${limited.slice(0, 5)}-${limited.slice(5)}`;
+  } else {
+    return `${limited.slice(0, 8)}-${limited.slice(8)}`;
+  }
+};
+
 export default function WriterSettings() {
   const { user } = useNewAuth();
   const { avatarUrl: contextAvatarUrl, setAvatarUrl, reloadAvatar } = useAvatar();
   const { profileTabValue, setProfileTabValue } = useTabNavigation();
   const [searchParams] = useSearchParams();
 
-  // Debug - verificar montagem do componente
-  useEffect(() => {
-    console.log('🎯 WriterSettings - COMPONENTE MONTADO');
-    return () => {
-      console.log('🎯 WriterSettings - COMPONENTE DESMONTADO');
-    };
-  }, []);
-
-  // Debug - verificar valor da aba
-  useEffect(() => {
-    console.log('🔍 WriterSettings - profileTabValue atualizado:', profileTabValue);
-  }, [profileTabValue]);
 
   // controla se este perfil já existia (para decidir se notifica admin)
   const [isExistingProfile, setIsExistingProfile] = useState(false);
@@ -190,7 +212,6 @@ export default function WriterSettings() {
   // Sincronizar photoPreview com contextAvatarUrl quando mudar
   useEffect(() => {
     if (contextAvatarUrl && !photoPreview) {
-      console.log('🔄 Sincronizando photoPreview com contextAvatarUrl:', contextAvatarUrl);
       setPhotoPreview(contextAvatarUrl);
     }
   }, [contextAvatarUrl, photoPreview]);
@@ -386,8 +407,6 @@ export default function WriterSettings() {
 
             if (notificationError) {
               console.error('❌ Erro ao criar notificações para admins:', notificationError);
-            } else {
-              console.log(`✅ Notificações criadas para ${admins.length} admin(s)`);
             }
           }
         } catch (notifyError) {
@@ -398,7 +417,6 @@ export default function WriterSettings() {
       }
 
       toast.success('Perfil atualizado com sucesso!');
-      console.log('✅ Profile updated successfully', data);
     } catch (error) {
       console.error('❌ Error updating profile:', error);
       toast.error('Erro ao atualizar perfil. Tente novamente.');
@@ -481,8 +499,6 @@ export default function WriterSettings() {
     setUploadingPhoto(true);
 
     try {
-      console.log('📤 Iniciando upload de avatar:', { fileName: file.name, fileSize: file.size, fileType: file.type });
-      
       // SOLUÇÃO DEFINITIVA: Converter para base64 e salvar no banco
       // Isso funciona 100% e não depende de storage público/assinado
       const reader = new FileReader();
@@ -490,16 +506,12 @@ export default function WriterSettings() {
       reader.onload = async (e) => {
         try {
           const base64String = e.target?.result as string;
-          console.log('✅ Base64 gerado, tamanho:', base64String.length);
-          
           // Verificar se o perfil existe primeiro
           const { data: existingProfile } = await supabase
             .from('profiles_v2')
             .select('firebase_uid, email, role')
             .ilike('firebase_uid', user.uid)
             .maybeSingle();
-
-          console.log('🔍 Perfil existente:', { exists: !!existingProfile, firebase_uid: user.uid });
 
           // Salvar base64 no banco
           let updateData;
@@ -549,8 +561,6 @@ export default function WriterSettings() {
             return;
           }
 
-          console.log('✅ Avatar salvo em profiles_v2 (base64)');
-
           // Também salvar em user_profiles
           const { error: userProfilesError } = await supabase
             .from('user_profiles')
@@ -566,13 +576,10 @@ export default function WriterSettings() {
           setPhotoPreview(base64String);
           setAvatarUrl(base64String); // Atualizar contexto
           
-          console.log('✅ Avatar atualizado no contexto (base64)');
-          
           // Recarregar avatar do contexto
           setTimeout(async () => {
             try {
               await reloadAvatar();
-              console.log('✅ Avatar recarregado do banco no contexto');
             } catch (reloadError) {
               console.warn('⚠️ Erro ao recarregar avatar:', reloadError);
             }
@@ -680,7 +687,6 @@ export default function WriterSettings() {
                       });
                     }}
                     onLoad={() => {
-                      console.log('✅ Avatar image loaded successfully:', photoPreview || profile.avatar || contextAvatarUrl);
                     }}
                   />
                   <AvatarFallback className="text-lg">
@@ -1030,7 +1036,12 @@ export default function WriterSettings() {
                   <Input
                     id="agency"
                     value={profile.bank_data.agency}
-                    onChange={e => setProfile({ ...profile, bank_data: { ...profile.bank_data, agency: e.target.value } })}
+                    onChange={e => {
+                      const formatted = formatAgency(e.target.value);
+                      setProfile({ ...profile, bank_data: { ...profile.bank_data, agency: formatted } });
+                    }}
+                    placeholder="0000 ou 0000-0"
+                    maxLength={6}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1038,7 +1049,12 @@ export default function WriterSettings() {
                   <Input
                     id="account"
                     value={profile.bank_data.account}
-                    onChange={e => setProfile({ ...profile, bank_data: { ...profile.bank_data, account: e.target.value } })}
+                    onChange={e => {
+                      const formatted = formatAccount(e.target.value);
+                      setProfile({ ...profile, bank_data: { ...profile.bank_data, account: formatted } });
+                    }}
+                    placeholder="00000-0 ou 00000000-0"
+                    maxLength={10}
                   />
                 </div>
                 <div className="space-y-2">

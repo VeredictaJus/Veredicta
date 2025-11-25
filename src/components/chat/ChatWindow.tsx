@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo, startTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -162,76 +162,162 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     isLoading,
     error,
     selectConversation,
-    loadConversations
+    loadConversations,
+    loadConversationMessages
   } = chatContext;
   
   const { user } = useNewAuth();
 
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const prevMessagesRef = useRef<Message[]>([]);
+
+  // ✅ CORREÇÃO CRÍTICA: Usar useLayoutEffect para setar transição SINCRONAMENTE antes do render
+  // Isso garante que o avatar seja ocultado imediatamente quando conversationId muda
+  useLayoutEffect(() => {
+    if (conversationId && conversationId !== currentConversation?.id) {
+      // ✅ CORREÇÃO CRÍTICA: Marcar como em transição IMEDIATAMENTE (síncrono) para ocultar avatar
+      setIsTransitioning(true);
+    } else if (conversationId && currentConversation?.id === conversationId) {
+      // ✅ CORREÇÃO: Se já está sincronizado, garantir que não está em transição
+      setIsTransitioning(false);
+    } else if (!conversationId) {
+      // ✅ CORREÇÃO: Se não há conversationId, não está em transição
+      setIsTransitioning(false);
+    }
+  }, [conversationId, currentConversation?.id]);
 
   // Selecionar conversa quando conversationId for passado como prop
   useEffect(() => {
     if (conversationId && conversationId !== currentConversation?.id) {
-      // ✅ CORREÇÃO: Limpar mensagens imediatamente quando a conversa mudar
-      setMessages([]);
-      // ✅ OTIMIZAÇÃO: Não esperar selectConversation - executar em background
-      selectConversation(conversationId).catch((error) => {
-        console.error('Erro ao selecionar conversa:', error);
-        // Se a conversa não existir, tentar recarregar as conversas primeiro
-        loadConversations().then(() => {
-          selectConversation(conversationId).catch((err) => {
-            console.error('Erro ao selecionar conversa após recarregar:', err);
+      // ✅ CORREÇÃO: Preservar mensagens otimistas da nova conversa ao mudar
+      setMessages(prev => prev.filter(msg => 
+        msg.conversation_id === conversationId || 
+        (msg.id.startsWith('temp-') && msg.conversation_id === conversationId) ||
+        (msg.id.startsWith('tmp-') && msg.conversation_id === conversationId)
+      ));
+      // ✅ CORREÇÃO: Aguardar selectConversation para garantir que as mensagens sejam carregadas
+      selectConversation(conversationId)
+        .then(() => {
+          // ✅ CORREÇÃO: Aguardar um pouco mais para garantir que as mensagens foram processadas
+          setTimeout(() => {
+            startTransition(() => {
+              setIsTransitioning(false);
+            });
+          }, 100);
+        })
+        .catch((error) => {
+          console.error('Erro ao selecionar conversa:', error);
+          setIsTransitioning(false);
+          // Se a conversa não existir, tentar recarregar as conversas primeiro
+          loadConversations().then(() => {
+            selectConversation(conversationId).catch((err) => {
+              console.error('Erro ao selecionar conversa após recarregar:', err);
+            });
           });
         });
-      });
+    } else if (!conversationId && currentConversation) {
+      // Se não há conversationId mas há currentConversation, limpar
+      setIsTransitioning(false);
     }
   }, [conversationId, currentConversation?.id, selectConversation, loadConversations]);
 
   useEffect(() => {
     // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
-    if (currentConversation?.id) {
+    // ✅ CORREÇÃO: Verificar se conversationId corresponde ao currentConversation.id para evitar mostrar dados da conversa errada
+    const targetConversationId = conversationId || currentConversation?.id;
+    
+    if (targetConversationId && currentConversation?.id === targetConversationId) {
       const filteredMessages = contextMessages.filter(
-        (msg) => msg.conversation_id === currentConversation.id
+        (msg) => msg.conversation_id === targetConversationId
       );
       
-      // ✅ CORREÇÃO: Mesclar mensagens otimistas (temporárias) com as do contexto
-      // Manter mensagens otimistas que ainda não foram confirmadas
-      setMessages(prev => {
-        // Filtrar apenas mensagens da conversa atual do estado anterior
-        const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
-        
+      // ✅ CORREÇÃO: Verificar se as mensagens realmente mudaram antes de atualizar
+      // Usar um hash simples para comparar se as mensagens mudaram
+      const currentMessagesHash = filteredMessages.map(m => m.id).join(',');
+      const prevMessagesHash = prevMessagesRef.current
+        .filter((msg) => msg.conversation_id === targetConversationId)
+        .map(m => m.id)
+        .join(',');
+      
+      // Se as mensagens não mudaram (mesmos IDs na mesma ordem), não atualizar
+      if (currentMessagesHash === prevMessagesHash && currentMessagesHash !== '') {
+        return; // Não atualizar se nada mudou
+      }
+      
+      // ✅ CORREÇÃO: Sempre atualizar mensagens quando há conversa selecionada (mesmo se vazio)
+      startTransition(() => {
+        // ✅ CORREÇÃO: Mesclar mensagens otimistas (temporárias) com as do contexto
         // Manter mensagens otimistas que ainda não foram confirmadas
-        const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
-        const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
-        
-        // Remover mensagens otimistas que já foram confirmadas (mesmo conteúdo e remetente)
-        const remainingOptimistic = optimisticMessages.filter(optMsg => {
-          // Verificar se já existe uma mensagem confirmada com o mesmo conteúdo e remetente
-          const isConfirmed = filteredMessages.some(
-            confirmedMsg => 
-              confirmedMsg.content === optMsg.content &&
-              confirmedMsg.sender_id === optMsg.sender_id &&
-              Math.abs(new Date(confirmedMsg.created_at).getTime() - new Date(optMsg.created_at).getTime()) < 5000
-          );
-          return !isConfirmed;
+        setMessages(prev => {
+          // Filtrar apenas mensagens da conversa atual do estado anterior
+          const prevFiltered = prev.filter(msg => msg.conversation_id === targetConversationId);
+          
+          // Manter mensagens otimistas que ainda não foram confirmadas
+          const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
+          
+          // Se não há mensagens confirmadas ainda, retornar apenas otimistas
+          if (filteredMessages.length === 0) {
+            return optimisticMessages;
+          }
+          
+          // ✅ OTIMIZAÇÃO: Usar Map para lookup O(1) ao invés de O(n) com .some()
+          const confirmedMessagesMap = new Map<string, Message>();
+          const timeCache = new Map<string, number>();
+          
+          filteredMessages.forEach(msg => {
+            if (!timeCache.has(msg.created_at)) {
+              timeCache.set(msg.created_at, new Date(msg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(msg.created_at)! / 5000) * 5000;
+            const key = `${msg.content}|${msg.sender_id}|${timeWindow}`;
+            confirmedMessagesMap.set(key, msg);
+          });
+          
+          // ✅ OTIMIZAÇÃO: Verificar confirmação usando Map (O(1) lookup)
+          const remainingOptimistic = optimisticMessages.filter(optMsg => {
+            if (!timeCache.has(optMsg.created_at)) {
+              timeCache.set(optMsg.created_at, new Date(optMsg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(optMsg.created_at)! / 5000) * 5000;
+            const key = `${optMsg.content}|${optMsg.sender_id}|${timeWindow}`;
+            return !confirmedMessagesMap.has(key);
+          });
+          
+          // Combinar mensagens confirmadas com otimistas restantes
+          const allMessages = [...filteredMessages, ...remainingOptimistic];
+          
+          // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas (mais eficiente)
+          const uniqueMessagesMap = new Map<string, Message>();
+          allMessages.forEach(msg => {
+            if (!uniqueMessagesMap.has(msg.id) || (!msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'))) {
+              uniqueMessagesMap.set(msg.id, msg);
+            }
+          });
+          
+          // ✅ OTIMIZAÇÃO: Sort usando cache de timestamps (evita múltiplas conversões)
+          const uniqueMessages = Array.from(uniqueMessagesMap.values());
+          const sortedMessages = uniqueMessages.sort((a, b) => {
+            const timeA = timeCache.get(a.created_at) ?? new Date(a.created_at).getTime();
+            const timeB = timeCache.get(b.created_at) ?? new Date(b.created_at).getTime();
+            return timeA - timeB;
+          });
+          
+          return sortedMessages;
         });
-        
-        // Combinar mensagens confirmadas com otimistas restantes
-        const allMessages = [...filteredMessages, ...remainingOptimistic];
-        
-        // Remover duplicatas e ordenar por data de criação
-        const uniqueMessages = Array.from(
-          new Map(allMessages.map(msg => [msg.id, msg])).values()
-        ).sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        
-        return uniqueMessages;
       });
-    } else {
+    } else if (!targetConversationId) {
       // Se não há conversa selecionada, limpar mensagens
-      setMessages([]);
+      startTransition(() => {
+        setMessages([]);
+      });
+    }
+    
+    // ✅ CORREÇÃO: Atualizar ref para rastrear mensagens anteriores APENAS se realmente atualizou
+    // Isso evita que o ref seja atualizado mesmo quando não houve mudança real
+    if (targetConversationId && currentConversation?.id === targetConversationId) {
+      prevMessagesRef.current = contextMessages;
     }
     
     // Resetar estado de scroll quando a conversa mudar
@@ -242,17 +328,19 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       clearTimeout(scrollTimeoutRef.current);
       scrollTimeoutRef.current = null;
     }
-  }, [contextMessages, currentConversation?.id]);
+  }, [contextMessages, currentConversation?.id, conversationId]);
   
   // Função para forçar recarregamento das mensagens
   const forceReloadMessages = async () => {
     if (!currentConversation) return;
     
     try {
-      await ChatService.getConversationMessages(currentConversation.id);
-      // As mensagens serão atualizadas via tempo real ou seleção de conversa
+      // Usar a função do contexto para garantir que as mensagens sejam atualizadas corretamente
+      await loadConversationMessages(currentConversation.id);
+      toast.success('Mensagens recarregadas');
     } catch (error) {
       console.error('Erro ao recarregar mensagens:', error);
+      toast.error('Erro ao recarregar mensagens');
     }
   };
   const [isTyping, setIsTyping] = useState(false);
@@ -318,13 +406,23 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       isNearBottomRef.current = false;
       
       // Manter bloqueado por mais tempo quando rolando para cima
+      // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para evitar violations
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
       scrollTimeoutRef.current = setTimeout(() => {
-        isUserScrollingRef.current = false;
-        // Verificar novamente se está no final após parar de rolar
-        isNearBottomRef.current = checkIfNearBottom();
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            isUserScrollingRef.current = false;
+            // Verificar novamente se está no final após parar de rolar
+            isNearBottomRef.current = checkIfNearBottom();
+          }, { timeout: 100 });
+        } else {
+          requestAnimationFrame(() => {
+            isUserScrollingRef.current = false;
+            isNearBottomRef.current = checkIfNearBottom();
+          });
+        }
       }, 1000);
       return;
     }
@@ -334,11 +432,20 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     isNearBottomRef.current = checkIfNearBottom();
 
     // Resetar flag após um tempo
+    // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para evitar violations
     if (scrollTimeoutRef.current) {
       clearTimeout(scrollTimeoutRef.current);
     }
     scrollTimeoutRef.current = setTimeout(() => {
-      isUserScrollingRef.current = false;
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          isUserScrollingRef.current = false;
+        }, { timeout: 100 });
+      } else {
+        requestAnimationFrame(() => {
+          isUserScrollingRef.current = false;
+        });
+      }
     }, 800);
     });
   }, [checkIfNearBottom]);
@@ -531,104 +638,30 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     return currentConversation.title || 'Conversa';
   };
 
-  // Função para obter o avatar do destinatário no header
-  const getHeaderRecipientAvatar = () => {
-    if (!currentConversation) return null;
-    
-    const userRole = user?.role || 'client';
-    
-    // Para conversas de suporte, se é cliente/redator visualizando, mostrar logo fixo do suporte
-    if (currentConversation.type === 'support' && userRole !== 'admin') {
-      return (
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={getAdminAvatarUrl()} alt="Suporte Veredicta" />
-          <AvatarFallback className="text-sm bg-orange-100 text-orange-700 font-semibold">
-            🛠️
-          </AvatarFallback>
-        </Avatar>
-      );
-    }
-    
-    // Para todas as conversas (incluindo suporte quando admin visualiza), encontrar o destinatário (não o usuário atual)
-    const otherParticipant = getOtherParticipant();
-    const { avatarUrl: metadataAvatarUrl, initials: metadataInitials } = getMetadataAvatar();
-    const fallbackInitials = getUserInitials(otherParticipant ?? undefined) || metadataInitials || getUserInitials();
-
-    // Se é conversa de suporte e não há outro participante, usar avatar padrão
-    if (currentConversation.type === 'support' && !otherParticipant && !metadataAvatarUrl) {
-      return (
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={undefined} />
-          <AvatarFallback className="text-sm bg-blue-100 text-blue-700">
-            {fallbackInitials || 'C'}
-          </AvatarFallback>
-        </Avatar>
-      );
-    }
-
-    if (!otherParticipant && !metadataAvatarUrl) {
-      // Se não há participantes carregados, usar o título (nome do cliente)
-      return (
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={undefined} />
-          <AvatarFallback className="text-sm bg-blue-100 text-blue-700">
-            {fallbackInitials}
-          </AvatarFallback>
-        </Avatar>
-      );
-    }
-
-    // Se o outro participante é admin/suporte, usar logo fixo
-    const isOtherParticipantAdmin = otherParticipant && isAdminOrSupport(otherParticipant);
-    
-    // Buscar avatar: primeiro do participante, depois do metadata
-    let avatarUrl = isOtherParticipantAdmin 
-      ? getAdminAvatarUrl() 
-      : (otherParticipant ? getUserAvatar(otherParticipant) : metadataAvatarUrl);
-    
-    // Se não encontrou avatar do participante, tentar do metadata
-    if (!avatarUrl && otherParticipant) {
-      const participantMetadata = (otherParticipant as any).metadata || {};
-      avatarUrl = participantMetadata.avatar_url || 
-                  participantMetadata.partnerAvatar || 
-                  participantMetadata.partner_avatar || 
-                  undefined;
-    }
-    
-    // Buscar iniciais: primeiro do participante, depois do metadata
-    let initials = otherParticipant ? getUserInitials(otherParticipant) : (metadataInitials || fallbackInitials);
-    
-    // Se não encontrou iniciais válidas, tentar gerar do nome
-    if (!initials || initials === '??') {
-      if (otherParticipant) {
-        const name = getUserDisplayName(otherParticipant);
-        if (name && name !== otherParticipant.user_id) {
-          initials = name.split(' ').map(n => n[0]).filter(n => n).join('').toUpperCase().slice(0, 2);
-        }
-      }
-      if (!initials || initials.length === 0) {
-        initials = metadataInitials || fallbackInitials || '??';
-      }
-    }
-    
-    return (
-      <Avatar className="h-10 w-10" key={`avatar-${otherParticipant?.user_id ?? 'metadata'}-${participants.length}`}>
-        <AvatarImage src={avatarUrl} className="object-cover" alt={otherParticipant ? getUserDisplayName(otherParticipant) : 'Avatar'} />
-        <AvatarFallback className="text-sm bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
-          {initials || '??'}
-        </AvatarFallback>
-      </Avatar>
-    );
-  };
 
   // Scroll para última mensagem
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {
-      messagesEndRef.current?.scrollIntoView({ behavior });
-      // Atualizar estado após scroll
-      setTimeout(() => {
-        isNearBottomRef.current = true;
-      }, 100);
+      // ✅ OTIMIZAÇÃO: Usar setTimeout ao invés de scrollIntoView para evitar reflow forçado
+      if (messagesEndRef.current && scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const targetScrollTop = container.scrollHeight - container.clientHeight;
+        
+        // ✅ OTIMIZAÇÃO: Usar scrollTo ao invés de scrollIntoView para melhor performance
+        if (behavior === 'smooth') {
+          container.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+        } else {
+          container.scrollTop = targetScrollTop;
+        }
+        
+        // ✅ OTIMIZAÇÃO: Atualizar estado de forma assíncrona
+        setTimeout(() => {
+          isNearBottomRef.current = true;
+        }, 0);
+      }
     },
     []
   );
@@ -944,9 +977,9 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   };
 
   // Função para processar arquivo (usada tanto no input quanto no drag and drop)
-  const processFile = useCallback((file: File) => {
-    // Prevenir processamento se já estiver enviando ou processando drop
-    if (isSendingFileRef.current || isUploading || isProcessingDropRef.current) {
+  const processFile = useCallback((file: File, skipProcessingCheck = false) => {
+    // Prevenir processamento se já estiver enviando (mas não bloquear se for drag and drop)
+    if (!skipProcessingCheck && (isSendingFileRef.current || isUploading)) {
       return;
     }
     
@@ -1015,7 +1048,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -1024,12 +1057,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       return;
     }
     
-    isProcessingDropRef.current = true;
     dragCounterRef.current = 0;
     setIsDragOver(false);
 
     if (!currentConversation) {
-      isProcessingDropRef.current = false;
       toast.error('Nenhuma conversa selecionada', {
         description: 'Selecione uma conversa para enviar arquivos'
       });
@@ -1037,7 +1068,6 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
 
     if (currentConversation.status === 'archived') {
-      isProcessingDropRef.current = false;
       toast.error('Conversa arquivada', {
         description: 'Não é possível enviar arquivos em conversas arquivadas'
       });
@@ -1045,30 +1075,103 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
 
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      // Por enquanto, processar apenas o primeiro arquivo
-      // (pode ser expandido para múltiplos arquivos no futuro)
-      const fileToProcess = files[0];
-      
-      // Verificar se não é o mesmo arquivo que acabou de ser processado
-      const now = Date.now();
-      if (lastProcessedFileRef.current) {
-        const { name, size, timestamp } = lastProcessedFileRef.current;
-        if (name === fileToProcess.name && size === fileToProcess.size && (now - timestamp) < 2000) {
-          // Mesmo arquivo processado há menos de 2 segundos - ignorar
-          isProcessingDropRef.current = false;
-          return;
-        }
+    if (files.length === 0) {
+      return;
+    }
+
+    // Por enquanto, processar apenas o primeiro arquivo
+    const fileToProcess = files[0];
+    
+    // Verificar se não é o mesmo arquivo que acabou de ser processado
+    const now = Date.now();
+    if (lastProcessedFileRef.current) {
+      const { name, size, timestamp } = lastProcessedFileRef.current;
+      if (name === fileToProcess.name && size === fileToProcess.size && (now - timestamp) < 2000) {
+        // Mesmo arquivo processado há menos de 2 segundos - ignorar
+        return;
       }
-      
-      processFile(fileToProcess);
     }
     
-    // Resetar flag após um delay maior para garantir que o processamento terminou
-    setTimeout(() => {
-      isProcessingDropRef.current = false;
-    }, 2000);
-  }, [currentConversation, processFile]);
+    // Registrar arquivo processado
+    lastProcessedFileRef.current = {
+      name: fileToProcess.name,
+      size: fileToProcess.size,
+      timestamp: now
+    };
+    
+    // Verificar tamanho do arquivo (máximo 10MB)
+    if (fileToProcess.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande', {
+        description: 'Tamanho máximo permitido: 10MB'
+      });
+      return;
+    }
+    
+    // ✅ CORREÇÃO: Setar flag APENAS quando realmente for processar
+    isProcessingDropRef.current = true;
+    isSendingFileRef.current = true;
+    setIsUploading(true);
+    
+    try {
+      // 🔒 VERIFICAR SE É IMAGEM E SE CONTÉM INFORMAÇÕES SENSÍVEIS
+      if (fileToProcess.type.startsWith('image/') && shouldProcessImage(fileToProcess)) {
+        toast.info('🔍 Verificando imagem...', {
+          description: 'Analisando a imagem para proteger suas informações pessoais.',
+          duration: 3000
+        });
+        
+        const { hasSensitiveInfo, reason } = await checkImageForSensitiveInfo(fileToProcess);
+        
+        if (hasSensitiveInfo) {
+          toast.error('🚫 Imagem bloqueada', {
+            description: reason || 'A imagem contém informações pessoais (telefone, CPF, email, etc.). Por segurança, não é permitido enviar imagens com esses dados.',
+            duration: 8000
+          });
+          return;
+        }
+        
+        toast.success('✅ Imagem verificada e aprovada');
+      }
+      
+      // Converter para base64
+      const fileUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(fileToProcess);
+      });
+
+      // Determinar tipo de mensagem
+      let messageType: 'file' | 'image' = 'file';
+      if (fileToProcess.type.startsWith('image/')) {
+        messageType = 'image';
+      }
+
+      await sendMessage(
+        '📎 Arquivo anexado',
+        messageType,
+        {
+          url: fileUrl,
+          name: fileToProcess.name,
+          size: fileToProcess.size
+        }
+      );
+
+      toast.success('✅ Arquivo enviado com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao enviar arquivo:', error);
+      toast.error('Erro ao enviar arquivo', {
+        description: 'Tente novamente'
+      });
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => {
+        isProcessingDropRef.current = false;
+        isSendingFileRef.current = false;
+      }, 500);
+    }
+  }, [currentConversation, sendMessage]);
 
   // Função para enviar arquivo
   const sendFile = async () => {
@@ -1162,15 +1265,36 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     setShowMenu(!showMenu);
   };
 
-  // Função para arquivar conversa
+  // Função para arquivar/desarquivar conversa
   const archiveConversation = async () => {
     if (!currentConversation) return;
     
-    try {
-      await ChatService.updateConversationStatus(currentConversation.id, 'archived');
+    const isCurrentlyArchived = currentConversation.status === 'archived';
+    const isSystemArchived = (currentConversation as any).metadata?.system_archived === true;
+    
+    // 🚫 IMPEDIR desarquivamento de conversas arquivadas pelo sistema
+    if (isCurrentlyArchived && isSystemArchived) {
+      toast.error('Esta conversa foi arquivada automaticamente pelo sistema e não pode ser desarquivada');
       setShowMenu(false);
+      return;
+    }
+    
+    try {
+      if (isCurrentlyArchived) {
+        // Desarquivar: mudar status para 'active'
+        await updateConversationStatus('active');
+        setShowMenu(false);
+        toast.success('Conversa desarquivada');
+      } else {
+        // Arquivar: mudar status para 'archived'
+        await updateConversationStatus('archived');
+        setShowMenu(false);
+        toast.success('Conversa arquivada');
+      }
     } catch (error) {
-      console.error('Erro ao arquivar conversa:', error);
+      console.error('Erro ao alterar status da conversa:', error);
+      const action = isCurrentlyArchived ? 'desarquivar' : 'arquivar';
+      toast.error(`Erro ao ${action} conversa`);
     }
   };
 
@@ -1179,10 +1303,13 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     if (!currentConversation) return;
     
     try {
-      await ChatService.updateConversationStatus(currentConversation.id, 'closed');
+      // Usar a função do contexto para garantir que o estado seja atualizado imediatamente
+      await updateConversationStatus('closed');
       setShowMenu(false);
+      toast.success('Conversa fechada');
     } catch (error) {
       console.error('Erro ao fechar conversa:', error);
+      toast.error('Erro ao fechar conversa');
     }
   };
 
@@ -1496,8 +1623,14 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     if (!participant) return undefined;
     
     // Buscar avatar do participante: primeiro do user.avatar_url, depois do metadata
-    if (participant.user && participant.user.avatar_url) {
-      return participant.user.avatar_url;
+    if (participant.user) {
+      // Tentar múltiplas propriedades do user object
+      const userAvatar = (participant.user as any).avatar_url || 
+                        (participant.user as any).avatar ||
+                        undefined;
+      if (userAvatar) {
+        return userAvatar;
+      }
     }
     
     // Tentar buscar do metadata do participante
@@ -1644,7 +1777,155 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     return metadata.protocol_number || null;
   };
 
-  if (!currentConversation) {
+  // Função para obter o avatar do destinatário no header
+  // ✅ CORREÇÃO: Usar useMemo para evitar re-renderização desnecessária e garantir sincronização
+  const headerAvatar = useMemo(() => {
+    // ✅ CORREÇÃO CRÍTICA: Verificar PRIMEIRO se conversationId corresponde ao currentConversation.id
+    // Isso deve ser a primeira verificação para evitar mostrar avatar da conversa anterior
+    // Se conversationId existe mas currentConversation não corresponde, ocultar imediatamente
+    if (conversationId) {
+      if (!currentConversation || currentConversation.id !== conversationId) {
+        return null; // Avatar não sincronizado - ocultar imediatamente
+      }
+    }
+    
+    if (!currentConversation) return null;
+    
+    const userRole = user?.role || 'client';
+    
+    // Para conversas de suporte, se é cliente/redator visualizando, mostrar logo fixo do suporte
+    if (currentConversation.type === 'support' && userRole !== 'admin') {
+      const adminAvatarUrl = getAdminAvatarUrl();
+      return (
+        <Avatar className="h-10 w-10 flex-shrink-0" key={`avatar-support-${currentConversation.id}`}>
+          <AvatarImage 
+            src={adminAvatarUrl} 
+            alt="Suporte Veredicta" 
+            className="object-cover"
+            onError={(e) => {
+              // Se a imagem não carregar, mostrar fallback
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <AvatarFallback className="text-sm bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200 font-semibold">
+            🛠️
+          </AvatarFallback>
+        </Avatar>
+      );
+    }
+    
+    // Para todas as conversas (incluindo suporte quando admin visualiza), encontrar o destinatário (não o usuário atual)
+    const otherParticipant = getOtherParticipant();
+    const { avatarUrl: metadataAvatarUrl, initials: metadataInitials } = getMetadataAvatar();
+    const fallbackInitials = getUserInitials(otherParticipant ?? undefined) || metadataInitials || getUserInitials();
+
+    // Se é conversa de suporte e não há outro participante, usar avatar padrão
+    if (currentConversation.type === 'support' && !otherParticipant && !metadataAvatarUrl) {
+      return (
+        <Avatar className="h-10 w-10" key={`avatar-support-fallback-${currentConversation.id}`}>
+          <AvatarImage src={undefined} />
+          <AvatarFallback className="text-sm bg-blue-100 text-blue-700">
+            {fallbackInitials || 'C'}
+          </AvatarFallback>
+        </Avatar>
+      );
+    }
+
+    if (!otherParticipant && !metadataAvatarUrl) {
+      // Se não há participantes carregados, usar o título (nome do cliente)
+      return (
+        <Avatar className="h-10 w-10" key={`avatar-fallback-${currentConversation.id}`}>
+          <AvatarImage src={undefined} />
+          <AvatarFallback className="text-sm bg-blue-100 text-blue-700">
+            {fallbackInitials}
+          </AvatarFallback>
+        </Avatar>
+      );
+    }
+
+    // Se o outro participante é admin/suporte, usar logo fixo
+    const isOtherParticipantAdmin = otherParticipant && isAdminOrSupport(otherParticipant);
+    
+    // Buscar avatar: primeiro do participante, depois do metadata
+    let avatarUrl = isOtherParticipantAdmin 
+      ? getAdminAvatarUrl() 
+      : (otherParticipant ? getUserAvatar(otherParticipant) : metadataAvatarUrl);
+    
+    // Se não encontrou avatar do participante, tentar do metadata
+    if (!avatarUrl && otherParticipant) {
+      const participantMetadata = (otherParticipant as any).metadata || {};
+      avatarUrl = participantMetadata.avatar_url || 
+                  participantMetadata.partnerAvatar || 
+                  participantMetadata.partner_avatar || 
+                  undefined;
+    }
+    
+    // Se ainda não encontrou, tentar buscar diretamente do user object do participante
+    if (!avatarUrl && otherParticipant?.user) {
+      avatarUrl = (otherParticipant.user as any)?.avatar_url || 
+                  (otherParticipant.user as any)?.avatar || 
+                  undefined;
+    }
+    
+    // Se ainda não encontrou e há outro participante, tentar buscar do perfil do usuário via Supabase
+    // (isso será feito de forma assíncrona se necessário, mas por enquanto usar o que temos)
+    
+    // Buscar iniciais: primeiro do participante, depois do metadata
+    let initials = otherParticipant ? getUserInitials(otherParticipant) : (metadataInitials || fallbackInitials);
+    
+    // Se não encontrou iniciais válidas, tentar gerar do nome
+    if (!initials || initials === '??') {
+      if (otherParticipant) {
+        const name = getUserDisplayName(otherParticipant);
+        if (name && name !== otherParticipant.user_id) {
+          initials = name.split(' ').map(n => n[0]).filter(n => n).join('').toUpperCase().slice(0, 2);
+        }
+      }
+      if (!initials || initials.length === 0) {
+        initials = metadataInitials || fallbackInitials || '??';
+      }
+    }
+    
+    return (
+      <Avatar 
+        className="h-10 w-10 flex-shrink-0" 
+        key={`avatar-${conversationId || currentConversation.id}`}
+      >
+        {avatarUrl && (
+          <AvatarImage 
+            src={avatarUrl} 
+            className="object-cover" 
+            alt={otherParticipant ? getUserDisplayName(otherParticipant) : 'Avatar'}
+            onError={(e) => {
+              // Se a imagem não carregar, mostrar fallback
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+        <AvatarFallback className="text-sm bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+          {initials || '??'}
+        </AvatarFallback>
+      </Avatar>
+    );
+  }, [conversationId, currentConversation, user?.role, participants]);
+
+  // ✅ CORREÇÃO: Verificar se há dessincronização entre conversationId e currentConversation
+  const isConversationSynced = !conversationId || !currentConversation || currentConversation.id === conversationId;
+  
+  if (!currentConversation || !isConversationSynced) {
+    // Se está em transição, mostrar loading ao invés de mensagem de "selecione conversa"
+    if (conversationId && !currentConversation) {
+      return (
+        <Card className="bg-container-primary border-border w-full h-[600px] flex items-center justify-center">
+          <CardContent className="bg-container-inner rounded-lg">
+            <p className="text-muted-foreground text-center">
+              Carregando conversa...
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
+    
     return (
       <Card className="bg-container-primary border-border w-full h-[600px] flex items-center justify-center">
         <CardContent className="bg-container-inner rounded-lg">
@@ -1668,7 +1949,13 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {/* Avatar do destinatário */}
-            {getHeaderRecipientAvatar()}
+            {headerAvatar || (
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarFallback className="text-sm bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                  ??
+                </AvatarFallback>
+              </Avatar>
+            )}
             
             <div>
               <CardTitle className="text-lg">{getConversationDisplayName()}</CardTitle>
@@ -1731,17 +2018,20 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                 <button
                   onClick={archiveConversation}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                  disabled={currentConversation?.status === 'archived' && (currentConversation as any).metadata?.system_archived === true}
                 >
                   <Archive className="h-4 w-4" />
-                  Arquivar conversa
+                  {currentConversation?.status === 'archived' ? 'Desarquivar conversa' : 'Arquivar conversa'}
                 </button>
-                <button
-                  onClick={closeConversation}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
-                >
-                  <X className="h-4 w-4" />
-                  Fechar conversa
-                </button>
+                {currentConversation?.status !== 'closed' && (
+                  <button
+                    onClick={closeConversation}
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                    Fechar conversa
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -2060,25 +2350,31 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                               // Layout padrão para outros arquivos (PDFs, documentos, etc.)
                               return (
                                 <div className="mt-3">
-                                  <div className={`inline-flex items-center space-x-3 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
+                                  <div className={`inline-flex items-center space-x-3 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${
                                     isOwnMessage 
                                       ? 'bg-white bg-opacity-20 border-white border-opacity-30 hover:bg-opacity-30' 
-                                      : 'bg-white border-gray-200 hover:border-gray-300'
+                                      : 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-200 dark:border-indigo-800/50 hover:border-indigo-300 dark:hover:border-indigo-700/50 shadow-sm'
                                   }`}>
                                     <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
-                                      isOwnMessage ? 'bg-white bg-opacity-20' : 'bg-gray-100'
+                                      isOwnMessage 
+                                        ? 'bg-white bg-opacity-20' 
+                                        : 'bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40'
                                     } ${getFileIconColor(message.file_name || '', message.file_url)}`}>
                                       {getFileIcon(message.file_name || '', message.file_url)}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className={`text-sm font-medium truncate ${
-                                        isOwnMessage ? 'text-white' : 'text-gray-800'
+                                        isOwnMessage 
+                                          ? 'text-white' 
+                                          : 'text-indigo-900 dark:text-indigo-100'
                                       }`}>
                                         {message.file_name}
                                       </p>
                                       {message.file_size && (
                                         <p className={`text-xs ${
-                                          isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                                          isOwnMessage 
+                                            ? 'text-blue-100' 
+                                            : 'text-indigo-600 dark:text-indigo-400'
                                         }`}>
                                           {Math.round(message.file_size / 1024)} KB
                                         </p>
@@ -2093,7 +2389,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                                         className={`p-2 rounded-full transition-colors duration-200 ${
                                           isOwnMessage 
                                             ? 'text-white hover:bg-white hover:bg-opacity-20' 
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                            : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
                                         }`}
                                         title="Baixar arquivo"
                                       >

@@ -259,6 +259,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           
           // Se não há mensagens confirmadas ainda, retornar apenas otimistas
           if (filteredMessages.length === 0) {
+            // ✅ CORREÇÃO: Atualizar ref mesmo quando não há mensagens confirmadas
+            prevMessagesRef.current = filteredMessages;
             return optimisticMessages;
           }
           
@@ -305,6 +307,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           });
           
           // ✅ CORREÇÃO: Atualizar ref APENAS quando realmente atualizar o estado
+          // Atualizar com mensagens filtradas (confirmadas) do contexto, não todas as mensagens
           // Isso garante que o ref seja atualizado apenas quando houver uma mudança real
           prevMessagesRef.current = filteredMessages;
           
@@ -315,24 +318,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // Se não há conversa selecionada, limpar mensagens
       startTransition(() => {
         setMessages([]);
-        prevMessagesRef.current = [];
       });
-    }
-    
-    // Resetar estado de scroll quando a conversa mudar
-    const currentTargetConversationId = conversationId || currentConversation?.id;
-    if (currentTargetConversationId && currentConversation?.id === currentTargetConversationId) {
-      // Apenas resetar scroll se realmente há uma conversa selecionada
-      // Não resetar se não há conversa (para evitar resetar desnecessariamente)
-    } else {
-      // Resetar scroll apenas quando não há conversa selecionada
-      isNearBottomRef.current = true;
-      isUserScrollingRef.current = false;
-      lastScrollTopRef.current = 0;
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = null;
-      }
+      prevMessagesRef.current = [];
     }
   }, [contextMessages, currentConversation?.id, conversationId]);
   

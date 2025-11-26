@@ -135,6 +135,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const pollingConversationIdRef = useRef<string | null>(null);
   const isPollingRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
   const isPollingConversationsRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas no polling de conversas
+  const messagesSubscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null); // ✅ NOVO: Subscription real-time de mensagens
   
   // 🚀 CORREÇÃO: Usar refs ao invés de estados para controles internos (evita re-renders e loops)
   const isLoadingConversationsRef = useRef<boolean>(false);
@@ -1216,6 +1217,118 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
       }, 2000); // ✅ OTIMIZAÇÃO: Aumentado de 1000ms para 2000ms (2 segundos)
 
+      // ✅ NOVO: Adicionar subscription real-time para mensagens
+      // Limpar subscription anterior se existir
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription anterior removida');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription anterior:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
+
+      // Criar nova subscription para a conversa atual
+      console.log('🔌 [ChatContext] Criando subscription real-time para conversa:', conversationId);
+      const messagesChannel = supabase
+        .channel(`messages-${conversationId}-${Date.now()}`) // Nome único para evitar conflitos
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            console.log('🔔 [ChatContext] Nova mensagem recebida via real-time:', payload.new);
+            const newMessage = payload.new as Message;
+            
+            // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
+            const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
+            if (newMessage.conversation_id !== currentConvId) {
+              console.warn('⚠️ [ChatContext] Mensagem recebida de conversa diferente, ignorando:', {
+                receivedConversationId: newMessage.conversation_id,
+                currentConversationId: currentConvId
+              });
+              return;
+            }
+            
+            // ✅ CORREÇÃO: Processar mensagem recebida via real-time
+            handleIncomingMessagesForConversation([newMessage], conversationId, { skipSound: false });
+            
+            // ✅ OTIMIZAÇÃO: Atualizar cache com a nova mensagem
+            const cachedData = messagesCacheRef.current.get(conversationId);
+            if (cachedData) {
+              const existingIds = new Set(cachedData.messages.map(m => m.id));
+              if (!existingIds.has(newMessage.id)) {
+                const updatedMessages = [...cachedData.messages, newMessage];
+                // Ordenar por timestamp
+                updatedMessages.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+                messagesCacheRef.current.set(conversationId, {
+                  messages: updatedMessages,
+                  timestamp: Date.now()
+                });
+              }
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          },
+          (payload) => {
+            console.log('🔄 [ChatContext] Mensagem atualizada via real-time:', payload.new);
+            const updatedMessage = payload.new as Message;
+            
+            // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
+            const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
+            if (updatedMessage.conversation_id !== currentConvId) {
+              return;
+            }
+            
+            // ✅ CORREÇÃO: Atualizar mensagem existente no estado
+            startTransition(() => {
+              setMessages((prev) => {
+                const filtered = prev.filter((msg) => msg.conversation_id === conversationId);
+                const exists = filtered.find((msg) => msg.id === updatedMessage.id);
+                
+                if (exists) {
+                  // Atualizar mensagem existente
+                  return filtered.map((msg) => 
+                    msg.id === updatedMessage.id ? updatedMessage : msg
+                  );
+                } else {
+                  // Adicionar nova mensagem se não existir
+                  return [...filtered, updatedMessage].sort((a, b) => 
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  );
+                }
+              });
+            });
+          }
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('❌ [ChatContext] Erro na subscription de mensagens:', err);
+          } else if (status === 'SUBSCRIBED') {
+            console.log('✅ [ChatContext] Subscription de mensagens ativa para conversa:', conversationId);
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ [ChatContext] Erro no canal de mensagens:', status);
+          } else {
+            console.log('📡 [ChatContext] Status da subscription:', status);
+          }
+        });
+
+      messagesSubscriptionRef.current = messagesChannel;
+
     } catch (err) {
       setError('Erro ao carregar conversa');
       console.error('Erro ao carregar conversa:', err);
@@ -1899,8 +2012,33 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         conversationPollingRef.current = null;
         isPollingConversationsRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
       }
+      // ✅ NOVO: Limpar subscription real-time
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription de mensagens removida no cleanup');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription no cleanup:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
     };
   }, []);
+
+  // ✅ NOVO: Cleanup da subscription quando a conversa muda
+  useEffect(() => {
+    return () => {
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription removida ao mudar conversa');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
+    };
+  }, [currentConversation?.id]);
 
   const value: ChatContextType = {
     // Estado

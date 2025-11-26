@@ -54,7 +54,6 @@ interface Petition {
   files: string[];
   correction_count?: number;
   correction_requested_at?: string;
-  delivered_file?: string;
   has_rating?: boolean;
 }
 
@@ -143,7 +142,6 @@ export default function MyPetitions() {
           console.error('Erro ao buscar arquivos:', filesError);
           setPetitionFiles([]);
         } else {
-          console.log('✅ Arquivos carregados:', filesData);
           // Separar arquivos originais dos arquivos de correção
           // Arquivos de correção são aqueles enviados pelo cliente após a petição estar entregue
           // Arquivos enviados pelo redator devem aparecer na lista principal
@@ -182,7 +180,6 @@ export default function MyPetitions() {
           .eq('id', selectedPetition.id)
           .single();
         
-        console.log('📋 Dados da petição:', petitionData);
         if (petitionError) {
           console.error('Erro ao buscar dados da petição:', petitionError);
         }
@@ -203,7 +200,6 @@ export default function MyPetitions() {
             console.error('Erro ao buscar cálculo:', calcError);
             setCalculation(null);
           } else {
-            console.log('✅ Cálculo carregado:', calcData);
             setCalculation(calcData);
           }
         } else {
@@ -216,10 +212,6 @@ export default function MyPetitions() {
           .select('writer_observation, notes, status, updated_at, mode')
           .eq('petition_id', selectedPetition.id)
           .order('updated_at', { ascending: false });
-
-        console.log('📝 Buscando observações para petição:', selectedPetition.id);
-        console.log('📝 Todas as correções encontradas:', allCorrections);
-        console.log('📝 Erro na busca:', correctionsError);
 
         if (correctionsError) {
           console.error('Erro ao buscar correções:', correctionsError);
@@ -252,15 +244,10 @@ export default function MyPetitions() {
           setLastCorrection(correctionWithNotes);
           
           if (correctionWithNotes) {
-            console.log('✅ Observações carregadas:', {
-              admin_notes: correctionWithNotes.notes,
-              writer_observation: correctionWithNotes.writer_observation,
-              status: correctionWithNotes.status,
-              updated_at: correctionWithNotes.updated_at,
-              mode: correctionWithNotes.mode
-            });
+            // Observações carregadas (sem log de debug)
+            // Dados carregados: correctionWithNotes.notes, correctionWithNotes.writer_observation, etc.
           } else {
-            console.log('ℹ️ Nenhuma correção com observações encontrada para esta petição');
+            // Nenhuma correção com observações encontrada para esta petição
           }
         }
       } catch (err) {
@@ -310,25 +297,94 @@ export default function MyPetitions() {
     async function loadPetitions() {
       try {
         setIsLoadingPetitions(true);
-        // Buscar petições sem JOIN (para evitar erro de foreign key)
-        const { data, error } = await supabase
-          .from('petitions')
-          .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, delivered_file, correction_count, correction_requested_at, calculation_id')
-          .eq('client_id', user.uid)
-          .order('created_at', { ascending: false })
-          .limit(500);
+        
+        // ✅ CORREÇÃO: Usar DatabaseService que tem fallback para RPC quando RLS bloqueia
+        let petitionsData: any[] = [];
+        
+        try {
+          // ✅ CORREÇÃO: Primeira tentativa - usar query simples sem campos que podem não existir
+          // Buscar apenas campos básicos que definitivamente existem na tabela
+          const { data, error } = await supabase
+            .from('petitions')
+            .select('*') // Usar * para pegar todos os campos disponíveis
+            .eq('client_id', user.uid)
+            .order('created_at', { ascending: false })
+            .limit(500);
 
-        if (error) {
-          console.error('Erro ao carregar petições:', error);
-          toast.error('Erro ao carregar petições');
-          return;
+          if (error) {
+            // Log detalhado do erro para debug
+            console.warn('⚠️ Query direta falhou:', {
+              error,
+              code: (error as any).code,
+              message: error.message,
+              details: (error as any).details,
+              hint: (error as any).hint
+            });
+            
+            // Se erro de permissão (RLS), usar DatabaseService que tem fallback RPC
+            if ((error as any).code === '42501' || error.message?.includes('permission') || error.message?.includes('RLS')) {
+              console.log('🔧 Erro de RLS detectado, usando DatabaseService com fallback RPC');
+              petitionsData = await DatabaseService.getClientPetitions(user.uid);
+            } else {
+              // Para outros erros, também tentar DatabaseService
+              console.log('🔧 Tentando DatabaseService como fallback');
+              petitionsData = await DatabaseService.getClientPetitions(user.uid);
+            }
+          } else if (data) {
+            petitionsData = data;
+          }
+        } catch (queryError: any) {
+          console.warn('⚠️ Erro na query direta, usando DatabaseService como fallback:', queryError);
+          // Fallback: usar DatabaseService que tem suporte a RPC
+          try {
+            petitionsData = await DatabaseService.getClientPetitions(user.uid);
+          } catch (serviceError) {
+            console.error('❌ Erro também no DatabaseService:', serviceError);
+            // Última tentativa: usar RPC diretamente (tentar com TEXT primeiro, depois UUID)
+            try {
+              // Tentar com TEXT (Firebase UID é string)
+              let rpcData: any = null;
+              let rpcError: any = null;
+              
+              try {
+                const result = await supabase.rpc('get_client_petitions', {
+                  p_client_id: user.uid
+                });
+                rpcData = result.data;
+                rpcError = result.error;
+              } catch (e) {
+                // Se falhar, tentar converter para UUID (caso a função espere UUID)
+                console.warn('⚠️ Tentativa 1 falhou, tentando com UUID:', e);
+                // Não há conversão direta, mas podemos tentar uma query simples
+              }
+              
+              if (rpcError) {
+                console.error('❌ Erro no RPC get_client_petitions:', rpcError);
+                // Tentar query simples como último recurso
+                const { data: simpleData, error: simpleError } = await supabase
+                  .from('petitions')
+                  .select('*')
+                  .eq('client_id', user.uid)
+                  .limit(100);
+                
+                if (simpleError) {
+                  throw simpleError;
+                }
+                petitionsData = simpleData || [];
+              } else {
+                petitionsData = (rpcData as any[]) || [];
+              }
+            } catch (rpcError) {
+              console.error('❌ Erro final ao carregar petições:', rpcError);
+              toast.error('Erro ao carregar petições. Verifique suas permissões.');
+              return;
+            }
+          }
         }
 
-        if (data) {
-          console.log('📋 Petições do cliente carregadas:', data);
-          
+        if (petitionsData && petitionsData.length > 0) {
           // Buscar nomes dos redatores separadamente
-          const writerIds = data
+          const writerIds = petitionsData
             .map((p: any) => p.writer_id || p.assigned_writer_id)
             .filter((id: any) => id);
           
@@ -349,7 +405,7 @@ export default function MyPetitions() {
           }
           
           // Transformar dados do Supabase para o formato esperado
-          const transformedPetitions: Petition[] = data.map((petition: any) => {
+          const transformedPetitions: Petition[] = petitionsData.map((petition: any) => {
             const writerId = petition.writer_id || petition.assigned_writer_id;
             
             return {
@@ -367,28 +423,19 @@ export default function MyPetitions() {
               files: petition.files || [],
               correction_count: petition.correction_count || 0,
               correction_requested_at: petition.correction_requested_at,
-              delivered_file: petition.delivered_file,
               has_rating: petition.has_rating || false
             };
           });
           
           setPetitions(transformedPetitions);
-          
-          // Log para debug
-          console.log('📋 Petições carregadas:', transformedPetitions.length);
-          console.log('📊 Status das petições:', {
-            pending: transformedPetitions.filter(p => p.status === 'pending').length,
-            in_progress: transformedPetitions.filter(p => p.status === 'in_progress').length,
-            revision: transformedPetitions.filter(p => p.status === 'revision').length,
-            completed: transformedPetitions.filter(p => p.status === 'completed').length,
-            delivered: transformedPetitions.filter(p => p.status === 'delivered').length,
-            approved: transformedPetitions.filter(p => p.status === 'approved').length,
-            rejected: transformedPetitions.filter(p => p.status === 'rejected').length,
-          });
+        } else {
+          // Nenhuma petição encontrada - isso é normal se o cliente ainda não criou petições
+          setPetitions([]);
         }
-      } catch (error) {
-        console.error('Erro ao carregar petições:', error);
-        toast.error('Erro ao carregar petições');
+      } catch (error: any) {
+        console.error('❌ Erro geral ao carregar petições:', error);
+        toast.error(error.message || 'Erro ao carregar petições');
+        setPetitions([]);
       } finally {
         setIsLoadingPetitions(false);
       }
@@ -417,23 +464,13 @@ export default function MyPetitions() {
           const oldRow = payload.old as any;
           
           const petitionId = (newRow && 'id' in newRow ? newRow.id : null) || (oldRow && 'id' in oldRow ? oldRow.id : null);
-          console.log('🔄 Mudança detectada na tabela petitions:', {
-            event: payload.eventType,
-            old: oldRow,
-            new: newRow,
-            petitionId
-          });
           
           // Se o status mudou, logar especificamente
           if (payload.eventType === 'UPDATE' && newRow && oldRow) {
             const oldStatus = oldRow.status;
             const newStatus = newRow.status;
             if (oldStatus !== newStatus) {
-              console.log('📊 Status da petição mudou:', {
-                petitionId: newRow.id,
-                oldStatus,
-                newStatus
-              });
+              // Status da petição mudou (sem log)
             }
           }
           
@@ -497,10 +534,6 @@ export default function MyPetitions() {
     if (selectedPetition?.id) {
       const updatedPetition = petitions.find(p => p.id === selectedPetition.id);
       if (updatedPetition && updatedPetition.status !== selectedPetition.status) {
-        console.log('🔄 Atualizando selectedPetition:', {
-          oldStatus: selectedPetition.status,
-          newStatus: updatedPetition.status
-        });
         setSelectedPetition(updatedPetition);
       }
     }
@@ -642,8 +675,6 @@ export default function MyPetitions() {
         return;
       }
 
-      console.log('📊 Resultado da verificação de limite:', revisionCheckData);
-
       // Atualizar status da UI
       setHumanReviewStatus({
         allowed: revisionCheckData?.allowed || false,
@@ -726,8 +757,6 @@ export default function MyPetitions() {
 
           if (notificationError) {
             console.error('❌ Erro ao criar notificações para admins:', notificationError);
-          } else {
-            console.log(`✅ Notificações enviadas para ${admins.length} admin(s)`);
           }
         }
       } catch (notificationError) {
@@ -811,14 +840,10 @@ export default function MyPetitions() {
           const today = new Date();
           const extendedDate = setDeadlineCutoff(addBusinessDays(today, 1));
           newDeadline = extendedDate.toISOString();
-          console.log(`📅 Primeira correção solicitada pelo cliente: Novo prazo = ${newDeadline}`);
-          console.log(`📅 Data formatada: ${extendedDate.toLocaleDateString('pt-BR')} às ${extendedDate.toLocaleTimeString('pt-BR')}`);
-          console.log(`📅 Prazo anterior: ${selectedPetition.deadline || 'N/A'}`);
         } catch (deadlineError) {
           console.warn('⚠️ Não foi possível calcular novo prazo:', deadlineError);
         }
       } else {
-        console.log(`📅 Correção subsequente: Mantendo prazo atual (não adiciona +1 dia)`);
         newDeadline = selectedPetition.deadline || null;
       }
 
@@ -827,7 +852,6 @@ export default function MyPetitions() {
       
       // Se for primeira correção, atualizar o deadline separadamente primeiro
       if (isFirstCorrection && !hadCorrectionBefore && newDeadline) {
-        console.log(`🔄 Atualizando deadline antes de atualizar status...`);
         const { error: deadlineError } = await supabase
           .from('petitions')
           .update({
@@ -839,8 +863,6 @@ export default function MyPetitions() {
         if (deadlineError) {
           console.error('❌ Erro ao atualizar deadline:', deadlineError);
           // Continuar mesmo se falhar, mas logar o erro
-        } else {
-          console.log(`✅ Deadline atualizado: ${newDeadline}`);
         }
       }
       
@@ -863,7 +885,6 @@ export default function MyPetitions() {
 
       // Verificar se o prazo foi atualizado corretamente
       if (updatedPetition && updatedPetition.length > 0) {
-        console.log(`✅ Prazo atualizado no banco: ${updatedPetition[0].deadline}`);
       }
 
       // Criar registro de correção (cliente solicitando correção)
@@ -936,7 +957,6 @@ export default function MyPetitions() {
             selectedPetition.title,
             revisionNotes
           );
-          console.log('✅ Email de correção enviado ao redator:', writerEmail);
         } catch (emailError) {
           console.error('Erro ao enviar email ao redator:', emailError);
           // Não falhar a solicitação se o email falhar
@@ -1592,7 +1612,7 @@ export default function MyPetitions() {
                                                   // Recarregar petição completa do banco
                                                   const { data: updatedPetition, error } = await supabase
                                                     .from('petitions')
-                                                    .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, delivered_file, correction_count, correction_requested_at, calculation_id')
+                                                    .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, correction_count, correction_requested_at, calculation_id')
                                                     .eq('id', selectedPetition.id)
                                                     .single();
                                                   
@@ -1603,12 +1623,6 @@ export default function MyPetitions() {
                                                   }
                                                   
                                                   if (updatedPetition) {
-                                                    console.log('✅ Petição recarregada do banco:', {
-                                                      id: updatedPetition.id,
-                                                      status: updatedPetition.status,
-                                                      oldStatus: selectedPetition.status
-                                                    });
-                                                    
                                                     // Atualizar a petição na lista também
                                                     setPetitions(prev => 
                                                       prev.map(p => 

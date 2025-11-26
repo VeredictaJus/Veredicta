@@ -104,6 +104,14 @@ export default defineConfig({
           ? process.env.VITE_STRIPE_SECRET_KEY 
           : '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'
     ),
+    // ✅ CORREÇÃO: Adicionar VITE_API_URL para garantir que funcione em produção
+    'import.meta.env.VITE_API_URL': JSON.stringify(
+      (process.env.API_URL && process.env.API_URL.trim() !== '') 
+        ? process.env.API_URL
+        : (process.env.VITE_API_URL && process.env.VITE_API_URL.trim() !== '') 
+          ? process.env.VITE_API_URL 
+          : 'https://api.veredictajus.com.br'
+    ),
   } : {
     // Em desenvolvimento, usa valores hardcoded ou do keys.local
     'import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY': JSON.stringify('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc29kb25ta2ZmeXZidXh0eGVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzQ0OTU0NiwiZXhwIjoyMDY5MDI1NTQ2fQ.rAZtnLj7DQ3avaS_awiyptwBiTW_7vcAJVLqVuzrstU'),

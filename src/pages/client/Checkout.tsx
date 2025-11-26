@@ -107,19 +107,34 @@ export default function Checkout() {
     return () => {
       enableSidebar();
     };
-  }, [planId, planDetails, user, searchParams, disableSidebar, enableSidebar]);
+  }, [planId, planDetails, user, searchParams, disableSidebar, enableSidebar, navigate]);
 
   const handleStripeCheckout = async () => {
     if (!planId) return;
 
     setIsLoading(true);
-    console.log('🚀 Iniciando checkout...', { planId, isNewUser, userId: user?.uid });
-
     try {
-      console.log('📡 Fazendo requisição ao backend...');
       
-      // URL da API - usa variável de ambiente ou localhost como fallback
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      // ✅ CORREÇÃO: URL da API com detecção automática de ambiente
+      const getApiUrl = () => {
+        const API_URL = import.meta.env.VITE_API_URL;
+        const hostname = window.location.hostname;
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+        const isVeredictaDomain = hostname.includes('veredictajus.com.br');
+        
+        if (API_URL) {
+          return API_URL;
+        } else if (isVeredictaDomain) {
+          return 'https://api.veredictajus.com.br';
+        } else if (isLocalhost) {
+          return 'http://localhost:3001';
+        } else {
+          return `${window.location.protocol}//${hostname}:3001`;
+        }
+      };
+      
+      const API_URL = getApiUrl();
+      console.log('✅ [Checkout] URL da API:', `${API_URL}/api/stripe/create-checkout-session`);
       
       // Fazer requisição ao backend
       const response = await fetch(`${API_URL}/api/stripe/create-checkout-session`, {
@@ -134,7 +149,6 @@ export default function Checkout() {
         })
       });
       
-      console.log('📥 Resposta:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -142,14 +156,14 @@ export default function Checkout() {
       }
       
       const { url } = await response.json();
-      console.log('✅ URL do Stripe recebida, redirecionando...');
       
       // Redirecionar para o Stripe
       window.location.href = url;
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('💥 Erro no checkout:', error);
-      toast.error(error?.message || 'Erro ao processar pagamento. Tente novamente.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao processar pagamento. Tente novamente.';
+      toast.error(errorMessage);
       setIsLoading(false);
     }
   };

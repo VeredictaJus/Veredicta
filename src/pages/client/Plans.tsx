@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ export default function Plans() {
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [currentUserPlan, setCurrentUserPlan] = useState<UserPlan | null>(null);
   const [hasUsedFreePlan, setHasUsedFreePlan] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
     is_cancelled?: boolean;
     expires_at?: string;
@@ -24,6 +25,40 @@ export default function Plans() {
     can_reactivate?: boolean;
   }>({});
   const clientProfile = user as unknown as ClientProfile;
+
+  // Memoizar cálculo do API endpoint (calcula apenas uma vez)
+  const apiEndpoint = useMemo(() => {
+    const API_URL = import.meta.env.VITE_API_URL;
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+    const isVeredictaDomain = hostname.includes('veredictajus.com.br');
+    
+    // ✅ CORREÇÃO: Priorizar sempre a URL do backend definida explicitamente
+    if (API_URL) {
+      const endpoint = `${API_URL}/api/stripe/create-checkout-session`;
+      console.log('✅ [API Endpoint] Usando VITE_API_URL:', endpoint);
+      return endpoint;
+    }
+    
+    // ✅ CORREÇÃO: Se estiver no domínio de produção, sempre usar api.veredictajus.com.br
+    if (isVeredictaDomain) {
+      const endpoint = 'https://api.veredictajus.com.br/api/stripe/create-checkout-session';
+      console.log('✅ [API Endpoint] Usando domínio de produção:', endpoint);
+      return endpoint;
+    }
+    
+    // ✅ CORREÇÃO: Localhost usa rota relativa (vite-plugin-api-routes)
+    if (isLocalhost) {
+      const endpoint = '/api/stripe/create-checkout-session';
+      console.log('✅ [API Endpoint] Usando rota localhost:', endpoint);
+      return endpoint;
+    }
+    
+    // Fallback para desenvolvimento
+    const endpoint = `${window.location.protocol}//${hostname}:3001/api/stripe/create-checkout-session`;
+    console.log('⚠️ [API Endpoint] Usando fallback:', endpoint);
+    return endpoint;
+  }, []);
 
   // Detectar plano desejado da URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -214,7 +249,7 @@ export default function Plans() {
     }
   };
 
-  const handleSubscribe = async (plan: Plan) => {
+  const handleSubscribe = useCallback(async (plan: Plan) => {
     if (!user?.uid) {
       toast.error('Usuário não autenticado');
       return;
@@ -226,47 +261,123 @@ export default function Plans() {
       return;
     }
 
+    setIsProcessingPayment(plan.id);
+    
     try {
       // Criar sessão de checkout usando o endpoint correto
       const planCode = plan.name.toLowerCase();
       const includeFreeBonus = planCode === 'start' || planCode === 'pro' || planCode === 'elite';
       
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          plan: planCode,
-          include_free_bonus: includeFreeBonus,
-          user_id: user.uid,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Erro ao criar sessão:', response.status, errorText);
-        toast.error('Erro ao criar sessão de pagamento. Verifique o console para mais detalhes.');
+      // Validar dados antes de enviar
+      if (!planCode) {
+        console.error('❌ [Frontend] Nome do plano não encontrado:', plan);
+        toast.error('Erro: Nome do plano não encontrado');
+        setIsProcessingPayment(null);
+        return;
+      }
+      
+      if (!user?.uid) {
+        console.error('❌ [Frontend] User ID não encontrado');
+        toast.error('Erro: Usuário não autenticado');
+        setIsProcessingPayment(null);
+        return;
+      }
+      
+      const requestBody = {
+        plan: planCode,
+        include_free_bonus: includeFreeBonus,
+        user_id: user.uid,
+      };
+      
+      // Adicionar timeout de 15 segundos (otimizado)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Timeout na requisição');
+        controller.abort();
+      }, 15000);
+      
+      let response: Response;
+      try {
+        response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        console.error('❌ Erro no fetch:', fetchError);
+        if (fetchError.name === 'AbortError') {
+          toast.error('Tempo de espera esgotado. Verifique sua conexão e tente novamente.');
+          setIsProcessingPayment(null);
+          return;
+        }
+        if (fetchError.message?.includes('Failed to fetch') || fetchError.message?.includes('ERR_CONNECTION_REFUSED')) {
+          toast.error('Não foi possível conectar ao servidor. Verifique se o servidor está rodando.');
+        } else {
+          toast.error(`Erro de conexão: ${fetchError.message || 'Erro desconhecido'}`);
+        }
+        setIsProcessingPayment(null);
         return;
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        // Mensagens de erro mais específicas
+        let errorMessage = `Erro ao criar sessão de pagamento (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // Ignorar erro ao parsear JSON
+        }
+        console.error('❌ Erro ao criar sessão:', response.status, errorMessage);
+        
+        if (response.status === 400) {
+          toast.error(`Erro de validação: ${errorMessage}. Verifique o console para detalhes.`);
+        } else if (response.status === 404) {
+          toast.error('Servidor de pagamento não encontrado. Verifique se o backend está configurado corretamente.');
+        } else if (response.status === 500) {
+          toast.error('Erro interno do servidor. Tente novamente em alguns instantes.');
+        } else {
+          toast.error(errorMessage);
+        }
+        setIsProcessingPayment(null);
+        return;
+      }
+
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('❌ Erro ao parsear resposta:', parseError);
+        toast.error('Erro ao processar resposta do servidor.');
+        setIsProcessingPayment(null);
+        return;
+      }
 
       if (data.url) {
         // Redirecionar para checkout do Stripe
         window.location.href = data.url;
+        // Não resetar isProcessingPayment aqui pois vamos redirecionar
       } else if (data.error) {
-        console.error('❌ Erro do servidor:', data.error, data.details);
         toast.error(data.error || 'Erro ao criar sessão de pagamento');
+        setIsProcessingPayment(null);
       } else {
-        console.error('❌ Resposta inesperada:', data);
-        toast.error('Erro ao criar sessão de pagamento');
+        toast.error('Erro ao criar sessão de pagamento. Resposta inesperada do servidor.');
+        setIsProcessingPayment(null);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao processar pagamento:', error);
-      toast.error('Erro ao processar pagamento. Tente novamente.');
+      const errorMessage = error.message || 'Erro ao processar pagamento. Tente novamente.';
+      toast.error(errorMessage);
+      setIsProcessingPayment(null);
     }
-  };
+  }, [user?.uid, apiEndpoint]);
 
   if (loading || !user) {
     return (
@@ -457,12 +568,30 @@ export default function Plans() {
                         {/* Botão de pagamento */}
                         <Button 
                           onClick={() => handleSubscribe(plan)}
-                          disabled={isButtonDisabled(plan)}
+                          disabled={isButtonDisabled(plan) || isProcessingPayment === plan.id}
                           className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <CreditCard className="h-5 w-5 mr-2" />
-                          {isButtonDisabled(plan) ? 'Plano Atual' : 'Assinar Agora com Cartão'}
+                          {isProcessingPayment === plan.id 
+                            ? 'Processando...' 
+                            : isButtonDisabled(plan) 
+                              ? 'Plano Atual' 
+                              : 'Assinar Agora com Cartão'}
                         </Button>
+                        
+                        {/* Botão de cancelar se estiver processando */}
+                        {isProcessingPayment === plan.id && (
+                          <Button 
+                            onClick={() => {
+                              setIsProcessingPayment(null);
+                              toast.info('Processamento cancelado');
+                            }}
+                            variant="outline"
+                            className="w-full mt-2"
+                          >
+                            Cancelar
+                          </Button>
+                        )}
 
                         {/* Informações adicionais */}
                         <div className="text-center">

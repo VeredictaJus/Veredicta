@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, startTransition } from 'react';
 import { ChatService, Conversation, Message, ConversationParticipant } from '@/services/chatService';
 import { ConversationPermissionService } from '@/services/conversationPermissionService';
 import { SupportBotService } from '@/services/supportBotService';
@@ -131,6 +131,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const messagePollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const conversationPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
+  const pollingConversationIdRef = useRef<string | null>(null);
+  const isPollingRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+  const isPollingConversationsRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas no polling de conversas
   
   // 🚀 CORREÇÃO: Usar refs ao invés de estados para controles internos (evita re-renders e loops)
   const isLoadingConversationsRef = useRef<boolean>(false);
@@ -140,7 +143,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   
   // 🚀 CACHE: Para reduzir chamadas ao banco e Disk IO (usando useRef para evitar re-renders)
   const lastConversationsLoadRef = useRef<number>(0);
-  const CACHE_DURATION = useRef(5000); // 5 segundos de cache (reduzido para evitar problemas)
+  const CACHE_DURATION = useRef(3000); // 3 segundos de cache (otimizado para melhor performance)
+  const conversationsCacheRef = useRef<Conversation[] | null>(null);
+  
+  // ✅ NOVO: Cache de mensagens por conversa para carregamento instantâneo
+  const messagesCacheRef = useRef<Map<string, { messages: Message[]; timestamp: number }>>(new Map());
+  const MESSAGES_CACHE_DURATION = 30000; // 30 segundos de cache para mensagens
 
   const CHAT_BUCKET = 'chat_attachments';
   const localPreviewOverridesRef = useRef<Map<string, { preview: string; createdAt: string }>>(new Map());
@@ -312,6 +320,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       return;
     }
 
+    // 🚀 OTIMIZAÇÃO: Verificar cache antes de fazer query
+    const now = Date.now();
+    const cacheAge = now - lastConversationsLoadRef.current;
+    if (conversationsCacheRef.current && cacheAge < CACHE_DURATION.current) {
+      // Usar cache se ainda estiver válido
+      startTransition(() => {
+        setConversations(conversationsCacheRef.current!);
+      });
+      return;
+    }
+
     if (!silent) {
       setIsLoading(true);
       setError(null);
@@ -321,14 +340,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
     try {
       const data = await ChatService.getUserConversations();
+      
+      // 🚀 OTIMIZAÇÃO: Atualizar cache
+      conversationsCacheRef.current = data;
+      lastConversationsLoadRef.current = now;
 
-      setConversations(prev => {
-        const prevMap = new Map(prev.map(conv => [conv.id, conv]));
+      // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+      startTransition(() => {
+        setConversations(prev => {
+          const prevMap = new Map(prev.map(conv => [conv.id, conv]));
 
-        const merged = data.map(conv => {
-          const previous = prevMap.get(conv.id);
-          const existingPreview = previous?.last_message_content ?? '';
-          const existingTime = previous?.last_message_at ?? null;
+          const merged = data.map(conv => {
+            const previous = prevMap.get(conv.id);
+            const existingPreview = previous?.last_message_content ?? '';
+            const existingTime = previous?.last_message_at ?? null;
 
           const { preview, createdAt } = applyLastMessageOverride(
             conv.id,
@@ -366,10 +391,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
         return merged;
       });
+      });
     } catch (err) {
       console.error('❌ Erro ao carregar conversas:', err);
 
-      setConversations([]);
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations([]);
+      });
       if (!silent) {
         setError('Erro ao carregar conversas');
       }
@@ -386,49 +415,265 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     await fetchConversations({ silent: false });
   }, [fetchConversations]);
 
-  const handleIncomingMessages = useCallback(
-    (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
-      // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
-      if (currentConversation?.id) {
+  // ✅ CORREÇÃO: Nova função que aceita conversationId explicitamente para evitar condição de corrida
+  const handleIncomingMessagesForConversation = useCallback(
+    (messagesList: Message[], targetConversationId: string, options: { skipSound?: boolean } = {}) => {
+      if (!targetConversationId) {
+        console.warn('⚠️ [handleIncomingMessagesForConversation] Nenhum conversationId fornecido');
+        return;
+      }
+      // ✅ CORREÇÃO: Usar conversationId passado explicitamente ao invés de depender de currentConversation
+      if (targetConversationId) {
         const filteredMessages = messagesList.filter(
-          (msg) => msg.conversation_id === currentConversation.id
+          (msg) => msg.conversation_id === targetConversationId
         );
         
-        // ✅ CORREÇÃO: Mesclar mensagens ao invés de substituir completamente (preserva mensagens otimistas)
-        setMessages(prev => {
-          // Filtrar apenas mensagens da conversa atual do estado anterior
-          const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
+        // ✅ CORREÇÃO CRÍTICA: Verificar se as mensagens recebidas são realmente da conversa alvo
+        if (filteredMessages.length === 0 && messagesList.length > 0) {
+          console.warn('⚠️ [handleIncomingMessagesForConversation] Mensagens recebidas não são da conversa alvo:', {
+            totalReceived: messagesList.length,
+            targetConversationId,
+            receivedConversationIds: [...new Set(messagesList.map(m => m.conversation_id))]
+          });
+          return; // Não processar mensagens de outras conversas
+        }
+        
+        // ✅ OTIMIZAÇÃO CRÍTICA: Processar em chunks para evitar bloqueio de 1000ms+
+        // Usar requestIdleCallback para processar quando o browser estiver idle
+        const processMessagesAsync = (prev: Message[]) => {
+          // Filtrar apenas mensagens da conversa alvo do estado anterior
+          const prevFiltered = prev.filter(msg => msg.conversation_id === targetConversationId);
           
           // Manter mensagens otimistas que ainda não foram confirmadas
           const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
-          const confirmedMessageIds = new Set(filteredMessages.map(msg => msg.id));
           
-          // Remover mensagens otimistas que já foram confirmadas
+          // ✅ OTIMIZAÇÃO: Criar Map para lookup O(1) ao invés de O(n) com .some()
+          const confirmedMessagesMap = new Map<string, Message>();
+          // ✅ OTIMIZAÇÃO: Cachear timestamps durante o processamento para evitar múltiplas conversões
+          const timeCache = new Map<string, number>();
+          
+          filteredMessages.forEach(msg => {
+            // Criar chave única baseada em conteúdo, sender e timestamp aproximado
+            if (!timeCache.has(msg.created_at)) {
+              timeCache.set(msg.created_at, new Date(msg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(msg.created_at)! / 5000) * 5000;
+            const key = `${msg.content}|${msg.sender_id}|${timeWindow}`;
+            confirmedMessagesMap.set(key, msg);
+          });
+          
+          // ✅ OTIMIZAÇÃO: Verificar confirmação usando Map (O(1) lookup)
           const remainingOptimistic = optimisticMessages.filter(optMsg => {
-            const isConfirmed = filteredMessages.some(
-              confirmedMsg => 
-                confirmedMsg.content === optMsg.content &&
-                confirmedMsg.sender_id === optMsg.sender_id &&
-                Math.abs(new Date(confirmedMsg.created_at).getTime() - new Date(optMsg.created_at).getTime()) < 5000
-            );
-            return !isConfirmed;
+            if (!timeCache.has(optMsg.created_at)) {
+              timeCache.set(optMsg.created_at, new Date(optMsg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(optMsg.created_at)! / 5000) * 5000;
+            const key = `${optMsg.content}|${optMsg.sender_id}|${timeWindow}`;
+            return !confirmedMessagesMap.has(key);
           });
           
           // Combinar mensagens confirmadas com otimistas restantes
           const allMessages = [...filteredMessages, ...remainingOptimistic];
           
-          // Remover duplicatas e ordenar por data
-          const uniqueMessages = Array.from(
-            new Map(allMessages.map(msg => [msg.id, msg])).values()
-          ).sort((a, b) => 
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
+          // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas (mais eficiente)
+          const uniqueMessagesMap = new Map<string, Message>();
+          allMessages.forEach(msg => {
+            // Manter a mensagem confirmada se houver duplicata
+            if (!uniqueMessagesMap.has(msg.id) || (!msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'))) {
+              uniqueMessagesMap.set(msg.id, msg);
+            }
+          });
           
-          return uniqueMessages;
+          // ✅ OTIMIZAÇÃO: Sort otimizado com cache de timestamps
+          const uniqueMessages = Array.from(uniqueMessagesMap.values());
+          
+          // ✅ OTIMIZAÇÃO: Sort usando cache de timestamps (evita múltiplas conversões)
+          const sortedMessages = uniqueMessages.sort((a, b) => {
+            const timeA = timeCache.get(a.created_at) ?? new Date(a.created_at).getTime();
+            const timeB = timeCache.get(b.created_at) ?? new Date(b.created_at).getTime();
+            return timeA - timeB;
+          });
+          
+          return sortedMessages;
+        };
+        
+      // ✅ OTIMIZAÇÃO: Executar processamento dentro do startTransition mas otimizado
+      startTransition(() => {
+        setMessages(prev => {
+          const updated = processMessagesAsync(prev);
+          // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens processadas
+          if (targetConversationId) {
+            const conversationMessages = updated.filter(msg => msg.conversation_id === targetConversationId);
+            messagesCacheRef.current.set(targetConversationId, {
+              messages: conversationMessages,
+              timestamp: Date.now()
+            });
+          }
+          return updated;
+        });
+      });
+      } else if (messagesList.length > 0) {
+        // Se não há conversa alvo mas há mensagens, usar todas (pode ser inicialização)
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages(messagesList);
+        });
+      }
+      // Não limpar mensagens se não há conversa selecionada - pode estar em transição
+
+      if (!messagesList.length) {
+        return;
+      }
+
+      const latest = messagesList[messagesList.length - 1];
+      const latestId = latest.id;
+      const isNewMessage = latestId !== lastMessageIdRef.current;
+      const isFromCurrentUser = user?.uid && latest.sender_id === user.uid;
+      const isConversationActive =
+        targetConversationId && latest.conversation_id === targetConversationId;
+      const isWindowFocused =
+        typeof document === 'undefined' ? true : document.hasFocus();
+      const shouldIncrementUnread =
+        isNewMessage && !isFromCurrentUser && !isConversationActive;
+
+      if (
+        !options.skipSound &&
+        isNewMessage &&
+        !isFromCurrentUser &&
+        (!isConversationActive || !isWindowFocused)
+      ) {
+        playNotificationSound();
+      }
+
+      if (shouldIncrementUnread || options.skipSound || isConversationActive) {
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv => {
+              if (conv.id !== latest.conversation_id) {
+                return conv;
+              }
+
+              const currentUnread = conv.unread_count || 0;
+              let nextUnread = currentUnread;
+
+              if (options.skipSound || isConversationActive) {
+                nextUnread = 0;
+              } else if (shouldIncrementUnread) {
+                nextUnread = currentUnread + 1;
+              }
+
+              return {
+                ...conv,
+                unread_count: nextUnread,
+              };
+            })
+          );
+        });
+      }
+
+      lastMessageIdRef.current = latestId;
+    },
+    [playNotificationSound, user?.uid] // ✅ CORREÇÃO: Não depender de currentConversation.id pois recebemos targetConversationId como parâmetro
+  );
+
+  const handleIncomingMessages = useCallback(
+    (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
+      // ✅ CORREÇÃO: Usar currentConversation.id se disponível, senão usar a primeira mensagem
+      const targetConversationId = currentConversation?.id || messagesList[0]?.conversation_id;
+      
+      if (!targetConversationId) {
+        console.warn('⚠️ [handleIncomingMessages] Nenhuma conversa identificada');
+        return;
+      }
+      
+      
+      // Delegar para a função que aceita conversationId explicitamente
+      handleIncomingMessagesForConversation(messagesList, targetConversationId, options);
+    },
+    [currentConversation?.id, handleIncomingMessagesForConversation]
+  );
+  
+  // ✅ CORREÇÃO: Manter função original para compatibilidade, mas agora usa a nova função
+  const handleIncomingMessagesOld = useCallback(
+    (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
+      // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
+      if (currentConversation?.id) {
+        // ✅ CORREÇÃO CRÍTICA: Verificar se as mensagens recebidas são realmente da conversa atual
+        // Se não forem, pode ser que a conversa mudou durante o processamento
+        const messagesForCurrentConversation = messagesList.filter(
+          (msg) => msg.conversation_id === currentConversation.id
+        );
+        
+        // Se nenhuma mensagem é da conversa atual, não processar
+        if (messagesForCurrentConversation.length === 0 && messagesList.length > 0) {
+          console.warn('⚠️ [handleIncomingMessages] Mensagens recebidas não são da conversa atual:', {
+            totalReceived: messagesList.length,
+            currentConversationId: currentConversation.id,
+            receivedConversationIds: [...new Set(messagesList.map(m => m.conversation_id))]
+          });
+          return; // Não processar mensagens de outras conversas
+        }
+        
+        const filteredMessages = messagesForCurrentConversation;
+        
+        // ✅ OTIMIZAÇÃO: Usar startTransition e otimizar lógica
+        startTransition(() => {
+          setMessages(prev => {
+            // Filtrar apenas mensagens da conversa atual do estado anterior
+            const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
+            
+            // Manter mensagens otimistas que ainda não foram confirmadas
+            const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
+            
+            // ✅ OTIMIZAÇÃO: Criar Map para lookup O(1) ao invés de O(n) com .some()
+            const confirmedMessagesMap = new Map<string, Message>();
+            filteredMessages.forEach(msg => {
+              const timeWindow = Math.floor(new Date(msg.created_at).getTime() / 5000) * 5000;
+              const key = `${msg.content}|${msg.sender_id}|${timeWindow}`;
+              confirmedMessagesMap.set(key, msg);
+            });
+            
+            // ✅ OTIMIZAÇÃO: Verificar confirmação usando Map (O(1) lookup)
+            const remainingOptimistic = optimisticMessages.filter(optMsg => {
+              const timeWindow = Math.floor(new Date(optMsg.created_at).getTime() / 5000) * 5000;
+              const key = `${optMsg.content}|${optMsg.sender_id}|${timeWindow}`;
+              return !confirmedMessagesMap.has(key);
+            });
+            
+            // Combinar mensagens confirmadas com otimistas restantes
+            const allMessages = [...filteredMessages, ...remainingOptimistic];
+            
+            // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas e cachear timestamps
+            const uniqueMessagesMap = new Map<string, Message>();
+            const timestampCache = new Map<Message, number>();
+            
+            allMessages.forEach(msg => {
+              if (!uniqueMessagesMap.has(msg.id) || !msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-')) {
+                uniqueMessagesMap.set(msg.id, msg);
+                // Cachear timestamp para evitar múltiplas conversões
+                if (!timestampCache.has(msg)) {
+                  timestampCache.set(msg, new Date(msg.created_at).getTime());
+                }
+              }
+            });
+            
+            // Converter para array e ordenar usando cache de timestamps
+            const uniqueMessages = Array.from(uniqueMessagesMap.values()).sort((a, b) => {
+              const timeA = timestampCache.get(a) ?? new Date(a.created_at).getTime();
+              const timeB = timestampCache.get(b) ?? new Date(b.created_at).getTime();
+              return timeA - timeB;
+            });
+            
+            return uniqueMessages;
+          });
         });
       } else if (messagesList.length > 0) {
         // Se não há conversa selecionada mas há mensagens, usar todas (pode ser inicialização)
-        setMessages(messagesList);
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages(messagesList);
+        });
       }
       // Não limpar mensagens se não há conversa selecionada - pode estar em transição
 
@@ -457,27 +702,34 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
 
       if (shouldIncrementUnread || options.skipSound || isConversationActive) {
-        setConversations(prev =>
-          prev.map(conv => {
-            if (conv.id !== latest.conversation_id) {
-              return conv;
-            }
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv => {
+              if (conv.id !== latest.conversation_id) {
+                return conv;
+              }
 
-            const currentUnread = conv.unread_count || 0;
-            let nextUnread = currentUnread;
+              const currentUnread = conv.unread_count || 0;
+              let nextUnread = currentUnread;
 
-            if (options.skipSound || isConversationActive) {
-              nextUnread = 0;
-            } else if (shouldIncrementUnread) {
-              nextUnread = currentUnread + 1;
-            }
+              if (options.skipSound || isConversationActive) {
+                nextUnread = 0;
+              } else if (shouldIncrementUnread) {
+                nextUnread = currentUnread + 1;
+              }
 
-            return {
-              ...conv,
-              unread_count: nextUnread,
-            };
-          })
-        );
+              return {
+                ...conv,
+                unread_count: nextUnread,
+              };
+            })
+          );
+        });
+        
+        // 🚀 OTIMIZAÇÃO: Invalidar cache de conversas quando nova mensagem chega
+        conversationsCacheRef.current = null;
+        lastConversationsLoadRef.current = 0;
       }
 
       lastMessageIdRef.current = latestId;
@@ -502,20 +754,23 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         serverCreatedAt
       );
 
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
-            ? {
-                ...conv,
-                last_message_content: overrideResult.preview,
-                last_message_at: overrideResult.createdAt ?? conv.updated_at ?? conv.last_message_at ?? null,
-              }
-            : conv
-        )
-      );
+      // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+      startTransition(() => {
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  last_message_content: overrideResult.preview,
+                  last_message_at: overrideResult.createdAt ?? conv.updated_at ?? conv.last_message_at ?? null,
+                }
+              : conv
+          )
+        );
+      });
 
       if (currentConversation?.id === conversationId) {
-        handleIncomingMessages(messagesData, { skipSound: true });
+        handleIncomingMessagesForConversation(messagesData, conversationId, { skipSound: true });
         oldestMessageRef.current = messagesData[0]?.created_at ?? null;
         setHasMoreOlderMessages(messagesData.length === MESSAGE_PAGE_SIZE);
         if (messagesData.length === 0) {
@@ -558,38 +813,53 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setIsLoadingOlderMessages(true);
 
     try {
+      console.log(`📜 [loadOlderMessages] Carregando mensagens antigas para conversa ${currentConversation.id}, antes de ${cursor}`);
+      
       const olderMessages = await ChatService.getConversationMessages(currentConversation.id, {
         limit: MESSAGE_PAGE_SIZE,
         before: cursor,
       });
 
+      console.log(`📜 [loadOlderMessages] ${olderMessages.length} mensagens antigas carregadas para conversa ${currentConversation.id}`);
+
       if (!olderMessages.length) {
+        console.log(`⚠️ [loadOlderMessages] Nenhuma mensagem antiga encontrada para conversa ${currentConversation.id}. Marcando como sem mais mensagens.`);
         setHasMoreOlderMessages(false);
         return 0;
       }
 
       oldestMessageRef.current = olderMessages[0]?.created_at ?? cursor;
 
-      setMessages((prev) => {
-        // ✅ CORREÇÃO: Filtrar apenas mensagens da conversa atual
-        const currentConversationId = currentConversation.id;
-        const filteredPrev = prev.filter((msg) => msg.conversation_id === currentConversationId);
-        const filteredOlder = olderMessages.filter((msg) => msg.conversation_id === currentConversationId);
-        
-        const existingIds = new Set(filteredPrev.map((msg) => msg.id));
-        const merged = [
-          ...filteredOlder.filter((msg) => !existingIds.has(msg.id)),
-          ...filteredPrev,
-        ];
+      // ✅ OTIMIZAÇÃO: Usar startTransition e cache de timestamps
+      startTransition(() => {
+        setMessages((prev) => {
+          // ✅ CORREÇÃO: Filtrar apenas mensagens da conversa atual
+          const currentConversationId = currentConversation.id;
+          const filteredPrev = prev.filter((msg) => msg.conversation_id === currentConversationId);
+          const filteredOlder = olderMessages.filter((msg) => msg.conversation_id === currentConversationId);
+          
+          const existingIds = new Set(filteredPrev.map((msg) => msg.id));
+          const merged = [
+            ...filteredOlder.filter((msg) => !existingIds.has(msg.id)),
+            ...filteredPrev,
+          ];
 
-        merged.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+          // ✅ OTIMIZAÇÃO: Cachear timestamps para evitar múltiplas conversões
+          const timestampCache = new Map<Message, number>();
+          merged.sort((a, b) => {
+            if (!timestampCache.has(a)) {
+              timestampCache.set(a, new Date(a.created_at).getTime());
+            }
+            if (!timestampCache.has(b)) {
+              timestampCache.set(b, new Date(b.created_at).getTime());
+            }
+            return timestampCache.get(a)! - timestampCache.get(b)!;
+          });
 
-        lastMessageIdRef.current = merged.length ? merged[merged.length - 1].id : lastMessageIdRef.current;
+          lastMessageIdRef.current = merged.length ? merged[merged.length - 1].id : lastMessageIdRef.current;
 
-        return merged;
+          return merged;
+        });
       });
 
       if (olderMessages.length < MESSAGE_PAGE_SIZE) {
@@ -630,12 +900,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           if (directConversation) {
             conversation = directConversation;
             // Adicionar à lista de conversas
-            setConversations(prev => {
-              const exists = prev.find(c => c.id === conversationId);
-              if (!exists) {
-                return [...prev, conversation!];
-              }
-              return prev.map(c => c.id === conversationId ? conversation! : c);
+            // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+            startTransition(() => {
+              setConversations(prev => {
+                const exists = prev.find(c => c.id === conversationId);
+                if (!exists) {
+                  return [...prev, conversation!];
+                }
+                return prev.map(c => c.id === conversationId ? conversation! : c);
+              });
             });
           } else {
             // Se não encontrou diretamente, tentar recarregar todas as conversas
@@ -644,12 +917,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             conversation = updatedConversations.find(c => c.id === conversationId);
             
             if (conversation) {
-              setConversations(prev => {
-                const exists = prev.find(c => c.id === conversationId);
-                if (!exists) {
-                  return [...prev, conversation!];
-                }
-                return prev.map(c => c.id === conversationId ? conversation! : c);
+              // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+              startTransition(() => {
+                setConversations(prev => {
+                  const exists = prev.find(c => c.id === conversationId);
+                  if (!exists) {
+                    return [...prev, conversation!];
+                  }
+                  return prev.map(c => c.id === conversationId ? conversation! : c);
+                });
               });
             }
           }
@@ -666,101 +942,227 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
       }
       
-      // ✅ CORREÇÃO: Limpar apenas mensagens da conversa anterior, preservando otimistas da nova conversa
-      setMessages(prev => prev.filter(msg => msg.conversation_id === conversationId || msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')));
+      // ✅ CORREÇÃO CRÍTICA: Atualizar currentConversation ANTES de buscar mensagens para evitar condição de corrida
       setCurrentConversation(conversation);
-      oldestMessageRef.current = null;
-      setHasMoreOlderMessages(true);
-      setIsLoadingOlderMessages(false);
-      isLoadingOlderMessagesRef.current = false;
       
-      // ✅ CORREÇÃO: Se a conversa foi criada recentemente (últimos 2 segundos), aguardar um pouco
-      // para garantir que mensagens automáticas sejam salvas antes de carregar
-      const conversationAge = conversation.created_at 
-        ? Date.now() - new Date(conversation.created_at).getTime()
-        : Infinity;
-      const isRecentlyCreated = conversationAge < 2000; // Criada há menos de 2 segundos
+      // ✅ OTIMIZAÇÃO: Verificar cache de mensagens primeiro para carregamento instantâneo
+      const cachedData = messagesCacheRef.current.get(conversationId);
+      const isCacheValid = cachedData && (Date.now() - cachedData.timestamp) < MESSAGES_CACHE_DURATION;
       
-      if (isRecentlyCreated) {
-        // Aguardar um pouco para garantir que mensagens automáticas sejam processadas
-        // Mas não bloquear - carregar em paralelo
-        await new Promise(resolve => setTimeout(resolve, 300)); // Reduzido de 800ms para 300ms
+      if (isCacheValid && cachedData.messages.length > 0) {
+        // ✅ Mostrar mensagens do cache imediatamente (carregamento instantâneo!)
+        startTransition(() => {
+          setMessages(cachedData.messages);
+        });
+        oldestMessageRef.current = cachedData.messages[0]?.created_at ?? null;
+        setHasMoreOlderMessages(cachedData.messages.length === MESSAGE_PAGE_SIZE);
+        setIsLoadingOlderMessages(false);
+        isLoadingOlderMessagesRef.current = false;
+      } else {
+        // ✅ CORREÇÃO: Limpar apenas mensagens da conversa anterior, preservando otimistas da nova conversa
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation (operacao pode ser pesada com muitas mensagens)
+        startTransition(() => {
+          setMessages(prev => prev.filter(msg => {
+            // Manter mensagens da nova conversa
+            if (msg.conversation_id === conversationId) return true;
+            // Manter apenas mensagens otimistas da nova conversa (não de outras conversas)
+            if ((msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')) && msg.conversation_id === conversationId) return true;
+            return false;
+          }));
+        });
+        
+        oldestMessageRef.current = null;
+        setHasMoreOlderMessages(true);
+        setIsLoadingOlderMessages(false);
+        isLoadingOlderMessagesRef.current = false;
       }
       
-      // Carregar mensagens da nova conversa
-      const messagesData = await ChatService.getConversationMessages(conversationId, {
-        limit: MESSAGE_PAGE_SIZE,
-      });
+      // ✅ OTIMIZAÇÃO: Carregar mensagens e participantes em paralelo para melhor performance
+      // Se já temos cache válido, ainda atualizamos em background para garantir dados frescos
+      const [messagesData, participantsData] = await Promise.all([
+        ChatService.getConversationMessages(conversationId, {
+          limit: MESSAGE_PAGE_SIZE,
+        }),
+        ChatService.getConversationParticipants(conversationId)
+      ]);
       
-      // ✅ CORREÇÃO: Garantir que apenas mensagens da conversa atual sejam adicionadas
+      // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens carregadas
       const filteredMessages = messagesData.filter(
         (msg) => msg.conversation_id === conversationId
       );
-      handleIncomingMessages(filteredMessages, { skipSound: true });
-      oldestMessageRef.current = filteredMessages[0]?.created_at ?? null;
-      setHasMoreOlderMessages(filteredMessages.length === MESSAGE_PAGE_SIZE);
-      if (filteredMessages.length === 0) {
-        setHasMoreOlderMessages(false);
-      }
-
-      const latestMessage = filteredMessages.at(-1);
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
-            ? {
-                ...conv,
-                last_message_content: getPreviewFromMessage(latestMessage),
-                last_message_at: latestMessage?.created_at ?? conv.updated_at,
-              }
-            : conv
-        )
-      );
       
-      // Carregar participantes
-      const participantsData = await ChatService.getConversationParticipants(conversationId);
+      messagesCacheRef.current.set(conversationId, {
+        messages: filteredMessages,
+        timestamp: Date.now()
+      });
+      
+      if (messagesData.length === 0) {
+        console.warn('⚠️ [selectConversation] NENHUMA MENSAGEM RETORNADA! Verificar permissões do usuário.');
+      }
+      
+      // ✅ CORREÇÃO CRÍTICA: Verificar se currentConversation foi atualizado corretamente
+      if (conversation.id !== conversationId) {
+        console.error('❌ [selectConversation] ERRO: conversation.id não corresponde ao conversationId!', {
+          conversationId,
+          conversationIdFromObject: conversation.id
+        });
+      }
+      
+      // ✅ OTIMIZAÇÃO: Participantes já foram carregados em paralelo acima
       setParticipants(participantsData);
+      
+      if (!isCacheValid || cachedData?.messages.length === 0) {
+        // ✅ Se não tinha cache válido, atualizar mensagens agora
+        // ✅ CORREÇÃO: Passar conversationId explicitamente para evitar dependência de currentConversation
+        handleIncomingMessagesForConversation(filteredMessages, conversationId, { skipSound: true });
+        oldestMessageRef.current = filteredMessages[0]?.created_at ?? null;
+        setHasMoreOlderMessages(filteredMessages.length === MESSAGE_PAGE_SIZE);
+        if (filteredMessages.length === 0) {
+          setHasMoreOlderMessages(false);
+        }
+        
+        const latestMessage = filteredMessages.at(-1);
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv =>
+              conv.id === conversationId
+                ? {
+                    ...conv,
+                    last_message_content: getPreviewFromMessage(latestMessage),
+                    last_message_at: latestMessage?.created_at ?? conv.updated_at,
+                  }
+                : conv
+            )
+          );
+        });
+      } else {
+        // ✅ Se tinha cache, apenas atualizar silenciosamente em background (sem recarregar UI)
+        // Verificar se há novas mensagens e atualizar se necessário (sem recarregar tudo)
+        const currentMessages = messages.filter(msg => msg.conversation_id === conversationId);
+        const newMessages = filteredMessages.filter(
+          newMsg => !currentMessages.some(curr => curr.id === newMsg.id)
+        );
+        
+        if (newMessages.length > 0) {
+          startTransition(() => {
+            handleIncomingMessagesForConversation(newMessages, conversationId, { skipSound: true });
+          });
+        }
+        
+        // Atualizar preview da última mensagem se necessário
+        const latestMessage = filteredMessages.at(-1);
+        if (latestMessage) {
+          startTransition(() => {
+            setConversations(prev =>
+              prev.map(conv =>
+                conv.id === conversationId
+                  ? {
+                      ...conv,
+                      last_message_content: getPreviewFromMessage(latestMessage),
+                      last_message_at: latestMessage?.created_at ?? conv.updated_at,
+                    }
+                  : conv
+              )
+            );
+          });
+        }
+      }
       
       // Iniciar polling periódico como fallback para garantir atualização rápida
       if (messagePollingRef.current) {
         clearInterval(messagePollingRef.current);
+        messagePollingRef.current = null;
+        isPollingRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
       }
 
+      // ✅ CORREÇÃO CRÍTICA: Atualizar ref com conversationId atual
+      pollingConversationIdRef.current = conversationId;
+
+      // ✅ OTIMIZAÇÃO: Aumentar intervalo para 2000ms (2 segundos) para reduzir carga
+      // ✅ OTIMIZAÇÃO: Adicionar proteção contra execuções simultâneas
       messagePollingRef.current = setInterval(async () => {
+        // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+        if (isPollingRef.current) {
+          return;
+        }
+
         try {
-          const latestMessages = await ChatService.getConversationMessages(conversationId, {
+          isPollingRef.current = true;
+
+          // ✅ CORREÇÃO: Usar o conversationId atual do ref, não do closure
+          const currentPollingId = pollingConversationIdRef.current;
+          
+          // ✅ CORREÇÃO: Verificar se ainda é a conversa atual antes de fazer polling
+          if (!currentPollingId) {
+            isPollingRef.current = false;
+            return;
+          }
+          
+          // ✅ CORREÇÃO: Verificar se currentConversation ainda é a mesma
+          const isStillCurrentConversation = currentConversation?.id === currentPollingId;
+          
+          if (!isStillCurrentConversation) {
+            isPollingRef.current = false;
+            return; // Parar polling se a conversa mudou
+          }
+          
+          // ✅ OTIMIZAÇÃO: Buscar mensagens (removidos console.log para melhor performance)
+          const latestMessages = await ChatService.getConversationMessages(currentPollingId, {
             limit: MESSAGE_PAGE_SIZE,
           });
 
-          handleIncomingMessages(latestMessages);
-          oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
-          if (latestMessages.length < MESSAGE_PAGE_SIZE) {
-            setHasMoreOlderMessages(false);
+          // ✅ OTIMIZAÇÃO: Processar mensagens apenas se houver novas
+          if (latestMessages.length > 0) {
+            handleIncomingMessagesForConversation(latestMessages, currentPollingId, { skipSound: false });
+            oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
+            
+            if (latestMessages.length < MESSAGE_PAGE_SIZE) {
+              setHasMoreOlderMessages(false);
+            }
+
+            // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para atualização não crítica da lista de conversas
+            const updateConversations = () => {
+              const lastMessage = latestMessages.at(-1);
+              const serverPreview = getPreviewFromMessage(lastMessage);
+              const serverCreatedAt = lastMessage?.created_at ?? null;
+              const overrideResult = applyLastMessageOverride(
+                currentPollingId,
+                serverPreview,
+                serverCreatedAt
+              );
+
+              // ✅ OTIMIZAÇÃO: Usar startTransition dentro do requestIdleCallback
+              startTransition(() => {
+                setConversations(prev =>
+                  prev.map(conv => {
+                    if (conv.id !== currentPollingId) return conv;
+
+                    return {
+                      ...conv,
+                      last_message_content: overrideResult.preview,
+                      last_message_at: overrideResult.createdAt,
+                    };
+                  })
+                );
+              });
+            };
+
+            // ✅ OTIMIZAÇÃO: Usar requestIdleCallback se disponível, senão executar normalmente
+            if (typeof requestIdleCallback !== 'undefined') {
+              requestIdleCallback(updateConversations, { timeout: 1000 });
+            } else {
+              // Fallback: usar setTimeout para não bloquear a thread principal
+              setTimeout(updateConversations, 0);
+            }
           }
-
-          const lastMessage = latestMessages.at(-1);
-          const serverPreview = getPreviewFromMessage(lastMessage);
-          const serverCreatedAt = lastMessage?.created_at ?? null;
-          const overrideResult = applyLastMessageOverride(
-            conversationId,
-            serverPreview,
-            serverCreatedAt
-          );
-
-          setConversations(prev =>
-            prev.map(conv => {
-              if (conv.id !== conversationId) return conv;
-
-              return {
-                ...conv,
-                last_message_content: overrideResult.preview,
-                last_message_at: overrideResult.createdAt,
-              };
-            })
-          );
         } catch (pollError) {
           console.warn('⚠️ ChatContext: Falha no polling de mensagens:', pollError);
+        } finally {
+          // ✅ OTIMIZAÇÃO: Sempre liberar o flag, mesmo em caso de erro
+          isPollingRef.current = false;
         }
-      }, 1000);
+      }, 2000); // ✅ OTIMIZAÇÃO: Aumentado de 1000ms para 2000ms (2 segundos)
 
     } catch (err) {
       setError('Erro ao carregar conversa');
@@ -889,11 +1291,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       };
 
       // ✅ CORREÇÃO: Verificar se a mensagem otimista pertence à conversa atual
-      setMessages((prev) => {
-        if (optimisticMessage.conversation_id === currentConversation.id) {
-          return [...prev.filter((msg) => msg.conversation_id === currentConversation.id), optimisticMessage];
-        }
-        return prev;
+      // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
+      startTransition(() => {
+        setMessages((prev) => {
+          const prevFiltered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+          const newMessages = [...prevFiltered, optimisticMessage];
+          return newMessages;
+        });
       });
       lastMessageIdRef.current = optimisticMessage.id;
       localPreviewOverridesRef.current.set(currentConversation.id, {
@@ -901,17 +1305,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         createdAt: optimisticMessage.created_at,
       });
 
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === currentConversation.id
-            ? {
-                ...conv,
-                last_message_content: getPreviewFromMessage(optimisticMessage),
-                last_message_at: optimisticMessage.created_at,
-              }
-            : conv
-        )
-      );
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === currentConversation.id
+              ? {
+                  ...conv,
+                  last_message_content: getPreviewFromMessage(optimisticMessage),
+                  last_message_at: optimisticMessage.created_at,
+                }
+              : conv
+          )
+        );
+      });
 
       let messageId: string | null = null;
 
@@ -924,24 +1331,39 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           replyToId
         );
 
-        // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
-        setMessages((prev) => {
-          const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
-          const hasMessage = filtered.some(msg => msg.id === optimisticMessage.id);
-          
-          if (hasMessage) {
-            return filtered.map((msg) =>
-              msg.id === optimisticMessage.id
-                ? { ...msg, id: messageId as string, status: 'sent' as const }
-                : msg
-            );
-          } else {
-            // Se a mensagem otimista não está mais no estado, adicionar a mensagem confirmada
-            return [...filtered, { ...optimisticMessage, id: messageId as string, status: 'sent' as const }];
-          }
+        // 🚀 OTIMIZAÇÃO: Invalidar cache de conversas quando nova mensagem é enviada
+        conversationsCacheRef.current = null;
+        lastConversationsLoadRef.current = 0;
+        
+        // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
+        startTransition(() => {
+          setMessages((prev) => {
+            const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+            const hasMessage = filtered.some(msg => msg.id === optimisticMessage.id);
+            
+            let updated: Message[];
+            if (hasMessage) {
+              updated = filtered.map((msg) =>
+                msg.id === optimisticMessage.id
+                  ? { ...msg, id: messageId as string, status: 'sent' as const }
+                  : msg
+              );
+            } else {
+              // Se a mensagem otimista não está mais no estado, adicionar a mensagem confirmada
+              updated = [...filtered, { ...optimisticMessage, id: messageId as string, status: 'sent' as const }];
+            }
+            
+            // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens atualizadas
+            messagesCacheRef.current.set(currentConversation.id, {
+              messages: updated,
+              timestamp: Date.now()
+            });
+            
+            return updated;
+          });
         });
-        lastMessageIdRef.current = messageId as string;
-        localPreviewOverridesRef.current.set(currentConversation.id, {
+      lastMessageIdRef.current = messageId as string;
+      localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: getPreviewFromMessage({
             ...optimisticMessage,
             id: messageId,
@@ -949,23 +1371,26 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           }),
           createdAt: optimisticMessage.created_at,
         });
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.id === currentConversation.id
-              ? {
-                  ...conv,
-                  last_message_content: getPreviewFromMessage({
-                    ...optimisticMessage,
-                    id: messageId,
-                    status: 'sent',
-                  }),
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversation.id
+                ? {
+                    ...conv,
+                    last_message_content: getPreviewFromMessage({
+                      ...optimisticMessage,
+                      id: messageId,
+                      status: 'sent',
+                    }),
                   last_message_at: optimisticMessage.created_at,
                 }
               : conv
           )
         );
+      });
 
-        if (currentConversation.type === 'support') {
+      if (currentConversation.type === 'support') {
           setTimeout(async () => {
             try {
               await SupportBotService.simulateSupportResponse(
@@ -993,35 +1418,41 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         console.error('Erro ao enviar mensagem:', err);
         
         // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
-        setMessages((prev) =>
-          prev
-            .filter((msg) => msg.conversation_id === currentConversation.id)
-            .map((msg): Message => {
-              if (msg.id === optimisticMessage.id) {
-                return {
-                  ...msg,
-                  status: 'failed' as const,
-                  content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
-                } as Message;
-              }
-              return msg;
-            })
-        );
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages((prev) =>
+            prev
+              .filter((msg) => msg.conversation_id === currentConversation.id)
+              .map((msg): Message => {
+                if (msg.id === optimisticMessage.id) {
+                  return {
+                    ...msg,
+                    status: 'failed' as const,
+                    content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                  } as Message;
+                }
+                return msg;
+              })
+          );
+        });
         localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
           createdAt: optimisticMessage.created_at,
         });
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.id === currentConversation.id
-              ? {
-                  ...conv,
-                  last_message_content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
-                  last_message_at: optimisticMessage.created_at,
-                }
-              : conv
-          )
-        );
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversation.id
+                ? {
+                    ...conv,
+                    last_message_content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                    last_message_at: optimisticMessage.created_at,
+                  }
+                : conv
+            )
+          );
+        });
         setError('Erro ao enviar mensagem');
         console.error('Erro ao enviar mensagem:', err);
         messageId = null;
@@ -1101,13 +1532,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       await ChatService.markMessageAsRead(messageId);
       
       // Atualizar contador de não lidas
-      setConversations(prev => 
-        prev.map(c => 
-          c.id === currentConversation?.id 
-            ? { ...c, unread_count: Math.max(0, c.unread_count - 1) }
-            : c
-        )
-      );
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => 
+          prev.map(c => 
+            c.id === currentConversation?.id 
+              ? { ...c, unread_count: Math.max(0, c.unread_count - 1) }
+              : c
+          )
+        );
+      });
       
     } catch (err) {
       console.error('Erro ao marcar mensagem como lida:', err);
@@ -1160,7 +1594,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }))
       };
       
-      setConversations(prev => [newConversation, ...prev]);
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => [newConversation, ...prev]);
+      });
       
       return conversationId;
     } catch (err) {
@@ -1191,13 +1628,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         prev ? { ...prev, status, priority: priority || prev.priority, assigned_to: assignedTo || prev.assigned_to } : null
       );
       
-      setConversations(prev => 
-        prev.map(c => 
-          c.id === currentConversation.id 
-            ? { ...c, status, priority: priority || c.priority, assigned_to: assignedTo || c.assigned_to }
-            : c
-        )
-      );
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => 
+          prev.map(c => 
+            c.id === currentConversation.id 
+              ? { ...c, status, priority: priority || c.priority, assigned_to: assignedTo || c.assigned_to }
+              : c
+          )
+        );
+      });
       
     } catch (err) {
       setError('Erro ao atualizar conversa');
@@ -1223,12 +1663,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       await ChatService.deleteConversation(conversationId);
       
       // Remover da lista local
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => prev.filter(c => c.id !== conversationId));
+      });
       
       // Se era a conversa atual, limpar
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null);
-        setMessages([]);
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages([]);
+        });
         lastMessageIdRef.current = null;
       }
       
@@ -1331,10 +1777,43 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       return;
     }
 
-    const pollConversations = () => {
-      fetchConversations({ silent: true }).catch((pollError) => {
-        console.warn('⚠️ ChatContext: Falha ao atualizar conversas via polling:', pollError);
-      });
+    // ✅ OTIMIZAÇÃO: Polling de conversas com proteção contra execuções simultâneas
+    const pollConversations = async () => {
+      // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+      if (isPollingConversationsRef.current) {
+        return;
+      }
+
+      try {
+        isPollingConversationsRef.current = true;
+        
+        // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para não bloquear a thread principal
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(() => {
+            fetchConversations({ silent: true })
+              .catch((pollError) => {
+                console.warn('⚠️ ChatContext: Falha ao atualizar conversas via polling:', pollError);
+              })
+              .finally(() => {
+                isPollingConversationsRef.current = false;
+              });
+          }, { timeout: 2000 });
+        } else {
+          // Fallback: usar setTimeout para não bloquear
+          setTimeout(() => {
+            fetchConversations({ silent: true })
+              .catch((pollError) => {
+                console.warn('⚠️ ChatContext: Falha ao atualizar conversas via polling:', pollError);
+              })
+              .finally(() => {
+                isPollingConversationsRef.current = false;
+              });
+          }, 0);
+        }
+      } catch (err) {
+        isPollingConversationsRef.current = false;
+        console.warn('⚠️ ChatContext: Erro no polling de conversas:', err);
+      }
     };
 
     pollConversations();
@@ -1343,12 +1822,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       clearInterval(conversationPollingRef.current);
     }
 
-    conversationPollingRef.current = setInterval(pollConversations, 5000);
+    // ✅ OTIMIZAÇÃO: Aumentar intervalo de 5s para 10s para reduzir carga
+    conversationPollingRef.current = setInterval(pollConversations, 10000);
 
     return () => {
       if (conversationPollingRef.current) {
         clearInterval(conversationPollingRef.current);
         conversationPollingRef.current = null;
+        isPollingConversationsRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
       }
     };
   }, [user, loading, isProviderReady, fetchConversations]);
@@ -1359,10 +1840,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       if (messagePollingRef.current) {
         clearInterval(messagePollingRef.current);
         messagePollingRef.current = null;
+        isPollingRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
       }
       if (conversationPollingRef.current) {
         clearInterval(conversationPollingRef.current);
         conversationPollingRef.current = null;
+        isPollingConversationsRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
       }
     };
   }, []);

@@ -109,41 +109,73 @@ export class ChatService {
     try {
       const user = await this.getAuthUser();
 
-      // Verificar se o usuário é admin
+      // ✅ CORREÇÃO CRÍTICA: Verificar se o usuário é admin (com fallback para profiles_v2)
       const { data: userProfile } = await supabase
         .from('user_profiles')
         .select('role')
         .eq('firebase_uid', user.uid)
-        .single();
+        .maybeSingle();
 
-      const isAdmin = userProfile?.role === 'admin';
-
-      // Primeira tentativa: Query completa - Buscar conversas onde usuário é PARTICIPANTE
+      let isAdmin = userProfile?.role === 'admin';
       
-      const { data: conversations, error } = await supabase
-        .from('conversations')
-        .select(`
-          id, title, type, status, priority, created_by, created_at, updated_at, petition_id, metadata, assigned_to,
-          conversation_participants!inner(user_id, role)
-        `)
-        .eq('conversation_participants.user_id', user.uid)
-        .order('updated_at', { ascending: false })
-        .limit(50);
+      // ✅ CORREÇÃO: Verificar também em profiles_v2 para compatibilidade
+      if (!isAdmin) {
+        const { data: profileV2 } = await supabase
+          .from('profiles_v2')
+          .select('role')
+          .eq('firebase_uid', user.uid)
+          .maybeSingle();
+        
+        isAdmin = profileV2?.role === 'admin';
+      }
 
-      // Se for admin, também buscar conversas atribuídas a ele (mesmo que não seja participante)
-      let assignedConversations: any[] = [];
+      // ✅ CORREÇÃO CRÍTICA: Se for admin, buscar TODAS as conversas diretamente
+      let conversations: any[] = [];
+      let error: any = null;
+      
       if (isAdmin) {
-        const { data: assigned, error: assignedError } = await supabase
+        console.log(`✅ [getUserConversations] Usuário ${user.uid} é admin - buscando TODAS as conversas`);
+        
+        // Buscar todas as conversas para admin (sem filtrar por participante)
+        const { data: allConversations, error: adminError } = await supabase
           .from('conversations')
           .select(`
-            id, title, type, status, priority, created_by, created_at, updated_at, petition_id, metadata, assigned_to
+            id, title, type, status, priority, created_by, created_at, updated_at, petition_id, metadata, 
+            assigned_to, assigned_admin_id, assigned_at
           `)
-          .eq('assigned_to', user.uid)
+          .order('updated_at', { ascending: false })
+          .limit(100);
+
+        if (!adminError && allConversations && allConversations.length > 0) {
+          // Processar conversas como se o admin fosse participante de todas
+          conversations = allConversations.map((conv: any) => ({
+            ...conv,
+            conversation_participants: [{ user_id: user.uid, role: 'admin' }]
+          }));
+          console.log(`✅ [getUserConversations] Admin encontrou ${conversations.length} conversas`);
+        } else if (adminError) {
+          console.error('❌ [getUserConversations] Erro ao buscar conversas para admin:', adminError);
+          error = adminError;
+        }
+      }
+      
+      // Se não for admin ou se a busca de admin não retornou nada, buscar como participante normal
+      if (!isAdmin || conversations.length === 0) {
+        const { data: participantConversations, error: participantError } = await supabase
+          .from('conversations')
+          .select(`
+            id, title, type, status, priority, created_by, created_at, updated_at, petition_id, metadata, assigned_to,
+            conversation_participants!inner(user_id, role)
+          `)
+          .eq('conversation_participants.user_id', user.uid)
           .order('updated_at', { ascending: false })
           .limit(50);
 
-        if (!assignedError && assigned) {
-          assignedConversations = assigned;
+        if (!participantError && participantConversations) {
+          conversations = participantConversations;
+          error = null;
+        } else if (participantError && !isAdmin) {
+          error = participantError;
         }
       }
 
@@ -184,39 +216,121 @@ export class ChatService {
         return formattedSimpleConversations;
       }
 
-      // Combinar conversas de participantes e conversas atribuídas (para admins)
+      // Combinar conversas (para admin já vem todas, para usuário normal vem apenas as que é participante)
       const combinedConversations = [...(conversations || [])];
-      
-      // Adicionar conversas atribuídas que não estão na lista de participantes
-      if (isAdmin && assignedConversations.length > 0) {
-        const existingIds = new Set(combinedConversations.map((c: any) => c.id));
-        for (const assignedConv of assignedConversations) {
-          if (!existingIds.has(assignedConv.id)) {
-            // Adicionar como se fosse participante para processamento
-            combinedConversations.push({
-              ...assignedConv,
-              conversation_participants: [{ user_id: user.uid, role: 'admin' }]
-            } as any);
-          }
-        }
-      }
 
       if (combinedConversations.length === 0) {
         return this.getFallbackConversations(user.uid);
       }
 
-      // Buscar última mensagem e avatar/nomes dos participantes
-      const formattedConversations: Conversation[] = await Promise.all(
-        combinedConversations.map(async (conv: any) => {
-          // Buscar a última mensagem desta conversa
-          const { data: lastMessages } = await supabase
-            .from('messages')
-            .select('content, created_at, sender_id, status')
-            .eq('conversation_id', conv.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          
-          const lastMessage = lastMessages?.[0] || null;
+      const conversationIds = combinedConversations.map((c: any) => c.id);
+      const userRole = userProfile?.role || 'client';
+
+      // 🚀 OTIMIZAÇÃO: Buscar todas as últimas mensagens em uma única query
+      const { data: allLastMessages } = await supabase
+        .from('messages')
+        .select('conversation_id, content, created_at, sender_id, status')
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: false });
+
+      // Agrupar por conversation_id e pegar apenas a primeira (mais recente) de cada
+      const lastMessagesMap = new Map<string, any>();
+      if (allLastMessages) {
+        for (const msg of allLastMessages) {
+          if (!lastMessagesMap.has(msg.conversation_id)) {
+            lastMessagesMap.set(msg.conversation_id, msg);
+          }
+        }
+      }
+
+      // 🚀 OTIMIZAÇÃO: Buscar todos os participantes de uma vez
+      const { data: allParticipants } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id, user_id, role')
+        .in('conversation_id', conversationIds);
+
+      // Agrupar participantes por conversation_id
+      const participantsMap = new Map<string, any[]>();
+      if (allParticipants) {
+        for (const participant of allParticipants) {
+          if (!participantsMap.has(participant.conversation_id)) {
+            participantsMap.set(participant.conversation_id, []);
+          }
+          participantsMap.get(participant.conversation_id)!.push(participant);
+        }
+      }
+
+      // 🚀 OTIMIZAÇÃO: Coletar todos os IDs de participantes únicos para buscar perfis em batch
+      const allParticipantIds = new Set<string>();
+      for (const participants of participantsMap.values()) {
+        for (const p of participants) {
+          if (p.user_id !== user.uid) {
+            allParticipantIds.add(p.user_id);
+          }
+        }
+      }
+
+      // 🚀 OTIMIZAÇÃO: Buscar todos os perfis de uma vez
+      const profilesMap = new Map<string, any>();
+      if (allParticipantIds.size > 0) {
+        const participantIdsArray = Array.from(allParticipantIds);
+        const tablesToTry = [
+          { table: 'profiles_v2', key: 'firebase_uid' },
+          { table: 'profiles', key: 'firebase_uid' },
+          { table: 'user_profiles', key: 'firebase_uid' }
+        ] as const;
+
+        for (const tableInfo of tablesToTry) {
+          const { data: profiles, error } = await supabase
+            .from(tableInfo.table)
+            .select(`full_name, avatar_url, email, ${tableInfo.key}`)
+            .in(tableInfo.key, participantIdsArray);
+
+          if (!error && profiles) {
+            for (const profile of profiles) {
+              const uid = profile[tableInfo.key];
+              if (uid && !profilesMap.has(uid)) {
+                profilesMap.set(uid, profile);
+              }
+            }
+          }
+        }
+      }
+
+      // 🚀 OTIMIZAÇÃO: Coletar todos os IDs de petições para buscar em batch
+      const petitionIds = new Set<string>();
+      for (const conv of combinedConversations) {
+        const rawMetadata = (conv.metadata || {}) as Record<string, any>;
+        const metadataPetitionId =
+          rawMetadata.petitionId ||
+          rawMetadata.petition_id ||
+          rawMetadata.petition?.id ||
+          rawMetadata.petitionIdRef ||
+          rawMetadata.petitionRef;
+        const petitionIdToFetch = conv.petition_id || metadataPetitionId || null;
+        if (petitionIdToFetch) {
+          petitionIds.add(petitionIdToFetch);
+        }
+      }
+
+      // 🚀 OTIMIZAÇÃO: Buscar todas as petições de uma vez
+      const petitionsMap = new Map<string, any>();
+      if (petitionIds.size > 0) {
+        const { data: petitions } = await supabase
+          .from('petitions')
+          .select('id, display_id')
+          .in('id', Array.from(petitionIds));
+
+        if (petitions) {
+          for (const petition of petitions) {
+            petitionsMap.set(petition.id, petition);
+          }
+        }
+      }
+
+      // Processar cada conversa usando os dados já carregados
+      const formattedConversations: Conversation[] = combinedConversations.map((conv: any) => {
+          const lastMessage = lastMessagesMap.get(conv.id) || null;
           
           // 🚀 Buscar avatar e iniciais do outro participante + display_id da petição
           let avatarUrl: string | undefined;
@@ -235,174 +349,71 @@ export class ChatService {
             rawMetadata.petitionRef;
           const petitionIdToFetch = conv.petition_id || metadataPetitionId || null;
 
-          try {
-            // Buscar participantes da conversa
-            const { data: participants } = await supabase
-              .from('conversation_participants')
-              .select('user_id, role')
-              .eq('conversation_id', conv.id);
-            
-            // Encontrar o outro participante (não o usuário atual)
-            // Para conversas de suporte, a lógica depende de quem está visualizando:
-            // - Se é ADMIN: o outro participante é CLIENTE ou REDATOR
-            // - Se é CLIENTE ou REDATOR: o outro participante é ADMIN/SUPORTE
-            let otherParticipantId: string | undefined;
-            if (conv.type === 'support') {
-              // Verificar role do usuário atual
-              const { data: userProfile } = await supabase
-                .from('user_profiles')
-                .select('role')
-                .eq('firebase_uid', user.uid)
-                .maybeSingle();
-              
-              const userRole = userProfile?.role || 'client';
-              
-              if (userRole === 'admin') {
-                // Admin visualizando: buscar cliente ou redator (não admin/suporte)
-                const clientOrWriterParticipant = participants?.find(p => 
-                  p.user_id !== user.uid && 
-                  p.user_id !== 'support-admin' &&
-                  p.role !== 'support' &&
-                  p.role !== 'admin'
-                );
-                otherParticipantId = clientOrWriterParticipant?.user_id;
-              } else {
-                // Cliente ou Redator visualizando: buscar admin/suporte
-                const adminOrSupportParticipant = participants?.find(p => 
-                  p.user_id !== user.uid && 
-                  (p.role === 'admin' || p.role === 'support' || p.user_id === 'support-admin')
-                );
-                otherParticipantId = adminOrSupportParticipant?.user_id;
-              }
-              
-              // Se não encontrou, usar qualquer participante que não seja o usuário atual
-              if (!otherParticipantId) {
-                otherParticipantId = participants?.find(p => p.user_id !== user.uid)?.user_id;
-              }
+          // Usar participantes já carregados
+          const participants = participantsMap.get(conv.id) || [];
+          
+          // Encontrar o outro participante (não o usuário atual)
+          // Para conversas de suporte, a lógica depende de quem está visualizando:
+          // - Se é ADMIN: o outro participante é CLIENTE ou REDATOR
+          // - Se é CLIENTE ou REDATOR: o outro participante é ADMIN/SUPORTE
+          let otherParticipantId: string | undefined;
+          if (conv.type === 'support') {
+            if (userRole === 'admin') {
+              // Admin visualizando: buscar cliente ou redator (não admin/suporte)
+              const clientOrWriterParticipant = participants.find(p => 
+                p.user_id !== user.uid && 
+                p.user_id !== 'support-admin' &&
+                p.role !== 'support' &&
+                p.role !== 'admin'
+              );
+              otherParticipantId = clientOrWriterParticipant?.user_id;
             } else {
-              // Para outras conversas, qualquer participante que não seja o usuário atual
-              otherParticipantId = participants?.find(p => p.user_id !== user.uid)?.user_id;
+              // Cliente ou Redator visualizando: buscar admin/suporte
+              const adminOrSupportParticipant = participants.find(p => 
+                p.user_id !== user.uid && 
+                (p.role === 'admin' || p.role === 'support' || p.user_id === 'support-admin')
+              );
+              otherParticipantId = adminOrSupportParticipant?.user_id;
             }
             
-            if (otherParticipantId) {
-              const fetchProfile = async () => {
-                const tablesToTry = [
-                  { table: 'profiles_v2', key: 'firebase_uid' },
-                  { table: 'profiles', key: 'firebase_uid' },
-                  { table: 'user_profiles', key: 'firebase_uid' }
-                ] as const;
-
-                for (const tableInfo of tablesToTry) {
-                  const { data, error } = await supabase
-                    .from(tableInfo.table)
-                    .select(`full_name, avatar_url, email, ${tableInfo.key}`)
-                    .ilike(tableInfo.key, otherParticipantId)
-                    .maybeSingle();
-
-                  if (error) {
-                    console.warn(`⚠️ Erro ao buscar perfil em ${tableInfo.table}:`, error.message);
-                    continue;
-                  }
-
-                  if (data) {
-                    return data;
-                  }
-                }
-
-                return null;
-              };
-
-              const profile = await fetchProfile();
-              
-              if (profile) {
-                avatarUrl = profile.avatar_url || undefined;
-                const name =
-                  profile.full_name ||
-                  profile.email?.split('@')[0] ||
-                  'Usuário';
-                otherParticipantName = name;
-                initials = name
-                  .split(' ')
-                  .map(n => n[0])
-                  .filter(Boolean)
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2);
-              }
+            // Se não encontrou, usar qualquer participante que não seja o usuário atual
+            if (!otherParticipantId) {
+              otherParticipantId = participants.find(p => p.user_id !== user.uid)?.user_id;
             }
-
-            if (!petitionIdToFetch && participants && participants.length >= 2) {
-              const writerParticipant = participants.find(p => p.role === 'writer');
-              const clientParticipant = participants.find(p => p.role === 'client');
-
-              if (writerParticipant?.user_id && clientParticipant?.user_id) {
-                const { data: fallbackPetition, error: fallbackPetitionError } = await supabase
-                  .from('petitions')
-                  .select('id, display_id')
-                  .eq('assigned_writer_id', writerParticipant.user_id)
-                  .eq('client_id', clientParticipant.user_id)
-                  .order('created_at', { ascending: false })
-                  .maybeSingle();
-
-                if (fallbackPetitionError) {
-                  console.warn('⚠️ Erro ao buscar petição vinculada pelos participantes:', fallbackPetitionError);
-                }
-
-                if (fallbackPetition) {
-                  fallbackPetitionId = fallbackPetition.id;
-                  fallbackPetitionDisplayId = fallbackPetition.display_id || fallbackPetition.id;
-                  if (!petitionDisplayId) {
-                    petitionDisplayId = fallbackPetitionDisplayId;
-                  }
-
-
-                  const updatedMetadata = {
-                    ...rawMetadata,
-                    petitionId: fallbackPetitionId,
-                    petitionDisplayId: fallbackPetitionDisplayId,
-                  };
-
-                  const { error: persistFallbackError } = await supabase
-                    .from('conversations')
-                    .update({
-                      petition_id: fallbackPetitionId,
-                      metadata: updatedMetadata,
-                    })
-                    .eq('id', conv.id);
-
-                  if (persistFallbackError) {
-                    console.warn('⚠️ Erro ao persistir vínculo de petição recuperado automaticamente:', persistFallbackError);
-                  } else {
-                    rawMetadata.petitionId = fallbackPetitionId;
-                    rawMetadata.petitionDisplayId = fallbackPetitionDisplayId;
-                  }
-                }
-              }
-            }
+          } else {
+            // Para outras conversas, qualquer participante que não seja o usuário atual
+            otherParticipantId = participants.find(p => p.user_id !== user.uid)?.user_id;
+          }
+          
+          // Usar perfil já carregado
+          if (otherParticipantId) {
+            const profile = profilesMap.get(otherParticipantId);
             
-            // 🚀 Buscar display_id da petição se existir
-            if (petitionIdToFetch) {
-              try {
-                const { data: petition, error: petitionError } = await supabase
-                  .from('petitions')
-                  .select('display_id, id')
-                  .eq('id', petitionIdToFetch)
-                  .maybeSingle();
-                
-                if (petitionError) {
-                  console.warn('⚠️ Erro ao buscar display_id da petição:', petitionError);
-                }
-                
-                petitionDisplayId = petition?.display_id || petition?.id || petitionIdToFetch;
-                
-              } catch (petitionErr) {
-                console.warn('⚠️ Exceção ao buscar display_id da petição:', petitionErr);
-                // Usar petition_id como fallback
-                petitionDisplayId = petitionIdToFetch;
-              }
+            if (profile) {
+              avatarUrl = profile.avatar_url || undefined;
+              const name =
+                profile.full_name ||
+                profile.email?.split('@')[0] ||
+                'Usuário';
+              otherParticipantName = name;
+              initials = name
+                .split(' ')
+                .map(n => n[0])
+                .filter(Boolean)
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
             }
-          } catch (err) {
-            console.warn('⚠️ Erro ao buscar dados da conversa:', err);
+          }
+
+          // Buscar display_id da petição usando dados já carregados
+          if (petitionIdToFetch) {
+            const petition = petitionsMap.get(petitionIdToFetch);
+            if (petition) {
+              petitionDisplayId = petition.display_id || petition.id || petitionIdToFetch;
+            } else {
+              petitionDisplayId = petitionIdToFetch;
+            }
           }
           
           // Resolver display_id com prioridade: valor buscado > metadata existente > petition_id
@@ -440,8 +451,7 @@ export class ChatService {
               petitionDisplayId: resolvedDisplayId // Sempre definir, mesmo que seja petition_id
             }
           };
-        })
-      );
+      });
 
       return formattedConversations;
 
@@ -471,6 +481,47 @@ export class ChatService {
     } = {}
   ): Promise<Message[]> {
     try {
+      const user = await this.getAuthUser();
+      
+      // ✅ CORREÇÃO CRÍTICA: Verificar se é admin PRIMEIRO antes de verificar participante
+      // Isso evita problemas em produção onde admins podem não estar na tabela de participantes
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('firebase_uid', user.uid)
+        .maybeSingle();
+
+      // ✅ CORREÇÃO: Verificar também em profiles_v2 para compatibilidade
+      let isAdmin = userProfile?.role === 'admin';
+      
+      if (!isAdmin) {
+        const { data: profileV2 } = await supabase
+          .from('profiles_v2')
+          .select('role')
+          .eq('firebase_uid', user.uid)
+          .maybeSingle();
+        
+        isAdmin = profileV2?.role === 'admin';
+      }
+
+      // ✅ CORREÇÃO: Se não for admin, verificar se é participante
+      if (!isAdmin) {
+        const { data: participantCheck, error: participantError } = await supabase
+          .from('conversation_participants')
+          .select('user_id, role')
+          .eq('conversation_id', conversationId)
+          .eq('user_id', user.uid)
+          .maybeSingle();
+
+        if (!participantCheck && !participantError) {
+          console.warn(`⚠️ [getConversationMessages] Usuário ${user.uid} não é participante da conversa ${conversationId} e não é admin`);
+          // Retornar array vazio se não é participante e não é admin
+          return [];
+        }
+      } else {
+        // ✅ CORREÇÃO: Log para debug em produção
+        console.log(`✅ [getConversationMessages] Usuário ${user.uid} é admin - permitindo acesso à conversa ${conversationId}`);
+      }
 
       const {
         limit = 50,
@@ -478,6 +529,7 @@ export class ChatService {
         after = null,
         order = 'asc',
       } = options;
+
 
       // Primeira tentativa: Query completa
       let query = supabase
@@ -487,6 +539,7 @@ export class ChatService {
 
       if (before) {
         query = query.lt('created_at', before);
+        console.log(`📜 [getConversationMessages] Buscando mensagens ANTIGAS (antes de ${before}) para conversa ${conversationId}`);
       }
 
       if (after) {
@@ -498,7 +551,16 @@ export class ChatService {
       const { data: messages, error } = await query;
 
       if (error) {
-        console.error('❌ Erro ao buscar mensagens:', error);
+        console.error('❌ [getConversationMessages] Erro ao buscar mensagens:', {
+          error,
+          conversationId,
+          userId: user.uid,
+          isAdmin,
+          errorCode: error.code,
+          errorMessage: error.message,
+          before,
+          limit
+        });
         
         // Segunda tentativa: Query mínima
         let simpleQuery = supabase
@@ -519,7 +581,13 @@ export class ChatService {
         const { data: simpleMessages, error: simpleError } = await simpleQuery;
 
         if (simpleError) {
-          console.error('❌ Erro na query simples de mensagens:', simpleError);
+          console.error('❌ [getConversationMessages] Erro na query simples de mensagens:', {
+            error: simpleError,
+            conversationId,
+            userId: user.uid,
+            isAdmin,
+            before
+          });
           return this.getFallbackMessages(conversationId);
         }
 
@@ -575,7 +643,21 @@ export class ChatService {
       }
 
       if (!messages || messages.length === 0) {
-        return this.getFallbackMessages(conversationId);
+        console.warn(`⚠️ [getConversationMessages] Nenhuma mensagem retornada para conversa ${conversationId} (usuário: ${user.uid})`);
+        // ✅ CORREÇÃO: Verificar se é realmente uma conversa vazia ou se há problema de permissão
+        const { data: conversationExists } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('id', conversationId)
+          .maybeSingle();
+        
+        if (!conversationExists) {
+          console.error(`❌ [getConversationMessages] Conversa não existe: ${conversationId}`);
+          return [];
+        }
+        
+        // Se a conversa existe mas não há mensagens, pode ser conversa vazia ou problema de RLS
+        return [];
       }
 
       // Buscar participantes para mapear funções/nome do remetente

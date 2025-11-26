@@ -42,7 +42,6 @@ export default function FloatingChatModal() {
     currentConversation,
     loadConversations,
     selectConversation,
-    loadConversationMessages,
   } = useChat();
 
   // Não mostrar o modal se estiver na página do chat
@@ -198,11 +197,11 @@ export default function FloatingChatModal() {
     // ✅ Navegar com o parâmetro da conversa
     navigate(`${chatPath}?conversation=${conversationId}`);
     
-    // ✅ CORREÇÃO: Fazer selectConversation e loadConversationMessages em background (não bloqueia a navegação)
+    // ✅ CORREÇÃO: Fazer selectConversation em background (não bloqueia a navegação)
+    // selectConversation já carrega as mensagens automaticamente
     (async () => {
       try {
         await selectConversation(conversationId);
-        await loadConversationMessages(conversationId);
       } catch (error) {
         console.error('Erro ao selecionar conversa em background:', error);
       }

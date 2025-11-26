@@ -24,7 +24,7 @@ import { MessageSquare, Users, ArrowLeft } from 'lucide-react';
 export default function ChatSuport() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const { selectConversation, loadConversations, loadConversationMessages } = useChat();
+  const { selectConversation, loadConversations } = useChat();
   
   // ✅ CORREÇÃO: Verificar se há petitionId ou conversation na URL no estado inicial
   const initialPetitionId = searchParams.get('petitionId');
@@ -70,11 +70,10 @@ export default function ChatSuport() {
     
     setViewMode('chat');
     
-    // ✅ CORREÇÃO: Carregar conversa e mensagens explicitamente
+    // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
+    // Não precisa chamar loadConversationMessages aqui pois selectConversation já faz isso
     try {
       await selectConversation(conversationId);
-      // Garantir que as mensagens sejam carregadas
-      await loadConversationMessages(conversationId);
     } catch (error) {
       console.error('Erro ao carregar conversa no contexto:', error);
       toast.error('Erro ao carregar conversa');
@@ -84,7 +83,7 @@ export default function ChatSuport() {
     setTimeout(() => {
       isSelectingRef.current = false;
     }, 100);
-  }, [selectConversation, loadConversationMessages, toast]);
+  }, [selectConversation, toast]);
 
   // ✅ CORREÇÃO: Garantir que quando selectedConversationId muda, o viewMode também muda
   useEffect(() => {
@@ -140,11 +139,10 @@ export default function ChatSuport() {
             });
             setViewMode('chat');
 
-            // ✅ CORREÇÃO: Carregar conversa e mensagens explicitamente
+            // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
             (async () => {
               try {
                 await selectConversation(conversation.id);
-                await loadConversationMessages(conversation.id);
               } catch (err) {
                 console.error('Erro ao carregar conversa no contexto:', err);
               }
@@ -175,7 +173,7 @@ export default function ChatSuport() {
         hasProcessedPetitionIdRef.current = false;
       }
     };
-  }, [searchParams, location.state, setSearchParams, selectConversation, loadConversationMessages]);
+  }, [searchParams, location.state, setSearchParams, selectConversation]);
 
   // ✅ CORREÇÃO: Buscar e abrir conversa quando conversation está na URL
   useEffect(() => {
@@ -197,11 +195,10 @@ export default function ChatSuport() {
       newSearchParams.delete('conversation');
       setSearchParams(newSearchParams, { replace: true });
       
-      // ✅ CORREÇÃO: Carregar conversa e mensagens explicitamente
+      // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
       (async () => {
         try {
           await selectConversation(conversationId);
-          await loadConversationMessages(conversationId);
         } catch (error) {
           console.error('Erro ao abrir conversa:', error);
           toast.error('Erro ao abrir conversa');
@@ -217,7 +214,7 @@ export default function ChatSuport() {
         hasProcessedConversationIdRef.current = false;
       }
     };
-  }, [searchParams, setSearchParams, selectConversation, loadConversationMessages, toast]);
+  }, [searchParams, setSearchParams, selectConversation, toast]);
 
   return (
     <div className="space-y-6">

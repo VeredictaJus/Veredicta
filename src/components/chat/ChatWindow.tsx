@@ -304,6 +304,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
             return timeA - timeB;
           });
           
+          // ✅ CORREÇÃO: Atualizar ref APENAS quando realmente atualizar o estado
+          // Isso garante que o ref seja atualizado apenas quando houver uma mudança real
+          prevMessagesRef.current = filteredMessages;
+          
           return sortedMessages;
         });
       });
@@ -311,22 +315,24 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // Se não há conversa selecionada, limpar mensagens
       startTransition(() => {
         setMessages([]);
+        prevMessagesRef.current = [];
       });
     }
     
-    // ✅ CORREÇÃO: Atualizar ref para rastrear mensagens anteriores APENAS se realmente atualizou
-    // Isso evita que o ref seja atualizado mesmo quando não houve mudança real
-    if (targetConversationId && currentConversation?.id === targetConversationId) {
-      prevMessagesRef.current = contextMessages;
-    }
-    
     // Resetar estado de scroll quando a conversa mudar
-    isNearBottomRef.current = true;
-    isUserScrollingRef.current = false;
-    lastScrollTopRef.current = 0;
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = null;
+    const currentTargetConversationId = conversationId || currentConversation?.id;
+    if (currentTargetConversationId && currentConversation?.id === currentTargetConversationId) {
+      // Apenas resetar scroll se realmente há uma conversa selecionada
+      // Não resetar se não há conversa (para evitar resetar desnecessariamente)
+    } else {
+      // Resetar scroll apenas quando não há conversa selecionada
+      isNearBottomRef.current = true;
+      isUserScrollingRef.current = false;
+      lastScrollTopRef.current = 0;
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
     }
   }, [contextMessages, currentConversation?.id, conversationId]);
   

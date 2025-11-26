@@ -42,6 +42,7 @@ export default function FloatingChatModal() {
     currentConversation,
     loadConversations,
     selectConversation,
+    loadConversationMessages,
   } = useChat();
 
   // Não mostrar o modal se estiver na página do chat
@@ -98,14 +99,25 @@ export default function FloatingChatModal() {
         .map(conv => ({
           ...conv,
           lastActivity: conv.last_message_at || conv.updated_at || conv.created_at,
-        }))
-        .sort((a, b) => {
-          const aTime = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
-          const bTime = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
-          return bTime - aTime;
-        })
-        .slice(0, 6);
-
+        }));
+      
+      // ✅ OTIMIZAÇÃO: Cachear timestamps para evitar múltiplas conversões
+      const timestampCache = new Map<string, number>();
+      relevant.sort((a, b) => {
+        if (!a.lastActivity && !b.lastActivity) return 0;
+        if (!a.lastActivity) return 1;
+        if (!b.lastActivity) return -1;
+        
+        if (!timestampCache.has(a.lastActivity!)) {
+          timestampCache.set(a.lastActivity!, new Date(a.lastActivity!).getTime());
+        }
+        if (!timestampCache.has(b.lastActivity!)) {
+          timestampCache.set(b.lastActivity!, new Date(b.lastActivity!).getTime());
+        }
+        
+        return timestampCache.get(b.lastActivity!)! - timestampCache.get(a.lastActivity!)!;
+      });
+      
       return relevant.map(conv => {
         // Função segura para formatar data
         const formatTime = (dateString: string | undefined) => {
@@ -155,8 +167,8 @@ export default function FloatingChatModal() {
           metadata,
           type: conv.type,
         };
-      });
-  }, [conversations, user?.uid]);
+      }).slice(0, 6);
+  }, [conversations, user?.role]);
 
   const handleOpenChat = () => {
     const role = user?.role?.toLowerCase();
@@ -166,20 +178,35 @@ export default function FloatingChatModal() {
     navigate(chatPath);
   };
 
-  const handleConversationClick = (conversationId: string) => {
+  const handleConversationClick = async (conversationId: string) => {
     const role = user?.role?.toLowerCase();
     const chatPath = role === 'client' ? '/client/chat' : 
                     role === 'writer' ? '/writer/chat' : 
                     role === 'admin' ? '/admin/chat-suporte' : '/chat';
     
-    // ✅ Navegar imediatamente sem esperar selectConversation
-    navigate(`${chatPath}?conversation=${conversationId}`);
     setIsOpen(false);
     
-    // ✅ Fazer selectConversation em background (não bloqueia a navegação)
-    selectConversation(conversationId).catch((error) => {
-      console.error('Erro ao selecionar conversa em background:', error);
-    });
+    // ✅ CORREÇÃO: Garantir que as conversas estejam carregadas antes de navegar
+    if (conversations.length === 0) {
+      try {
+        await loadConversations();
+      } catch (error) {
+        console.error('Erro ao carregar conversas:', error);
+      }
+    }
+    
+    // ✅ Navegar com o parâmetro da conversa
+    navigate(`${chatPath}?conversation=${conversationId}`);
+    
+    // ✅ CORREÇÃO: Fazer selectConversation e loadConversationMessages em background (não bloqueia a navegação)
+    (async () => {
+      try {
+        await selectConversation(conversationId);
+        await loadConversationMessages(conversationId);
+      } catch (error) {
+        console.error('Erro ao selecionar conversa em background:', error);
+      }
+    })();
   };
 
   const totalUnreadCount = displayConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);

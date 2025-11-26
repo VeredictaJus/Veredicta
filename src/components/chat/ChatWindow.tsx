@@ -255,10 +255,22 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
           
           // Se não há mensagens confirmadas ainda, retornar apenas otimistas
+          // ✅ CORREÇÃO: Se há mensagens otimistas e não há confirmadas, manter as otimistas
+          // Se não há nem otimistas nem confirmadas, retornar array vazio (não limpar se houver otimistas)
           if (filteredMessages.length === 0) {
             // ✅ CORREÇÃO: Atualizar ref mesmo quando não há mensagens confirmadas
             prevMessagesRef.current = filteredMessages;
-            return optimisticMessages;
+            // Se há mensagens otimistas, manter elas; caso contrário, verificar se há mensagens anteriores
+            if (optimisticMessages.length > 0) {
+              return optimisticMessages;
+            }
+            // Se não há otimistas e não há confirmadas, manter o estado anterior (não limpar)
+            // Isso evita que mensagens desapareçam enquanto estão sendo carregadas
+            const currentMessagesForConversation = prev.filter(msg => msg.conversation_id === targetConversationId);
+            if (currentMessagesForConversation.length > 0) {
+              return currentMessagesForConversation;
+            }
+            return optimisticMessages; // Array vazio se não há nada
           }
           
           // ✅ OTIMIZAÇÃO: Usar Map para lookup O(1) ao invés de O(n) com .some()

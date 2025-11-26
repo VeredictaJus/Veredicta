@@ -26,28 +26,30 @@ export default function Plans() {
   }>({});
   const clientProfile = user as unknown as ClientProfile;
 
-  // Memoizar cálculo do API endpoint (calcula apenas uma vez)
-  const apiEndpoint = useMemo(() => {
+  // ✅ CORREÇÃO: Função que sempre calcula dinamicamente (não memoiza)
+  // Isso garante que a URL seja sempre recalculada corretamente
+  const getApiEndpoint = useCallback(() => {
     const API_URL = import.meta.env.VITE_API_URL;
     const hostname = window.location.hostname;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
     const isVeredictaDomain = hostname.includes('veredictajus.com.br');
     
-    // ✅ CORREÇÃO: Priorizar sempre a URL do backend definida explicitamente
-    if (API_URL) {
-      const endpoint = `${API_URL}/api/stripe/create-checkout-session`;
+    // Priorizar sempre a URL do backend definida explicitamente
+    if (API_URL && API_URL.trim() !== '') {
+      const endpoint = `${API_URL.replace(/\/$/, '')}/api/stripe/create-checkout-session`;
       console.log('✅ [API Endpoint] Usando VITE_API_URL:', endpoint);
       return endpoint;
     }
     
-    // ✅ CORREÇÃO: Se estiver no domínio de produção, sempre usar api.veredictajus.com.br
-    if (isVeredictaDomain) {
+    // ✅ CORREÇÃO CRÍTICA: Se estiver no domínio de produção, SEMPRE usar api.veredictajus.com.br
+    // Verificar tanto www.veredictajus.com.br quanto veredictajus.com.br
+    if (isVeredictaDomain || hostname === 'www.veredictajus.com.br' || hostname === 'veredictajus.com.br') {
       const endpoint = 'https://api.veredictajus.com.br/api/stripe/create-checkout-session';
-      console.log('✅ [API Endpoint] Usando domínio de produção:', endpoint);
+      console.log('✅ [API Endpoint] Usando domínio de produção:', endpoint, '(hostname:', hostname, ')');
       return endpoint;
     }
     
-    // ✅ CORREÇÃO: Localhost usa rota relativa (vite-plugin-api-routes)
+    // Localhost usa rota relativa (vite-plugin-api-routes)
     if (isLocalhost) {
       const endpoint = '/api/stripe/create-checkout-session';
       console.log('✅ [API Endpoint] Usando rota localhost:', endpoint);
@@ -296,6 +298,10 @@ export default function Plans() {
         controller.abort();
       }, 15000);
       
+      // ✅ CORREÇÃO: Sempre calcular a URL dinamicamente antes de fazer a requisição
+      const apiEndpoint = getApiEndpoint();
+      console.log('🔍 [Checkout] Usando endpoint:', apiEndpoint);
+      
       let response: Response;
       try {
         response = await fetch(apiEndpoint, {
@@ -377,7 +383,7 @@ export default function Plans() {
       toast.error(errorMessage);
       setIsProcessingPayment(null);
     }
-  }, [user?.uid, apiEndpoint]);
+  }, [user?.uid, getApiEndpoint]);
 
   if (loading || !user) {
     return (

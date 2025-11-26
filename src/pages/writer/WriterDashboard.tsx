@@ -290,9 +290,16 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
     );
     
     return () => {
-      availableSubscription?.unsubscribe();
-      myPetitionsSubscription?.unsubscribe();
-      ratingsSubscription?.unsubscribe();
+      // ✅ CORREÇÃO: Verificar se subscriptions existem e têm método unsubscribe antes de chamar
+      if (availableSubscription && typeof availableSubscription.unsubscribe === 'function') {
+        availableSubscription.unsubscribe();
+      }
+      if (myPetitionsSubscription && typeof myPetitionsSubscription.unsubscribe === 'function') {
+        myPetitionsSubscription.unsubscribe();
+      }
+      if (ratingsSubscription && typeof ratingsSubscription.unsubscribe === 'function') {
+        ratingsSubscription.unsubscribe();
+      }
     };
   }, [user?.uid]);
 
@@ -1199,13 +1206,26 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
 
       {/* 🔔 Modal de Alerta de Deadline (1h antes) */}
       {deadlineAlerts.length > 0 && (
-        <AlertDialog open={deadlineAlerts.length > 0} onOpenChange={(open) => { if (!open) dismissDeadlineAlerts(); }}>
+        <AlertDialog 
+          open={deadlineAlerts.length > 0} 
+          onOpenChange={(open) => { 
+            // ✅ CORREÇÃO: Verificar se a função existe antes de chamar
+            if (!open && dismissDeadlineAlerts && typeof dismissDeadlineAlerts === 'function') {
+              dismissDeadlineAlerts(); 
+            }
+          }}
+        >
           <AlertDialogContent className="max-w-md relative">
             <Button
               variant="ghost"
               size="icon"
               className="absolute right-2 top-2 h-6 w-6 rounded-full z-10"
-              onClick={dismissDeadlineAlerts}
+              onClick={() => {
+                // ✅ CORREÇÃO: Verificar se a função existe antes de chamar
+                if (dismissDeadlineAlerts && typeof dismissDeadlineAlerts === 'function') {
+                  dismissDeadlineAlerts();
+                }
+              }}
               aria-label="Fechar modal"
             >
               <X className="h-4 w-4" />
@@ -1247,7 +1267,15 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
             </AlertDialogDescription>
 
             <AlertDialogFooter>
-              <AlertDialogAction onClick={dismissDeadlineAlerts} className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800">
+              <AlertDialogAction 
+                onClick={() => {
+                  // ✅ CORREÇÃO: Verificar se a função existe antes de chamar
+                  if (dismissDeadlineAlerts && typeof dismissDeadlineAlerts === 'function') {
+                    dismissDeadlineAlerts();
+                  }
+                }} 
+                className="bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800"
+              >
                 Entendi, vou finalizar! ✅
               </AlertDialogAction>
             </AlertDialogFooter>

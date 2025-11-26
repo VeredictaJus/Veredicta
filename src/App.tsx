@@ -132,6 +132,13 @@ function AppRoutesContent() {
   function RoutesContent() {
     // Se usuário está logado, redirecionar para dashboard
     if (user) {
+      // ✅ CORREÇÃO CRÍTICA: Não redirecionar automaticamente se houver parâmetros de pagamento na URL
+      // Isso permite que o ClientDashboard processe o pagamento corretamente
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasPaymentParams = urlParams.has('payment') || urlParams.has('session_id') || urlParams.has('plan') || urlParams.has('success');
+      const isClientRoute = window.location.pathname.startsWith('/client');
+      const isClientWithPayment = user.role === 'client' && isClientRoute && hasPaymentParams;
+      
       // Para redatores, não redirecionar automaticamente - deixar o ProtectedRoute decidir
       const redirectPath = user.role === 'client' ? '/client' : 
                           user.role === 'admin' ? '/admin' : '/writer'
@@ -146,11 +153,24 @@ function AppRoutesContent() {
       
       return (
         <Routes>
-          <Route path="/" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
-          <Route path="/auth/login" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
-          <Route path="/auth/register" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
-          <Route path="/auth/forgot-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
-          <Route path="/auth/reset-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+          {/* ✅ CORREÇÃO: Se cliente está em /client com parâmetros de pagamento, não redirecionar */}
+          {isClientWithPayment ? (
+            <>
+              <Route path="/" element={<Navigate to={preserveQueryParams('/client')} replace />} />
+              <Route path="/auth/login" element={<Navigate to={preserveQueryParams('/client')} replace />} />
+              <Route path="/auth/register" element={<Navigate to={preserveQueryParams('/client')} replace />} />
+              <Route path="/auth/forgot-password" element={<Navigate to={preserveQueryParams('/client')} replace />} />
+              <Route path="/auth/reset-password" element={<Navigate to={preserveQueryParams('/client')} replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+              <Route path="/auth/login" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+              <Route path="/auth/register" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+              <Route path="/auth/forgot-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+              <Route path="/auth/reset-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+            </>
+          )}
           
           {/* Rotas privadas */}
           <Route

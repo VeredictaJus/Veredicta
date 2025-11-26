@@ -55,7 +55,37 @@ export default function ClientDashboard() {
   const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
   const navigate = useNavigate();
 
+  // ✅ CORREÇÃO CRÍTICA: Garantir que apenas clientes possam acessar este componente
+  // Verifica o role do usuário ao montar o componente
   useEffect(() => {
+    if (user && user.role !== 'client') {
+      console.warn('⚠️ Tentativa de acesso à área do cliente por usuário não-cliente:', {
+        role: user.role,
+        userId: user.uid
+      });
+      toast.error('Acesso não autorizado. Redirecionando...');
+      
+      // Redirecionar para o dashboard apropriado baseado no role
+      const roleDashboard = user.role === 'admin' ? '/admin' : '/writer';
+      navigate(roleDashboard, { replace: true });
+      return;
+    }
+    
+    // Garantir que a URL sempre seja /client (não /admin ou outra rota)
+    if (user?.role === 'client' && window.location.pathname !== '/client') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const newUrl = urlParams.toString() ? `/client?${urlParams.toString()}` : '/client';
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [user?.role, user?.uid, navigate]);
+
+  useEffect(() => {
+    // ✅ CORREÇÃO CRÍTICA: Verificar role ANTES de processar pagamento
+    // Se não for cliente, não processar pagamento e redirecionar
+    if (user && user.role !== 'client') {
+      return; // Já foi tratado no useEffect anterior
+    }
+
     // Verificar retorno do Stripe e atualizar plano automaticamente
     const urlParams = new URLSearchParams(window.location.search);
     // Aceitar ambos os formatos: payment=success OU success=true
@@ -92,7 +122,7 @@ export default function ClientDashboard() {
     if (paymentSuccess || hasFreeBonus) {
       window.history.replaceState({}, '', '/client');
     }
-  }, [user?.uid]);
+  }, [user?.uid, user?.role, navigate]);
   
   const verifyAndUpdatePlan = async (
     sessionId: string, 

@@ -116,7 +116,10 @@ export default function AvailablePetitions() {
     localStorage.setItem('useSpecialtyFilter', String(useSpecialtyFilter));
 
     return () => {
-      subscription?.unsubscribe();
+      // ✅ CORREÇÃO: Verificar se subscription existe e tem método unsubscribe antes de chamar
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
     };
   }, [user?.uid, useSpecialtyFilter]);
 

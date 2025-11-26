@@ -269,7 +269,12 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           });
         }
       );
-      return () => subscription?.unsubscribe?.();
+      return () => {
+        // ✅ CORREÇÃO: Verificar se subscription existe e tem método unsubscribe antes de chamar
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      };
     }
   }, [user?.uid]);
 

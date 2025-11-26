@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -61,21 +61,28 @@ export function useDeadlineAlert() {
           setHasShownAlert(prev => new Set([...prev, ...alertPetitions.map(p => p.id)]));
           
           // 🔔 Criar notificação no banco de dados para cada alerta
-          alertPetitions.forEach(async (petition) => {
-            try {
-              await supabase.from('app_2d8133c678_notifications').insert({
-                user_id: user.uid,
-                title: '⏰ Prazo Próximo!',
-                body: `Falta aproximadamente 1 hora para o prazo da petição "${petition.title}". Finalize e envie o quanto antes!`,
-                type: 'deadline',
-                priority: 'urgent',
-                related_entity_type: 'petition',
-                related_entity_id: petition.id
-              });
-            } catch (error) {
-              console.error('❌ Erro ao criar notificação de deadline:', error);
-            }
-          });
+          // ✅ CORREÇÃO: Usar Promise.all para evitar problemas com forEach e async
+          try {
+            await Promise.all(
+              alertPetitions.map(async (petition) => {
+                try {
+                  await supabase.from('app_2d8133c678_notifications').insert({
+                    user_id: user.uid,
+                    title: '⏰ Prazo Próximo!',
+                    body: `Falta aproximadamente 1 hora para o prazo da petição "${petition.title}". Finalize e envie o quanto antes!`,
+                    type: 'deadline',
+                    priority: 'urgent',
+                    related_entity_type: 'petition',
+                    related_entity_id: petition.id
+                  });
+                } catch (error) {
+                  console.error('❌ Erro ao criar notificação de deadline:', error);
+                }
+              })
+            );
+          } catch (error) {
+            console.error('❌ Erro ao processar notificações de deadline:', error);
+          }
         }
       } catch (error) {
         console.error('❌ Erro ao verificar deadlines:', error);
@@ -91,13 +98,15 @@ export function useDeadlineAlert() {
     return () => clearInterval(interval);
   }, [user?.uid]);
 
-  const dismissAlert = (petitionId: string) => {
+  // ✅ CORREÇÃO: Usar useCallback para garantir que as funções sejam estáveis
+  const dismissAlert = useCallback((petitionId: string) => {
     setAlerts(prev => prev.filter(a => a.id !== petitionId));
-  };
+  }, []);
 
-  const dismissAll = () => {
+  const dismissAll = useCallback(() => {
     setAlerts([]);
-  };
+    setHasShownAlert(new Set()); // Limpar também o histórico de alertas mostrados
+  }, []);
 
   return { alerts, dismissAlert, dismissAll };
 }

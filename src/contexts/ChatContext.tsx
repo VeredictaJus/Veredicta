@@ -1246,6 +1246,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         messagesSubscriptionRef.current = null;
       }
 
+      // ✅ CORREÇÃO CRÍTICA: Capturar valores no momento da criação para evitar problemas de closure
+      const currentUser = user;
+      const notificationSound = playNotificationSound;
+      
       // Criar nova subscription para a conversa atual
       console.log('🔌 [ChatContext] Criando subscription real-time para conversa:', conversationId);
       const messagesChannel = supabase
@@ -1326,10 +1330,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               });
             });
             
-            // ✅ CORREÇÃO: Tocar som se não for do usuário atual
-            if (newMessage.sender_id !== user?.uid && !document.hidden) {
+            // ✅ CORREÇÃO: Tocar som se não for do usuário atual - verificar se função existe
+            if (newMessage.sender_id !== currentUser?.uid && !document.hidden) {
               try {
-                playNotificationSound();
+                if (notificationSound && typeof notificationSound === 'function') {
+                  notificationSound();
+                }
               } catch (err) {
                 console.warn('⚠️ Erro ao tocar som:', err);
               }
@@ -1371,23 +1377,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               return;
             }
             
-            // ✅ CORREÇÃO: Atualizar mensagem existente no estado
+            // ✅ CORREÇÃO CRÍTICA: Atualizar mensagem existente preservando TODAS as mensagens
             startTransition(() => {
               setMessages((prev) => {
                 const filtered = prev.filter((msg) => msg.conversation_id === conversationId);
                 const exists = filtered.find((msg) => msg.id === updatedMessage.id);
                 
+                let updated: Message[];
                 if (exists) {
-                  // Atualizar mensagem existente
-                  return filtered.map((msg) => 
+                  // Atualizar mensagem existente preservando todas as outras
+                  updated = filtered.map((msg) => 
                     msg.id === updatedMessage.id ? updatedMessage : msg
                   );
                 } else {
                   // Adicionar nova mensagem se não existir
-                  return [...filtered, updatedMessage].sort((a, b) => 
+                  updated = [...filtered, updatedMessage].sort((a, b) => 
                     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                   );
                 }
+                
+                // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+                const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== conversationId);
+                return [...otherConversationMessages, ...updated];
               });
             });
           }

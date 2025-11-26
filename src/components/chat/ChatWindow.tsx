@@ -191,12 +191,9 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
   // Selecionar conversa quando conversationId for passado como prop
   useEffect(() => {
     if (conversationId && conversationId !== currentConversation?.id) {
-      // ✅ CORREÇÃO: Preservar mensagens otimistas da nova conversa ao mudar
-      setMessages(prev => prev.filter(msg => 
-        msg.conversation_id === conversationId || 
-        (msg.id.startsWith('temp-') && msg.conversation_id === conversationId) ||
-        (msg.id.startsWith('tmp-') && msg.conversation_id === conversationId)
-      ));
+      // ✅ CORREÇÃO: NÃO limpar mensagens aqui - deixar o outro useEffect fazer isso após carregar
+      // Isso evita que as mensagens desapareçam e reapareçam (flash)
+      
       // ✅ CORREÇÃO: Aguardar selectConversation para garantir que as mensagens sejam carregadas
       selectConversation(conversationId)
         .then(() => {

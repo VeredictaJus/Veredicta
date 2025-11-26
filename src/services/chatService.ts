@@ -87,8 +87,8 @@ export class ChatService {
    */
   private static async getAuthUser() {
     try {
-      const { getAuth } = await import('firebase/auth');
-      const auth = getAuth();
+      // ✅ CORREÇÃO: Usar auth exportado do firebase.ts para evitar múltiplas inicializações
+      const { auth } = await import('@/lib/firebase');
       
       if (!auth.currentUser) {
         console.error('❌ Usuário não autenticado');

@@ -42,9 +42,8 @@ export class MultiAdminChatService {
    * Obter usuário autenticado atual - usando Firebase Auth
    */
   private static async getAuthUser() {
-    // Importar Firebase Auth dinamicamente para evitar problemas de inicialização
-    const { getAuth } = await import('firebase/auth');
-    const auth = getAuth();
+    // ✅ CORREÇÃO: Usar auth exportado do firebase.ts para evitar múltiplas inicializações
+    const { auth } = await import('@/lib/firebase');
     
     if (!auth.currentUser) {
       throw new Error('Usuário não autenticado');

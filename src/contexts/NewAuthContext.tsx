@@ -130,28 +130,46 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true
     
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (!alive) return
+    const unsub = onAuthStateChanged(
+      auth, 
+      async (firebaseUser) => {
+        try {
+          if (!alive) return
 
-        if (!firebaseUser) {
-          // Usuário não autenticado
-          setUser(null)
-          authService.currentUser = null
+          if (!firebaseUser) {
+            // Usuário não autenticado
+            setUser(null)
+            authService.currentUser = null
+            setLoading(false)
+            // Não redirecionar automaticamente - deixar o roteamento do App.tsx decidir
+            return
+          }
+
+          // Usuário autenticado - carregar perfil
+          await loadUserProfile(firebaseUser)
           setLoading(false)
-          // Não redirecionar automaticamente - deixar o roteamento do App.tsx decidir
-          return
+        } catch (error: any) {
+          console.error('❌ Erro no estado de autenticação:', error)
+          // ✅ CORREÇÃO: Não quebrar a aplicação se houver erro no Firebase
+          // Continuar funcionando mesmo com erro de autenticação
+          setUser(null)
+          setLoading(false)
         }
-
-        // Usuário autenticado - carregar perfil
-        await loadUserProfile(firebaseUser)
-        setLoading(false)
-      } catch (error: any) {
-        console.error('❌ Erro no estado de autenticação:', error)
-        setUser(null)
+      },
+      (error) => {
+        // ✅ CORREÇÃO: Handler de erro específico para onAuthStateChanged
+        // Isso captura erros como 400 do Identity Toolkit
+        console.error('❌ Erro no listener de autenticação Firebase:', error)
+        console.warn('⚠️ Possíveis causas do erro 400:')
+        console.warn('  1. Domínio não autorizado no Firebase Console')
+        console.warn('  2. API key incorreta ou expirada')
+        console.warn('  3. Problema com a configuração do Firebase Auth')
+        console.warn('  4. Verifique se www.veredictajus.com.br está na lista de domínios autorizados')
+        
+        // Não quebrar a aplicação - apenas logar o erro
         setLoading(false)
       }
-    })
+    )
 
     return () => { 
       alive = false

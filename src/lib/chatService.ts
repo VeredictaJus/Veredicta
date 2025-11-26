@@ -50,9 +50,8 @@ function normalizeRole(roleRaw: unknown): SenderType {
 }
 
 async function getAuthUser() {
-  // Importar Firebase Auth dinamicamente para evitar problemas de inicialização
-  const { getAuth } = await import('firebase/auth');
-  const auth = getAuth();
+  // ✅ CORREÇÃO: Usar auth exportado do firebase.ts para evitar múltiplas inicializações
+  const { auth } = await import('@/lib/firebase');
 
   if (!auth.currentUser) {
     throw new Error('Usuário não autenticado');

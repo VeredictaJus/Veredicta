@@ -1,13 +1,14 @@
 // src/lib/session.ts
 import { SupabaseClient } from '@supabase/supabase-js'
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
 import { auth } from './firebase'
 import { supabase } from './supabaseClient' // Usar o cliente principal
 
 // Usar o cliente principal exportado de supabaseClient.ts
 
 export async function getSupabaseForCurrentUser(): Promise<{ supabase: SupabaseClient, uid: string }> {
-  const user = getAuth().currentUser
+  // ✅ CORREÇÃO: Usar auth exportado ao invés de getAuth() para evitar múltiplas inicializações
+  const user = auth.currentUser
   if (!user) throw new Error('Sem sessão Firebase')
   
   return { supabase, uid: user.uid }

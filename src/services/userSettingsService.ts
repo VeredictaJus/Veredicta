@@ -1261,9 +1261,9 @@ export class UserSettingsService {
    */
   static async changePassword(newPassword: string, currentPassword?: string): Promise<boolean> {
     try {
-      // Importar Firebase Auth dinamicamente
-      const { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth');
-      const auth = getAuth();
+      // ✅ CORREÇÃO: Usar auth exportado ao invés de getAuth() para evitar múltiplas inicializações
+      const { updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('firebase/auth');
+      const { auth } = await import('@/lib/firebase');
       
       if (!auth.currentUser) {
         throw new Error('Usuário não autenticado');

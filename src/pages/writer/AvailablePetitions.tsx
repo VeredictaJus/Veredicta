@@ -68,6 +68,7 @@ export default function AvailablePetitions() {
     return saved === 'true';
   });
   const [writerSpecialties, setWriterSpecialties] = useState<string[]>([]);
+  const [allPetitions, setAllPetitions] = useState<Petition[]>([]); // ✅ NOVO: Armazenar todas as petições sem filtro
 
   // Load writer specialties
   useEffect(() => {
@@ -88,32 +89,32 @@ export default function AvailablePetitions() {
     loadWriterSpecialties();
   }, [user?.uid]);
 
-  // Load real petitions and setup real-time subscription
+  // ✅ CORREÇÃO: Carregar TODAS as petições uma vez (sem filtro de especialidade)
+  // Isso permite filtragem instantânea no cliente
   useEffect(() => {
     const loadPetitions = async () => {
       setLoading(true);
+      // Sempre carregar TODAS as petições (sem filtro de especialidade)
       const realPetitions = await DatabaseService.getAvailablePetitions(
         user?.uid,
-        useSpecialtyFilter
+        false // ✅ SEMPRE false - carregamos tudo e filtramos no cliente
       );
-      setPetitions(realPetitions);
+      setAllPetitions(realPetitions);
       setLoading(false);
     };
 
     loadPetitions();
 
-    // Setup real-time subscription
+    // Setup real-time subscription (também sem filtro de especialidade)
     const subscription = DatabaseService.subscribeToAvailablePetitions(
       (newPetitions) => {
         startTransition(() => {
-          setPetitions(newPetitions);
+          setAllPetitions(newPetitions);
         });
       },
       user?.uid,
-      useSpecialtyFilter
+      false // ✅ SEMPRE false - subscriptions recebem tudo
     );
-
-    localStorage.setItem('useSpecialtyFilter', String(useSpecialtyFilter));
 
     return () => {
       // ✅ CORREÇÃO: Verificar se subscription existe e tem método unsubscribe antes de chamar
@@ -121,7 +122,43 @@ export default function AvailablePetitions() {
         subscription.unsubscribe();
       }
     };
-  }, [user?.uid, useSpecialtyFilter]);
+  }, [user?.uid]); // ✅ Removido useSpecialtyFilter das dependências
+
+  // ✅ NOVO: Aplicar filtro de especialidades no cliente (instantâneo)
+  useEffect(() => {
+    if (!useSpecialtyFilter || writerSpecialties.length === 0) {
+      // Se o filtro está desativado ou não tem especialidades, mostrar todas
+      setPetitions(allPetitions);
+      return;
+    }
+
+    // Filtrar petições que têm pelo menos uma especialidade em comum
+    // O servidor filtra pela coluna 'area' da tabela petitions usando query.in('area', writerProfile.specialties)
+    const filtered = allPetitions.filter(petition => {
+      // Verificar a coluna 'area' da petição (campo do banco de dados)
+      const petitionArea = (petition as any).area;
+      
+      // Se a petição tem uma área definida, verificar se está nas especialidades do redator
+      if (petitionArea && writerSpecialties.includes(petitionArea)) {
+        return true;
+      }
+
+      // Fallback: verificar se há especialidades na lista de specialties da petição
+      if (Array.isArray(petition.specialties) && petition.specialties.length > 0) {
+        return petition.specialties.some(spec => writerSpecialties.includes(spec));
+      }
+
+      // Se não tem área nem especialidades definidas, não mostrar quando o filtro está ativo
+      return false;
+    });
+
+    setPetitions(filtered);
+  }, [allPetitions, useSpecialtyFilter, writerSpecialties]);
+
+  // ✅ NOVO: Salvar preferência do filtro quando mudar
+  useEffect(() => {
+    localStorage.setItem('useSpecialtyFilter', String(useSpecialtyFilter));
+  }, [useSpecialtyFilter]);
 
   // ========= Processar query params da URL (notificações) =========
   useEffect(() => {

@@ -1045,22 +1045,51 @@ export class DatabaseService {
   }
 
   static subscribeToUserNotifications(userId: string, callback: (notifications: Notification[]) => void) {
+    console.log('📡 [subscribeToUserNotifications] Criando subscription para usuário:', userId);
+    
     const subscription = supabase
       .channel(`user-notifications-${userId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Escuta INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'app_2d8133c678_notifications',
           filter: `user_id=eq.${userId}`
         },
-        () => {
-          // Refresh notifications when changes occur
-          this.getUserNotifications(userId).then(callback);
+        (payload) => {
+          console.log('🔔 [subscribeToUserNotifications] Mudança detectada na tabela:', {
+            eventType: payload.eventType,
+            table: payload.table,
+            userId: userId
+          });
+          
+          // ✅ CORREÇÃO: Sempre recarregar notificações quando há mudança
+          this.getUserNotifications(userId)
+            .then(notifications => {
+              console.log('✅ [subscribeToUserNotifications] Notificações recarregadas:', notifications.length);
+              callback(notifications);
+            })
+            .catch(err => {
+              console.error('❌ [subscribeToUserNotifications] Erro ao recarregar notificações:', err);
+            });
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('❌ [subscribeToUserNotifications] Erro na subscription:', err);
+        } else if (status === 'SUBSCRIBED') {
+          console.log('✅ [subscribeToUserNotifications] Subscription ativa para usuário:', userId);
+          // ✅ NOVO: Recarregar imediatamente ao conectar (garantir sincronia)
+          this.getUserNotifications(userId)
+            .then(callback)
+            .catch(err => {
+              console.error('❌ Erro ao carregar notificações iniciais:', err);
+            });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('⚠️ [subscribeToUserNotifications] Subscription com problemas. Status:', status);
+        }
+      });
 
     return subscription;
   }

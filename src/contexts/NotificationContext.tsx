@@ -3,8 +3,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useCallback,
   useRef,
   useState,
+  startTransition,
   ReactNode,
 } from 'react';
 import { DatabaseService } from '@/services/databaseService';
@@ -85,6 +87,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
       // assinatura realtime
       unsub = DatabaseService.subscribeToUserNotifications(user.uid, (next) => {
+        console.log('🔔 [NotificationContext] Notificações recebidas via subscription:', next.length);
+        
         // detecta novos pelo id
         const prevIds = knownIdsRef.current;
         const nextIds = new Set(next.map((n) => n.id));
@@ -92,29 +96,47 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         // quais são realmente novos (ex.: INSERT no banco)
         const newlyArrived = next.filter((n) => !prevIds.has(n.id));
 
+        // ✅ CORREÇÃO: Atualizar estado ANTES de tocar som (mais rápido)
+        knownIdsRef.current = nextIds;
+        
+        // ✅ CORREÇÃO: Usar startTransition para atualização não-bloqueante
+        // Isso garante que a UI não trave e as notificações apareçam instantaneamente
+        startTransition(() => {
+          setNotifications(next);
+        });
+
         // toca som e dispara desktop p/ cada novo não lido
         if (newlyArrived.length) {
-          try { play(); } catch {}
+          console.log('🔔 [NotificationContext]', newlyArrived.length, 'nova(s) notificação(ões) detectada(s)');
+          try { 
+            play(); 
+          } catch (err) {
+            console.warn('⚠️ Erro ao tocar som de notificação:', err);
+          }
           if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
             newlyArrived.forEach((n) => {
               try {
                 new Notification(n.title ?? 'Atualização', {
                   body: n.body ?? '',
                   tag: n.id, // evita duplicadas
+                  icon: '/veredicta-logo.png' // Adicionar ícone se disponível
                 });
-              } catch {}
+              } catch (err) {
+                console.warn('⚠️ Erro ao criar notificação desktop:', err);
+              }
             });
           }
         }
-
-        knownIdsRef.current = nextIds;
-        setNotifications(next);
       });
     };
 
     load();
     return () => {
-      unsub?.unsubscribe?.();
+      // ✅ CORREÇÃO: Verificar se subscription existe e tem método unsubscribe antes de chamar
+      if (unsub && typeof unsub.unsubscribe === 'function') {
+        console.log('🔌 [NotificationContext] Desconectando subscription de notificações...');
+        unsub.unsubscribe();
+      }
     };
   }, [user?.uid, play]);
 
@@ -123,34 +145,41 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     [notifications]
   );
 
-  const markAsRead = async (notificationId: string) => {
+  // ✅ CORREÇÃO: Usar useCallback para estabilizar funções e evitar re-criações desnecessárias
+  const markAsRead = useCallback(async (notificationId: string) => {
     const ok = await DatabaseService.markNotificationAsRead(notificationId);
     if (ok) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
+      startTransition(() => {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+        );
+      });
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     if (!user?.uid) return;
     const ok = await DatabaseService.markAllNotificationsAsRead(user.uid);
     if (ok) {
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      startTransition(() => {
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      });
     }
-  };
+  }, [user?.uid]);
 
-  const clearAll = async () => {
+  const clearAll = useCallback(async () => {
     if (!user?.uid) return;
     // se você tiver no DatabaseService:
     // await DatabaseService.clearAllNotifications(user.uid);
     // se não tiver, ao menos limpa local:
-    setNotifications([]);
+    startTransition(() => {
+      setNotifications([]);
+    });
     knownIdsRef.current = new Set();
-  };
+  }, [user?.uid]);
 
   // push local (ex.: algum evento do app que você quer notificar imediatamente)
-  const push: NotificationContextType['push'] = (n) => {
+  const push: NotificationContextType['push'] = useCallback((n) => {
     const id = n.id ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const item: Notification = {
       id,
@@ -163,16 +192,20 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // se seu tipo Notification tiver mais campos, adicione aqui…
     } as Notification;
 
-    setNotifications((prev) => [item, ...prev]);
+    startTransition(() => {
+      setNotifications((prev) => [item, ...prev]);
+    });
     try { play(); } catch {}
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification(item.title, { body: item.body, tag: item.id });
       } catch {}
     }
-  };
+  }, [user?.uid, play]);
 
-  const value: NotificationContextType = {
+  // ✅ CORREÇÃO CRÍTICA: Memoizar o value do contexto para garantir que componentes filhos re-renderizem
+  // quando as notificações mudarem. Isso resolve o problema de notificações não aparecerem até recarregar.
+  const value: NotificationContextType = useMemo(() => ({
     notifications,
     unreadCount,
     loading,
@@ -180,7 +213,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     markAllAsRead,
     clearAll,
     push,
-  };
+  }), [notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll, push]);
 
   return (
     <NotificationContext.Provider value={value}>

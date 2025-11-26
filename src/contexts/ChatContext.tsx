@@ -475,23 +475,30 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             return !confirmedMessagesMap.has(key);
           });
           
-          // Combinar mensagens confirmadas com otimistas restantes
-          const allMessages = [...filteredMessages, ...remainingOptimistic];
-          
-          // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas (mais eficiente)
+          // ✅ CORREÇÃO CRÍTICA: Preservar TODAS as mensagens anteriores (confirmadas) e adicionar/atualizar com as novas
           const uniqueMessagesMap = new Map<string, Message>();
-          allMessages.forEach(msg => {
-            // Manter a mensagem confirmada se houver duplicata
-            if (!uniqueMessagesMap.has(msg.id) || (!msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'))) {
+          
+          // ✅ PASSO 1: Primeiro, adicionar TODAS as mensagens confirmadas anteriores (preservar tudo que já existe)
+          const previousConfirmed = prevFiltered.filter(msg => !msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'));
+          previousConfirmed.forEach(msg => {
+            uniqueMessagesMap.set(msg.id, msg);
+          });
+          
+          // ✅ PASSO 2: Adicionar/atualizar com as novas mensagens confirmadas recebidas
+          filteredMessages.forEach(msg => {
+            // Sempre usar a versão confirmada mais recente
+            uniqueMessagesMap.set(msg.id, msg);
+          });
+          
+          // ✅ PASSO 3: Adicionar mensagens otimistas restantes que ainda não foram confirmadas
+          remainingOptimistic.forEach(msg => {
+            if (!uniqueMessagesMap.has(msg.id)) {
               uniqueMessagesMap.set(msg.id, msg);
             }
           });
           
-          // ✅ OTIMIZAÇÃO: Sort otimizado com cache de timestamps
-          const uniqueMessages = Array.from(uniqueMessagesMap.values());
-          
           // ✅ OTIMIZAÇÃO: Sort usando cache de timestamps (evita múltiplas conversões)
-          const sortedMessages = uniqueMessages.sort((a, b) => {
+          const sortedMessages = Array.from(uniqueMessagesMap.values()).sort((a, b) => {
             const timeA = timeCache.get(a.created_at) ?? new Date(a.created_at).getTime();
             const timeB = timeCache.get(b.created_at) ?? new Date(b.created_at).getTime();
             return timeA - timeB;
@@ -1166,8 +1173,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           });
 
           // ✅ OTIMIZAÇÃO: Processar mensagens apenas se houver novas
+          // ✅ CORREÇÃO: Verificar se há mensagens novas antes de processar
           if (latestMessages.length > 0) {
-            handleIncomingMessagesForConversation(latestMessages, currentPollingId, { skipSound: false });
+            // ✅ CORREÇÃO: Verificar quais mensagens são realmente novas
+            const currentMessages = messages.filter(msg => msg.conversation_id === currentPollingId);
+            const existingIds = new Set(currentMessages.map(m => m.id));
+            const newMessages = latestMessages.filter(msg => !existingIds.has(msg.id));
+            
+            // ✅ CORREÇÃO: Só processar se houver mensagens realmente novas
+            // Isso evita que o polling substitua mensagens que chegaram via real-time
+            if (newMessages.length > 0 || latestMessages.length !== currentMessages.length) {
+              handleIncomingMessagesForConversation(latestMessages, currentPollingId, { skipSound: false });
+            }
             oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
             
             if (latestMessages.length < MESSAGE_PAGE_SIZE) {
@@ -1255,8 +1272,44 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               return;
             }
             
-            // ✅ CORREÇÃO: Processar mensagem recebida via real-time
-            handleIncomingMessagesForConversation([newMessage], conversationId, { skipSound: false });
+            // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem diretamente ao estado, preservando todas as anteriores
+            startTransition(() => {
+              setMessages((prev) => {
+                // Filtrar apenas mensagens da conversa atual
+                const prevFiltered = prev.filter(msg => msg.conversation_id === conversationId);
+                
+                // Verificar se a mensagem já existe (evitar duplicatas)
+                const exists = prevFiltered.find(msg => msg.id === newMessage.id);
+                if (exists) {
+                  console.log('⚠️ [ChatContext] Mensagem já existe no estado, atualizando:', newMessage.id);
+                  // Atualizar mensagem existente (pode ter mudado status, etc)
+                  return prev.map(msg => 
+                    msg.id === newMessage.id ? newMessage : msg
+                  );
+                }
+                
+                // ✅ CORREÇÃO: Adicionar nova mensagem preservando todas as anteriores
+                const updatedMessages = [...prevFiltered, newMessage];
+                
+                // Ordenar por timestamp (cronológico)
+                updatedMessages.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+                
+                // Preservar mensagens de outras conversas no estado
+                const otherConversationMessages = prev.filter(msg => msg.conversation_id !== conversationId);
+                return [...otherConversationMessages, ...updatedMessages];
+              });
+            });
+            
+            // ✅ CORREÇÃO: Tocar som se não for do usuário atual
+            if (newMessage.sender_id !== user?.uid && !document.hidden) {
+              try {
+                playNotificationSound();
+              } catch (err) {
+                console.warn('⚠️ Erro ao tocar som:', err);
+              }
+            }
             
             // ✅ OTIMIZAÇÃO: Atualizar cache com a nova mensagem
             const cachedData = messagesCacheRef.current.get(conversationId);

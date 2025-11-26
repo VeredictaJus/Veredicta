@@ -198,15 +198,17 @@ export default function ChatSuport() {
       setSearchParams(newSearchParams, { replace: true });
       
       // ✅ CORREÇÃO: Carregar conversa e mensagens explicitamente
-      try {
-        await selectConversation(conversationId);
-        await loadConversationMessages(conversationId);
-      } catch (error) {
-        console.error('Erro ao abrir conversa:', error);
-        toast.error('Erro ao abrir conversa');
-        setViewMode('manager'); // Voltar para o gerenciador em caso de erro
-        setSelectedConversationId(null);
-      }
+      (async () => {
+        try {
+          await selectConversation(conversationId);
+          await loadConversationMessages(conversationId);
+        } catch (error) {
+          console.error('Erro ao abrir conversa:', error);
+          toast.error('Erro ao abrir conversa');
+          setViewMode('manager'); // Voltar para o gerenciador em caso de erro
+          setSelectedConversationId(null);
+        }
+      })();
     }
 
     // Resetar flag quando o componente desmonta ou quando não há mais conversation

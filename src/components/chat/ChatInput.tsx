@@ -126,11 +126,11 @@ useEffect(() => {
   return () => navigator.mediaDevices?.removeEventListener?.('devicechange', listMics);
 }, []);
 
-// se hardware mudar, “esquece” o microfone preferido pra deixar o SO decidir o novo default
+// se hardware mudar, "esquece" o microfone preferido pra deixar o SO decidir o novo default
 useEffect(() => {
-  const onChange = () => localStorage.removeItem('chat:lastMicId');
-  navigator.mediaDevices?.addEventListener('devicechange', onChange);
-  return () => navigator.mediaDevices?.removeEventListener('devicechange', onChange);
+  const handleDeviceChange = () => localStorage.removeItem('chat:lastMicId');
+  navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange);
+  return () => navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
 }, []);
 
   // cronômetro durante a gravação

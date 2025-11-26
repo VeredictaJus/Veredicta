@@ -1279,13 +1279,37 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 const prevFiltered = prev.filter(msg => msg.conversation_id === conversationId);
                 
                 // Verificar se a mensagem já existe (evitar duplicatas)
-                const exists = prevFiltered.find(msg => msg.id === newMessage.id);
-                if (exists) {
+                // ✅ CORREÇÃO: Verificar também por ID otimista (temp-*) que pode corresponder a esta mensagem confirmada
+                const existsById = prevFiltered.find(msg => msg.id === newMessage.id);
+                const existsByContent = prevFiltered.find(msg => 
+                  (msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')) &&
+                  msg.content === newMessage.content &&
+                  msg.sender_id === newMessage.sender_id &&
+                  Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000
+                );
+                
+                if (existsById) {
                   console.log('⚠️ [ChatContext] Mensagem já existe no estado, atualizando:', newMessage.id);
-                  // Atualizar mensagem existente (pode ter mudado status, etc)
-                  return prev.map(msg => 
+                  // Atualizar mensagem existente preservando todas as outras
+                  const updated = prev.map(msg => 
                     msg.id === newMessage.id ? newMessage : msg
                   );
+                  return updated;
+                }
+                
+                if (existsByContent) {
+                  console.log('✅ [ChatContext] Substituindo mensagem otimista por confirmada:', existsByContent.id, '->', newMessage.id);
+                  // Substituir mensagem otimista pela confirmada preservando todas as outras
+                  const updated = prev.map(msg => 
+                    (msg.id === existsByContent.id || msg.id === newMessage.id) ? newMessage : msg
+                  );
+                  // Remover duplicatas se houver
+                  const seen = new Set<string>();
+                  return updated.filter(msg => {
+                    if (seen.has(msg.id)) return false;
+                    seen.add(msg.id);
+                    return true;
+                  });
                 }
                 
                 // ✅ CORREÇÃO: Adicionar nova mensagem preservando todas as anteriores
@@ -1508,13 +1532,21 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         },
       };
 
-      // ✅ CORREÇÃO: Verificar se a mensagem otimista pertence à conversa atual
+      // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem otimista preservando TODAS as mensagens anteriores
       // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
       startTransition(() => {
         setMessages((prev) => {
+          // Filtrar mensagens da conversa atual
           const prevFiltered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
-          const newMessages = [...prevFiltered, optimisticMessage];
-          return newMessages;
+          
+          // ✅ CORREÇÃO: Adicionar nova mensagem otimista preservando todas as anteriores
+          const updatedConversationMessages = [...prevFiltered, optimisticMessage];
+          
+          // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+          const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+          
+          // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+          return [...otherConversationMessages, ...updatedConversationMessages];
         });
       });
       lastMessageIdRef.current = optimisticMessage.id;
@@ -1553,14 +1585,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         conversationsCacheRef.current = null;
         lastConversationsLoadRef.current = 0;
         
+        // ✅ CORREÇÃO CRÍTICA: Atualizar mensagem confirmada preservando TODAS as mensagens anteriores
         // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
         startTransition(() => {
           setMessages((prev) => {
+            // Filtrar mensagens da conversa atual
             const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
             const hasMessage = filtered.some(msg => msg.id === optimisticMessage.id);
             
             let updated: Message[];
             if (hasMessage) {
+              // ✅ CORREÇÃO: Atualizar mensagem otimista preservando todas as outras
               updated = filtered.map((msg) =>
                 msg.id === optimisticMessage.id
                   ? { ...msg, id: messageId as string, status: 'sent' as const }
@@ -1577,7 +1612,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               timestamp: Date.now()
             });
             
-            return updated;
+            // ✅ CORREÇÃO CRÍTICA: Preservar mensagens de outras conversas
+            const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+            
+            // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+            return [...otherConversationMessages, ...updated];
           });
         });
       lastMessageIdRef.current = messageId as string;
@@ -1635,23 +1674,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       } catch (err) {
         console.error('Erro ao enviar mensagem:', err);
         
-        // ✅ CORREÇÃO: Verificar conversation_id antes de atualizar
+        // ✅ CORREÇÃO CRÍTICA: Marcar mensagem como falha preservando TODAS as mensagens anteriores
         // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
         startTransition(() => {
-          setMessages((prev) =>
-            prev
-              .filter((msg) => msg.conversation_id === currentConversation.id)
-              .map((msg): Message => {
-                if (msg.id === optimisticMessage.id) {
-                  return {
-                    ...msg,
-                    status: 'failed' as const,
-                    content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
-                  } as Message;
-                }
-                return msg;
-              })
-          );
+          setMessages((prev) => {
+            // Filtrar mensagens da conversa atual
+            const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+            
+            // Atualizar mensagem otimista para status 'failed'
+            const updated = filtered.map((msg): Message => {
+              if (msg.id === optimisticMessage.id) {
+                return {
+                  ...msg,
+                  status: 'failed' as const,
+                  content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                } as Message;
+              }
+              return msg;
+            });
+            
+            // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+            const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+            
+            // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+            return [...otherConversationMessages, ...updated];
+          });
         });
         localPreviewOverridesRef.current.set(currentConversation.id, {
           preview: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,

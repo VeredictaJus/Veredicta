@@ -44,7 +44,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
     
     // Se acabamos de atualizar manualmente, pular o reload
     if (skipNextLoad) {
-      console.log('⏭️ [AVATAR LOAD] Pulando reload - atualização manual recente')
       setSkipNextLoad(false)
       return
     }
@@ -59,7 +58,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
   const loadUserAvatar = async () => {
     if (!user?.uid || !getClient) return
     try {
-      console.log('🔍 [AVATAR LOAD] Iniciando carregamento para:', user.uid)
       const { supabase } = await getClient()
       
       // Primeiro tenta ler de profiles_v2 (tabela principal usada pelo chat)
@@ -70,15 +68,8 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         .ilike('firebase_uid', user.uid)
         .maybeSingle()
 
-      console.log('📊 [AVATAR LOAD] Resultado profiles_v2:', {
-        hasData: !!data,
-        avatar_url: data?.avatar_url,
-        error: error?.message
-      })
-
       // Se não encontrar em profiles_v2, tenta em user_profiles (fallback)
       if ((!data?.avatar_url || error) && error?.code === 'PGRST116') {
-        console.log('⚠️ [AVATAR LOAD] Tentando user_profiles como fallback...')
         const result = await supabase
           .from('user_profiles')
           .select('avatar_url')
@@ -87,12 +78,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         
         data = result.data
         error = result.error
-        
-        console.log('📊 [AVATAR LOAD] Resultado user_profiles:', {
-          hasData: !!data,
-          avatar_url: data?.avatar_url,
-          error: error?.message
-        })
       }
 
       if (error && error.code !== 'PGRST116') {
@@ -106,15 +91,12 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       if (finalUrl) {
         // Se é base64 (data:image/...), usar diretamente sem modificações
         if (finalUrl.startsWith('data:image/')) {
-          console.log('✅ [AVATAR LOAD] Base64 detectado, usando diretamente')
           setAvatarUrl(finalUrl)
           return
         }
         
         // Se é URL pública (não contém /sign/), tentar gerar URL assinada como fallback
         if (finalUrl.includes('/object/public/')) {
-          console.log('🔄 [AVATAR LOAD] URL pública detectada, tentando gerar URL assinada...')
-          
           // Extrair o path do arquivo da URL pública
           // Exemplo: https://xxx.supabase.co/storage/v1/object/public/avatars/userId/file.jpg
           const pathMatch = finalUrl.match(/\/avatars\/(.+)$/)
@@ -127,17 +109,14 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
                 .createSignedUrl(filePath, 3600 * 24 * 365) // 1 ano
               
               if (!signedError && signedData?.signedUrl) {
-                console.log('✅ [AVATAR LOAD] URL assinada gerada com sucesso')
                 finalUrl = signedData.signedUrl
               } else {
-                console.warn('⚠️ [AVATAR LOAD] Não foi possível gerar URL assinada, usando URL pública')
                 // Adicionar timestamp à URL pública para evitar cache
                 if (!finalUrl.includes('?t=')) {
                   finalUrl = `${finalUrl}?t=${Date.now()}`
                 }
               }
             } catch (err) {
-              console.warn('⚠️ [AVATAR LOAD] Erro ao gerar URL assinada:', err)
               // Adicionar timestamp à URL pública para evitar cache
               if (!finalUrl.includes('?t=')) {
                 finalUrl = `${finalUrl}?t=${Date.now()}`
@@ -151,7 +130,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
           }
         } else if (finalUrl.includes('/object/sign/')) {
           // Já é URL assinada, usar diretamente
-          console.log('✅ [AVATAR LOAD] URL assinada detectada, usando diretamente')
         } else {
           // Outro tipo de URL, adicionar timestamp
           if (!finalUrl.includes('?t=')) {
@@ -160,11 +138,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         }
       }
       
-      console.log('✅ [AVATAR LOAD] Avatar final:', {
-        hasAvatar: !!finalUrl,
-        url: finalUrl,
-        userId: user.uid
-      })
       setAvatarUrl(finalUrl)
     } catch (error) {
       console.error('Avatar: load error', error)
@@ -197,11 +170,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       const publicUrl = pub.publicUrl
 
       // 3) Salva no perfil em AMBAS as tabelas para compatibilidade
-      console.log('💾 [AVATAR SAVE] Iniciando salvamento:', {
-        userId: user.uid,
-        publicUrl: publicUrl
-      })
-      
       // Primeiro tenta salvar em profiles_v2 (tabela principal usada pelo chat)
       // Usar ilike para case-insensitive
       const { error: dbErr1 } = await supabase
@@ -211,11 +179,6 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
           updated_at: new Date().toISOString() 
         })
         .ilike('firebase_uid', user.uid)
-      
-      console.log('📊 [AVATAR SAVE] Resultado profiles_v2:', {
-        success: !dbErr1,
-        error: dbErr1?.message
-      })
       
       // Depois tenta em user_profiles (se existir)
       // Buscar email para incluir no upsert (campo obrigatório)
@@ -235,22 +198,11 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
           onConflict: 'firebase_uid' 
         })
       
-      console.log('📊 [AVATAR SAVE] Resultado user_profiles:', {
-        success: !dbErr2,
-        error: dbErr2?.message
-      })
-      
       // Se ambos falharem, lança erro
       if (dbErr1 && dbErr2) {
         console.error('❌ [AVATAR SAVE] Ambos falharam:', { dbErr1, dbErr2 })
         throw new Error('Erro ao salvar avatar no banco de dados')
       }
-      
-      console.log('✅ [AVATAR SAVE] Avatar salvo com sucesso:', {
-        profiles_v2: !dbErr1 ? '✅' : '❌',
-        user_profiles: !dbErr2 ? '✅' : '❌',
-        finalUrl: publicUrl
-      })
 
       setAvatarUrl(publicUrl)
       return publicUrl
@@ -260,34 +212,16 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
   }
 
   const updateAvatarFromBase64 = (base64Url: string) => {
-    console.log('🔄 [AVATAR UPDATE] Atualizando avatar via Base64:', {
-      hasUrl: !!base64Url,
-      urlLength: base64Url?.length || 0,
-      isBase64: base64Url?.startsWith('data:image/'),
-      timestamp: new Date().toISOString()
-    })
-    
     // Marcar para pular o próximo reload automático
     setSkipNextLoad(true)
     
     // Atualizar o estado
     setAvatarUrl(base64Url)
-    console.log('✅ [AVATAR UPDATE] avatarUrl atualizado no estado')
   }
 
   const reloadAvatar = async () => {
-    console.log('Avatar: Recarregando avatar do banco...')
     await loadUserAvatar()
   }
-
-  // Debug: Log quando avatarUrl mudar
-  useEffect(() => {
-    console.log('🔍 [DEBUG] AvatarContext - avatarUrl changed:', {
-      avatarUrl: avatarUrl,
-      hasUrl: !!avatarUrl,
-      timestamp: new Date().toISOString()
-    });
-  }, [avatarUrl]);
 
   return (
     <AvatarContext.Provider value={{ avatarUrl, setAvatarUrl, updateAvatar, updateAvatarFromBase64, reloadAvatar, isUploading }}>

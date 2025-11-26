@@ -265,7 +265,6 @@ const startRecording = async () => {
         // atualiza o seletor (se você estiver mostrando)
         try { setSelectedMicId((prev) => prev || usedId); } catch {}
       }
-      console.log('[mic] usando:', track.label || usedId || '(desconhecido)');
     } catch {}
 
     // Web Audio chain — deixa o navegador escolher a sampleRate
@@ -273,7 +272,6 @@ const startRecording = async () => {
     const ctx: AudioContext = new AC();
     audioCtxRef.current = ctx;
     try { if (ctx.state === 'suspended') await ctx.resume(); } catch {}
-    console.log('[audio] sampleRate efetivo:', ctx.sampleRate);
 
     const source = ctx.createMediaStreamSource(raw);
 

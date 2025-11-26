@@ -1,6 +1,6 @@
 // src/components/chat/ChatHeader.tsx
 import React from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChatOptionsDropdown } from './ChatOptionsDropdown';
@@ -120,6 +120,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
           <div className="relative">
             <Avatar className="h-10 w-10">
+              {avatar && (
+                <AvatarImage 
+                  src={avatar} 
+                  alt={name}
+                  className="object-cover"
+                />
+              )}
               <AvatarFallback>
                 {name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??'}
               </AvatarFallback>
@@ -170,8 +177,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           {actions}
 
           <ChatOptionsDropdown
-            onArchive={() => console.log('Arquivando conversa:', conversationId)}
-            onMarkUnread={() => console.log('Marcando como não lida:', conversationId)}
+            onArchive={() => {}}
+            onMarkUnread={() => {}}
             onExport={() => {
               if (!conversationId) return;
               const exportData = {
@@ -190,13 +197,13 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
             }}
-            onMute={() => console.log('Silenciando conversa:', conversationId)}
+            onMute={() => {}}
             onDelete={() => {
               if (confirm('Tem certeza que deseja excluir esta conversa?')) {
-                console.log('Excluindo conversa:', conversationId);
+                // Delete handled elsewhere
               }
             }}
-            onToggleFavorite={() => console.log('Alternando favorito:', conversationId)}
+            onToggleFavorite={() => {}}
           />
         </div>
       </div>

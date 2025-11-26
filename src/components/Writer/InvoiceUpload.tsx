@@ -40,17 +40,11 @@ const InvoiceUpload: React.FC = () => {
 
   // Obter o ID correto do usuário
   const userId = user?.uid;
-  
-  console.log('📄 InvoiceUpload - User:', user);
-  console.log('📄 InvoiceUpload - userId:', userId);
 
   const fetchInvoices = async () => {
     if (!userId) {
-      console.log('📄 fetchInvoices - Sem userId');
       return;
     }
-
-    console.log('📄 fetchInvoices - Buscando notas para userId:', userId);
 
     const { data, error } = await supabase
       .storage
@@ -59,11 +53,7 @@ const InvoiceUpload: React.FC = () => {
 
     if (error) {
       console.error('❌ Erro ao buscar notas:', error);
-      console.error('❌ Error details:', JSON.stringify(error, null, 2));
     } else {
-      console.log('✅ Notas encontradas:', data);
-      console.log('✅ Total de notas:', data?.length || 0);
-      
       // Gerar signed URLs para cada nota fiscal (válidas por 1 hora)
       const invoicesWithUrls = await Promise.all(
         (data || []).map(async (invoice) => {
@@ -139,15 +129,12 @@ const InvoiceUpload: React.FC = () => {
         throw new Error(result.error || 'Erro ao enviar nota fiscal');
       }
 
-      console.log('✅ Upload bem-sucedido:', result);
-      
       setShowSuccessModal(true);
       setFile(null);
       setAmount('');
       
       // Aguardar um pouco para o storage processar antes de buscar novamente
       setTimeout(() => {
-        console.log('🔄 Atualizando lista de notas...');
         fetchInvoices();
       }, 1000);
     } catch (error: any) {
@@ -187,14 +174,11 @@ const InvoiceUpload: React.FC = () => {
         throw new Error(result.message || result.error || 'Erro ao excluir nota fiscal');
       }
 
-      console.log('✅ Nota fiscal excluída com sucesso:', result);
-      
       setShowDeleteModal(false);
       setInvoiceToDelete(null);
       
       // Atualizar lista de notas
       setTimeout(() => {
-        console.log('🔄 Atualizando lista de notas após exclusão...');
         fetchInvoices();
       }, 500);
     } catch (error: any) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -20,8 +21,9 @@ interface ClientIntegratedChatProps {
 
 export default function ClientIntegratedChat({ className }: ClientIntegratedChatProps) {
   const { user } = useNewAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   
   const { createConversation, currentConversation, selectConversation, conversations, loadConversationMessages, loadConversations } = useChat();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -38,37 +40,90 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
   // 🚀 CORREÇÃO: Lidar com parâmetro conversation da URL (sem causar loop)
   const lastProcessedConversationRef = useRef<string | null>(null);
   const lastProcessedStateRef = useRef<any>(null);
+  const isManualSelectionRef = useRef<boolean>(false);
   
+  // ✅ Definir selectedConversationId imediatamente quando houver parâmetro na URL
+  // Isso garante que o ChatWindow seja renderizado imediatamente
   useEffect(() => {
     const conversationId = searchParams.get('conversation');
-    if (conversationId && conversations.length > 0) {
-      // Evitar processar a mesma conversa múltiplas vezes
-      if (lastProcessedConversationRef.current === conversationId) {
+    if (conversationId && conversationId !== selectedConversationId) {
+      // Se foi uma seleção manual, não processar aqui (já foi processado em handleSelectConversation)
+      if (isManualSelectionRef.current) {
+        isManualSelectionRef.current = false;
         return;
       }
-      
-      // Verificar se a conversa existe
-      const conversationExists = conversations.find(conv => conv.id === conversationId);
-      if (conversationExists && conversationId !== selectedConversationId) {
-        console.log('🔍 ClientIntegratedChat: Selecionando conversa da URL:', conversationId);
-        lastProcessedConversationRef.current = conversationId;
-        handleSelectConversation(conversationId);
-      }
+      setSelectedConversationId(conversationId);
+      lastProcessedConversationRef.current = conversationId;
     }
-  }, [searchParams, conversations, selectedConversationId]);
+  }, [searchParams, selectedConversationId]);
+  
+  // ✅ Carregar e selecionar a conversa quando as conversas estiverem disponíveis
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (!conversationId) return;
+    
+    // Evitar processar a mesma conversa múltiplas vezes
+    if (lastProcessedConversationRef.current === conversationId && selectedConversationId === conversationId) {
+      return;
+    }
+    
+    // Se foi uma seleção manual, não processar aqui (já foi processado em handleSelectConversation)
+    if (isManualSelectionRef.current) {
+      return;
+    }
+    
+    // ✅ CORREÇÃO: Se não há conversas carregadas, carregar primeiro
+    if (conversations.length === 0) {
+      loadConversations().then(() => {
+        // Após carregar, tentar selecionar novamente
+        // O useEffect será executado novamente quando conversations mudar
+      }).catch((error) => {
+        console.error('Erro ao carregar conversas:', error);
+      });
+      return;
+    }
+    
+    // Verificar se a conversa existe
+    const conversationExists = conversations.find(conv => conv.id === conversationId);
+    if (conversationExists && selectedConversationId !== conversationId) {
+      lastProcessedConversationRef.current = conversationId;
+      // Não atualizar URL aqui para evitar loop (já está na URL)
+      setSelectedConversationId(conversationId);
+      // Carregar mensagens e selecionar no contexto
+      (async () => {
+        try {
+          if (loadConversationMessages) {
+            await loadConversationMessages(conversationId);
+          }
+          await selectConversation(conversationId);
+        } catch (error) {
+          console.error('Erro ao selecionar conversa:', error);
+        }
+      })();
+    } else if (!conversationExists && selectedConversationId !== conversationId) {
+      // ✅ CORREÇÃO: Se a conversa não existe na lista, tentar selecionar mesmo assim
+      // (pode ser que ainda não tenha sido carregada)
+      lastProcessedConversationRef.current = conversationId;
+      setSelectedConversationId(conversationId);
+      // Tentar selecionar diretamente - o selectConversation vai buscar se necessário
+      selectConversation(conversationId).catch((error) => {
+        console.error('Erro ao selecionar conversa:', error);
+      });
+    }
+  }, [searchParams, conversations, selectedConversationId, loadConversationMessages, selectConversation, loadConversations]);
 
   // 🚀 Processar state do botão de chat (conversa com redator)
   useEffect(() => {
     const state = location.state as any;
     
-    if (state?.autoSelect && state?.petitionId && state?.writerName && conversations.length > 0) {
+    // Processar se tiver petitionId (com ou sem autoSelect)
+    if (state?.petitionId && conversations.length > 0) {
       // Evitar processar o mesmo state múltiplas vezes
       if (lastProcessedStateRef.current?.petitionId === state.petitionId) {
         return;
       }
       
       lastProcessedStateRef.current = state;
-      console.log('🔍 ClientIntegratedChat: Processando state do botão:', state);
       
       handleWriterConversation(state);
     }
@@ -76,40 +131,61 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
 
   // Selecionar conversa
   const handleSelectConversation = async (conversationId: string) => {
+    // ✅ Marcar como seleção manual para evitar que o useEffect interfira
+    isManualSelectionRef.current = true;
     setSelectedConversationId(conversationId);
-    try {
-      // 🚀 Carregar mensagens apenas quando a conversa for selecionada
-      if (loadConversationMessages) {
-        await loadConversationMessages(conversationId);
-      }
-      await selectConversation(conversationId);
-    } catch (error) {
-      console.error('Erro ao selecionar conversa:', error);
+    
+    // ✅ Atualizar URL para manter sincronização quando seleção é manual
+    const currentConversationParam = searchParams.get('conversation');
+    if (currentConversationParam !== conversationId) {
+      // Atualizar URL sem recarregar a página
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set('conversation', conversationId);
+      setSearchParams(newSearchParams, { replace: true });
+      // Atualizar ref para permitir que o useEffect processe a nova seleção
+      lastProcessedConversationRef.current = conversationId;
     }
+    
+    // ✅ OTIMIZAÇÃO: Não bloquear a UI - carregar em background
+    // selectConversation já carrega as mensagens internamente, não precisa chamar loadConversationMessages separadamente
+    selectConversation(conversationId).catch((error) => {
+      console.error('Erro ao selecionar conversa:', error);
+    });
   };
 
   // 🚀 Buscar ou criar conversa com redator
   const handleWriterConversation = async (state: any) => {
     try {
-      console.log('🔍 Buscando conversa com redator para petição:', state.petitionId);
-      
       // Buscar conversa existente para esta petição
       const existingConv = conversations.find(conv => {
         // Verificar se é conversa relacionada a esta petição
         return conv.metadata?.petitionId === state.petitionId || 
-               conv.title?.includes(state.petitionTitle);
+               conv.petition_id === state.petitionId ||
+               (state.petitionTitle && conv.title?.includes(state.petitionTitle));
       });
 
       if (existingConv) {
-        console.log('✅ Conversa encontrada:', existingConv.id);
         await handleSelectConversation(existingConv.id);
         return;
       }
 
+      // Se não existe, buscar dados da petição para criar conversa
+      if (!state.petitionTitle || !state.assigned_writer_id) {
+        // Buscar dados da petição do Supabase
+        const { data: petition } = await supabase
+          .from('petitions')
+          .select('title, assigned_writer_id')
+          .eq('id', state.petitionId)
+          .single();
+        
+        if (petition) {
+          state.petitionTitle = petition.title;
+          state.assigned_writer_id = petition.assigned_writer_id;
+        }
+      }
+
       // Se não existe, criar nova conversa
-      console.log('🔄 Criando nova conversa com redator...');
-      
-      const conversationTitle = `Petição: ${state.petitionTitle}`;
+      const conversationTitle = `Petição: ${state.petitionTitle || 'Sem título'}`;
       const participants = [
         { userId: user!.uid, role: 'client' as const },
         { userId: state.writerId || state.assigned_writer_id || 'writer-temp', role: 'writer' as const }
@@ -122,15 +198,10 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
         { petitionId: state.petitionId }
       );
 
-      console.log('✅ Conversa criada com redator:', conversationId, 'petition_id:', state.petitionId);
-      
       // Recarregar conversas para garantir que aparece na lista
       if (loadConversations) {
         await loadConversations();
       }
-      
-      // Aguardar um pouco para dar tempo da conversa ser adicionada
-      await new Promise(resolve => setTimeout(resolve, 500));
       
       await handleSelectConversation(conversationId);
       

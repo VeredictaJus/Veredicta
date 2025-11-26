@@ -33,17 +33,6 @@ export function UserAvatar({ size = 'md', className = '' }: UserAvatarProps) {
   // Se for admin, usar logo fixo da Veredicta
   const finalAvatarUrl = isAdmin ? '/veredicta-logo.png' : avatarUrl;
 
-  // Debug: Log quando avatarUrl mudar
-  React.useEffect(() => {
-    console.log('🖼️ [UserAvatar] avatarUrl mudou:', {
-      hasUrl: !!avatarUrl,
-      isAdmin: isAdmin,
-      usingFixedLogo: isAdmin,
-      url: finalAvatarUrl?.substring(0, 50) + (finalAvatarUrl && finalAvatarUrl.length > 50 ? '...' : ''),
-      isBase64: finalAvatarUrl?.startsWith('data:image/'),
-      timestamp: new Date().toISOString()
-    });
-  }, [avatarUrl, isAdmin, finalAvatarUrl]);
 
   const getInitials = () => {
     if (!user) return 'U';
@@ -74,7 +63,6 @@ export function UserAvatar({ size = 'md', className = '' }: UserAvatarProps) {
           className="h-full w-full object-cover"
           style={{ display: 'block' }}
           onLoad={() => {
-            console.log('✅ [UserAvatar] Imagem carregada com sucesso', isAdmin ? '(logo fixo admin)' : '');
           }}
           onError={(e) => {
             console.error('❌ [UserAvatar] Erro ao carregar imagem:', finalAvatarUrl?.substring(0, 50));

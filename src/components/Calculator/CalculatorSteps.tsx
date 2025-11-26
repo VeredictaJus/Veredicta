@@ -231,30 +231,14 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
 
   const canProceed = () => {
     const isCompleted = steps[currentStep].completed;
-    console.log('🔍 Verificando se pode avançar:', {
-      currentStep,
-      stepName: steps[currentStep].title,
-      completed: isCompleted,
-      data: {
-        employeeName: data.employeeName,
-        cpf: data.cpf,
-        admissionDate: data.admissionDate,
-        baseSalary: data.baseSalary
-      }
-    });
     return isCompleted;
   };
 
   const nextStep = () => {
-    console.log('▶️ Tentando avançar para próxima etapa');
     if (currentStep < steps.length - 1 && canProceed()) {
-      console.log('✅ Avançando para etapa', currentStep + 1);
       setCurrentStep(currentStep + 1);
     } else if (currentStep === steps.length - 1) {
-      console.log('🧮 Iniciando cálculo');
       onCalculate();
-    } else {
-      console.log('❌ Não pode avançar - validação falhou');
     }
   };
 

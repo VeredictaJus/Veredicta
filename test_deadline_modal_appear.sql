@@ -113,3 +113,6 @@ WHERE assigned_writer_id = 'SEU_WRITER_ID_AQUI'
 
 
 
+
+
+

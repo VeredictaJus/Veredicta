@@ -52,6 +52,7 @@ export default function ClientDashboard() {
   const [petitions, setPetitions] = useState<Petition[]>([]);
   const [selected, setSelected] = useState<Petition | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,27 +63,27 @@ export default function ClientDashboard() {
     const sessionId = urlParams.get('session_id');
     const plan = urlParams.get('plan');
     const hasFreeBonus = urlParams.get('free_bonus') === 'true';
+    const userIdFromUrl = urlParams.get('user_id');
     
-    console.log('🔍 Verificando parâmetros da URL:', {
-      paymentSuccess,
-      sessionId,
-      plan,
-      hasFreeBonus,
-      userId: user?.uid,
-      allParams: Object.fromEntries(urlParams.entries())
-    });
+    // ✅ SEGURANÇA: Verificar se o user_id da URL corresponde ao usuário logado
+    // Isso previne que um admin ou outro usuário processe o pagamento de outro cliente
+    if (paymentSuccess && userIdFromUrl && user?.uid && userIdFromUrl !== user.uid) {
+      console.warn('⚠️ Tentativa de processar pagamento de outro usuário:', {
+        userIdFromUrl,
+        currentUserId: user.uid
+      });
+      toast.error('Erro: Pagamento não corresponde ao usuário logado. Redirecionando...');
+      // Limpar URL e redirecionar para planos
+      window.history.replaceState({}, '', '/client/plans');
+      return;
+    }
     
     // Atualizar plano se tiver plan na URL (mesmo sem session_id)
-    if (paymentSuccess && plan && user?.uid) {
-      console.log('✅ Retorno do Stripe detectado! Atualizando plano...', { 
-        sessionId, 
-        plan, 
-        userId: user.uid 
-      });
-      
+    // Só processar se o user_id corresponder OU se não houver user_id na URL (compatibilidade)
+    if (paymentSuccess && plan && user?.uid && (!userIdFromUrl || userIdFromUrl === user.uid)) {
       // Verificar pagamento e atualizar plano (sessionId é opcional)
       verifyAndUpdatePlan(sessionId || 'manual', user.uid, plan, hasFreeBonus);
-    } else if (hasFreeBonus) {
+    } else if (hasFreeBonus && (!userIdFromUrl || userIdFromUrl === user?.uid)) {
       // Verificar se realmente tem bônus FREE ativo
       checkFreeBonusStatus();
     }
@@ -100,8 +101,6 @@ export default function ClientDashboard() {
     includeFreeBonus: boolean
   ) => {
     try {
-      console.log('📡 Atualizando plano automaticamente...', { sessionId, userId, plan });
-      
       // Obter cliente Supabase (não precisa estar autenticado, a função RPC bypassa RLS)
       const { supabase: supabaseClient } = await getClient();
       
@@ -127,8 +126,6 @@ export default function ClientDashboard() {
         toast.error('Erro ao ativar plano. Tente novamente.');
         return;
       }
-
-      console.log('✅ Plano atualizado com sucesso!');
       
       // Verificar se realmente foi atualizado
       const { data: verifyData } = await supabaseClient
@@ -137,8 +134,6 @@ export default function ClientDashboard() {
         .eq('user_id', userId)
         .eq('status', 'active')
         .maybeSingle();
-      
-      console.log('🔍 Verificação pós-atualização:', verifyData);
       
       // Recarregar dados do usuário para refletir mudanças
       toast.success(`Plano ${plan.toUpperCase()} ativado com sucesso!`);
@@ -184,8 +179,6 @@ export default function ClientDashboard() {
 
               if (freeError) {
                 console.error('⚠️ Erro ao criar plano FREE bônus:', freeError);
-              } else {
-                console.log('✅ Plano FREE bônus criado!');
               }
             }
           }
@@ -233,40 +226,32 @@ export default function ClientDashboard() {
     if (!user?.uid) return;
 
     async function loadPetitions() {
-      console.log('🔍 Carregando petições para client_id:', user.uid);
-      
       try {
         // Usar apenas a tabela atual 'petitions'
         const { data, error } = await supabase
           .from('petitions')
-          .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description')
+          .select('id, display_id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description')
           .eq('client_id', user.uid)
           .order('created_at', { ascending: false })
           .limit(50);
-        
-        console.log('📊 Resultado da query petitions:', { data, error });
         
         if (error) {
           console.error('❌ Erro ao buscar petições:', error);
           // Se der erro de RLS, tentar RPC
           if (error.code === '42501') {
-            console.log('🔄 Tentando RPC get_client_petitions...');
             const { data: rpcData, error: rpcError } = await supabase.rpc('get_client_petitions', {
               p_client_id: user.uid
             });
-            console.log('📊 Resultado RPC:', { data: rpcData, error: rpcError });
             if (!rpcError && rpcData) {
               setPetitions(rpcData as any);
               return;
             }
           }
         } else if (data) {
-          console.log('✅ Petições encontradas:', data.length);
           setPetitions(data as any);
           return;
         }
         
-        console.log('⚠️ Nenhuma petição encontrada');
         setPetitions([]);
         
       } catch (err) {
@@ -339,7 +324,7 @@ export default function ClientDashboard() {
     };
   }, [user?.uid]);
 
-  // Calcular tempo médio de conclusão
+    // Calcular tempo médio de conclusão
   const calculateAverageTime = () => {
     // Considerar COMPLETED e APPROVED como concluídas (case-insensitive)
     const allCompletedOrApproved = petitions.filter(p => {
@@ -347,20 +332,9 @@ export default function ClientDashboard() {
       return status === 'COMPLETED' || status === 'APPROVED';
     });
     
-    console.log('🔍 Petições aprovadas/concluídas:', allCompletedOrApproved);
-    console.log('📅 Datas disponíveis:', allCompletedOrApproved.map(p => ({
-      title: p.title,
-      created_at: p.created_at,
-      completed_at: p.completed_at,
-      accepted_at: p.accepted_at,
-      updated_at: (p as any).updated_at
-    })));
-    
     const completedPetitions = allCompletedOrApproved.filter(p => 
       (p.completed_at || p.accepted_at) && p.created_at
     );
-    
-    console.log('📊 Petições com datas válidas:', completedPetitions.length);
     
     if (completedPetitions.length === 0) {
       // Se não tem completed_at/accepted_at, usar created_at como fallback
@@ -375,7 +349,6 @@ export default function ClientDashboard() {
         }, 0);
         
         const average = Math.round(totalDays / allCompletedOrApproved.length);
-        console.log('⏱️ Tempo médio calculado (até hoje):', average);
         return average.toString();
       }
       return '—';
@@ -391,7 +364,6 @@ export default function ClientDashboard() {
     }, 0);
     
     const average = Math.round(totalDays / completedPetitions.length);
-    console.log('⏱️ Tempo médio calculado:', average);
     return average.toString();
   };
 
@@ -444,56 +416,108 @@ export default function ClientDashboard() {
       </div>
 
       {/* Lista de Petições em tempo real */}
-      <Card className="bg-container-secondary border-border">
-        <CardHeader>
-          <CardTitle>Suas Petições</CardTitle>
-          <CardDescription>Últimas petições criadas</CardDescription>
-        </CardHeader>
-        <CardContent className="bg-container-inner rounded-b-lg">
-          {petitions.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma petição encontrada</h3>
-              <p className="text-muted-foreground">Você ainda não criou nenhuma petição</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {petitions.slice(0, 5).map((petition) => (
-                <div key={petition.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      <Badge variant={getStatusColor(petition.status) as any}>
-                        {getStatusLabel(petition.status)}
-                      </Badge>
+      {isPetitionsExpanded ? (
+        <Card className="bg-container-secondary border-border">
+          <CardHeader 
+            className="cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setIsPetitionsExpanded(false)}
+          >
+            <CardTitle>Suas Petições</CardTitle>
+            <CardDescription>Lista completa de petições</CardDescription>
+          </CardHeader>
+          <CardContent className="bg-container-inner rounded-b-lg">
+            {petitions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma petição encontrada</h3>
+                <p className="text-muted-foreground">Você ainda não criou nenhuma petição</p>
+              </div>
+            ) : (
+              <div className="h-[400px] max-h-[50vh] overflow-y-auto space-y-4 pr-2">
+                {petitions.map((petition) => (
+                  <div key={petition.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <Badge variant={getStatusColor(petition.status) as any}>
+                          {getStatusLabel(petition.status)}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground">{petition.title}</h4>
+                        <p className="text-sm text-muted-foreground">{petition.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-foreground">{petition.title}</h4>
-                      <p className="text-sm text-muted-foreground">{petition.description}</p>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelected(petition)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Ver
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelected(petition)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-container-secondary border-border">
+          <CardHeader 
+            className="cursor-pointer hover:bg-muted/50 transition-colors"
+            onClick={() => setIsPetitionsExpanded(true)}
+          >
+            <CardTitle>Suas Petições</CardTitle>
+            <CardDescription>Últimas petições criadas</CardDescription>
+          </CardHeader>
+          <CardContent className="bg-container-inner rounded-b-lg">
+            {petitions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma petição encontrada</h3>
+                <p className="text-muted-foreground">Você ainda não criou nenhuma petição</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {petitions.slice(0, 5).map((petition) => (
+                  <div key={petition.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <Badge variant={getStatusColor(petition.status) as any}>
+                          {getStatusLabel(petition.status)}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground">{petition.title}</h4>
+                        <p className="text-sm text-muted-foreground">{petition.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelected(petition)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        Ver
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {petitions.length > 5 && (
+                  <div className="text-center pt-4">
+                    <Button variant="outline" onClick={() => setIsPetitionsExpanded(true)}>
+                      Ver todas as petições ({petitions.length})
                     </Button>
                   </div>
-                </div>
-              ))}
-              {petitions.length > 5 && (
-                <div className="text-center pt-4">
-                  <Button variant="outline" onClick={() => navigate('/client/petitions')}>
-                    Ver todas as petições
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ações rápidas */}
       <Card className="bg-container-primary border-border">
@@ -520,8 +544,11 @@ export default function ClientDashboard() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selected?.title}</DialogTitle>
-            <DialogDescription>
-              <Badge variant={getStatusColor(selected?.status || '') as any} className="mr-2">
+            <DialogDescription className="sr-only">
+              Detalhes da petição
+            </DialogDescription>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={getStatusColor(selected?.status || '') as any}>
                 {getStatusLabel(selected?.status || '')}
               </Badge>
               {selected?.priority && (
@@ -529,9 +556,17 @@ export default function ClientDashboard() {
                   {selected.priority}
                 </Badge>
               )}
-            </DialogDescription>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
+            {(selected?.display_id || selected?.id) && (
+              <div>
+                <h4 className="font-medium text-foreground mb-2">ID da Petição</h4>
+                <Badge variant="outline" className="px-4 py-2 text-base font-mono font-semibold bg-muted/50 border-2">
+                  {selected?.display_id || selected?.id}
+                </Badge>
+              </div>
+            )}
             <div>
               <h4 className="font-medium text-foreground mb-2">Descrição</h4>
               <p className="text-muted-foreground">{selected?.description}</p>
@@ -548,9 +583,101 @@ export default function ClientDashboard() {
               <Button variant="outline" onClick={() => setSelected(null)}>
                 Fechar
               </Button>
-              <Button onClick={() => {
-                setSelected(null);
-                navigate('/client/chat', { state: { petitionId: selected?.id } });
+              <Button onClick={async () => {
+                if (!selected?.id || !user?.uid) return;
+                
+                try {
+                  const petitionId = selected.id;
+                  const displayId = selected.display_id;
+                  
+                  // Buscar conversas onde o usuário é participante E a petição corresponde
+                  // Usar join com conversation_participants para garantir que o usuário é participante
+                  let { data: conversationsWithParticipant, error: participantError } = await supabase
+                    .from('conversations')
+                    .select(`
+                      id, 
+                      petition_id, 
+                      metadata, 
+                      title,
+                      conversation_participants!inner(user_id)
+                    `)
+                    .eq('type', 'petition')
+                    .eq('conversation_participants.user_id', user.uid)
+                    .or(`petition_id.eq.${petitionId},metadata->>petitionId.eq.${petitionId}`)
+                    .limit(10);
+                  
+                  if (participantError) {
+                    console.warn('⚠️ Erro ao buscar conversas com participante:', participantError);
+                  }
+                  
+                  let foundConversation = null;
+                  
+                  // Filtrar para encontrar a conversa correta
+                  if (conversationsWithParticipant && conversationsWithParticipant.length > 0) {
+                    // Priorizar conversa com petition_id exato
+                    foundConversation = conversationsWithParticipant.find(c => 
+                      c.petition_id === petitionId
+                    );
+                    
+                    // Se não encontrou por petition_id, buscar por metadata
+                    if (!foundConversation) {
+                      foundConversation = conversationsWithParticipant.find(c => {
+                        const meta = c.metadata as any;
+                        return meta?.petitionId === petitionId;
+                      });
+                    }
+                    
+                    // Se ainda não encontrou e tem display_id, buscar por display_id
+                    if (!foundConversation && displayId && displayId !== petitionId) {
+                      foundConversation = conversationsWithParticipant.find(c => {
+                        const meta = c.metadata as any;
+                        return meta?.petitionDisplayId === displayId || 
+                               meta?.petition_display_id === displayId ||
+                               meta?.display_id === displayId ||
+                               (c.title && c.title.includes(displayId));
+                      });
+                    }
+                    
+                    // Fallback: primeira conversa encontrada (onde o usuário é participante)
+                    if (!foundConversation && conversationsWithParticipant.length > 0) {
+                      foundConversation = conversationsWithParticipant[0];
+                    }
+                  }
+                  
+                  // Se não encontrou conversa onde o usuário é participante, buscar qualquer conversa da petição
+                  // (pode ser que o usuário precise ser adicionado como participante)
+                  if (!foundConversation) {
+                    const { data: allConversations, error: allError } = await supabase
+                      .from('conversations')
+                      .select('id, petition_id, metadata, title')
+                      .eq('type', 'petition')
+                      .or(`petition_id.eq.${petitionId},metadata->>petitionId.eq.${petitionId}`)
+                      .limit(10);
+                    
+                    if (!allError && allConversations && allConversations.length > 0) {
+                      // Priorizar por petition_id
+                      foundConversation = allConversations.find(c => c.petition_id === petitionId) || allConversations[0];
+                    }
+                  }
+                  
+                  if (foundConversation) {
+                    setSelected(null);
+                    navigate(`/client/chat?conversation=${foundConversation.id}`);
+                  } else {
+                    // Se não existe conversa, navegar para o chat e criar uma
+                    setSelected(null);
+                    navigate('/client/chat', { 
+                      state: { 
+                        petitionId: selected.id,
+                        petitionTitle: selected.title,
+                        autoSelect: true
+                      } 
+                    });
+                  }
+                } catch (err) {
+                  console.error('❌ Erro ao processar navegação para chat:', err);
+                  toast.error('Erro ao abrir chat');
+                }
               }}>
                 Ir para Chat
               </Button>

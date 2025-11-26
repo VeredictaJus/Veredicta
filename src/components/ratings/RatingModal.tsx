@@ -64,13 +64,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
         toast.error('Erro ao enviar avaliação. Tente novamente.');
         return;
       }
-
-      console.log('✅ Avaliação salva com sucesso:', {
-        ratingId: result.id,
-        writerId: petition.assigned_writer_id,
-        rating: rating,
-        petitionId: petition.id
-      });
       
       // Aguardar um pouco para o trigger atualizar o profiles_v2
       // O trigger atualiza automaticamente, mas pode levar alguns milissegundos
@@ -116,7 +109,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
             petitionDisplayId,
             petitionData.title
           );
-          console.log('📧 Email de aprovação enviado ao redator:', writerProfile.email);
         }
       } catch (emailError) {
         console.error('⚠️ Erro ao enviar email de aprovação:', emailError);
@@ -125,7 +117,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
 
       // 3️⃣ Enviar mensagem de agradecimento e desativar conversa
       try {
-        console.log('🔄 Enviando mensagem final e desativando conversa para petição aprovada:', petition.id);
         
         // 🚀 BUSCAR CONVERSAS PELO petition_id (mais confiável que título)
         const { data: conversationsData, error: convSearchError } = await supabase
@@ -142,11 +133,10 @@ const RatingModal: React.FC<RatingModalProps> = ({
         // Usar let para permitir reatribuição
         let relatedConversations = conversationsData;
         
-        console.log('📋 Conversas encontradas pelo petition_id:', relatedConversations);
+        
 
         // Se não encontrou por petition_id, tentar por título (fallback)
         if (!relatedConversations || relatedConversations.length === 0) {
-          console.log('⚠️ Nenhuma conversa encontrada por petition_id, tentando por título...');
           
           const { data: convByTitle } = await supabase
             .from('conversations')
@@ -155,7 +145,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
             .eq('status', 'active')
             .ilike('title', `%${petition.title}%`);
           
-          console.log('📋 Conversas encontradas por título:', convByTitle);
           
           if (convByTitle && convByTitle.length > 0) {
             relatedConversations = convByTitle;
@@ -164,7 +153,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
 
         if (relatedConversations && relatedConversations.length > 0) {
           for (const conv of relatedConversations) {
-            console.log(`🔄 Processando conversa ${conv.id} (petition_id: ${conv.petition_id})`);
             
             // Enviar mensagem automática de agradecimento PELO REDATOR
             const finalMessage = `🎉 Obrigado por aprovar! A petição foi concluída com sucesso.\n\nVocê pode baixar os arquivos a qualquer momento em Minhas Petições.`;
@@ -189,8 +177,6 @@ const RatingModal: React.FC<RatingModalProps> = ({
             
             if (msgError) {
               console.error(`❌ Erro ao enviar mensagem para conversa ${conv.id}:`, msgError);
-            } else {
-              console.log(`✅ Mensagem de conclusão enviada pelo redator para conversa ${conv.id}`);
             }
             
             // Arquivar a conversa (arquivamento automático do sistema)
@@ -210,15 +196,8 @@ const RatingModal: React.FC<RatingModalProps> = ({
             
             if (archiveError) {
               console.error(`❌ Erro ao arquivar conversa ${conv.id}:`, archiveError);
-            } else {
-              console.log(`✅ Conversa ${conv.id} arquivada automaticamente (sistema)`);
             }
           }
-          console.log('✅ Todas as conversas da petição foram finalizadas');
-        } else {
-          console.log('⚠️ Nenhuma conversa ativa encontrada para esta petição (nem por ID nem por título)');
-          console.log('   Petition ID:', petition.id);
-          console.log('   Petition Title:', petition.title);
         }
       } catch (convError) {
         console.error('❌ Erro ao finalizar conversa:', convError);

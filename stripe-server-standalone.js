@@ -45,20 +45,47 @@ app.get('/health', (req, res) => {
 // Endpoint para criar sessão de checkout
 app.post('/api/stripe/create-checkout-session', async (req, res) => {
   try {
-    const { plan, include_free_bonus, user_id } = req.body;
+    const { plan, include_free_bonus, user_id } = req.body || {};
 
-    console.log('📦 Criando sessão para:', { plan, include_free_bonus, user_id });
+    console.log('📦 [API] Body recebido:', JSON.stringify(req.body));
+    console.log('📦 [API] Criando checkout para:', { plan, include_free_bonus, user_id });
+    console.log('📦 [API] Planos disponíveis:', Object.keys(PLAN_PRICES));
 
     if (!plan || !user_id) {
-      return res.status(400).json({ error: 'Plano e user_id são obrigatórios' });
+      console.error('❌ [API] Parâmetros faltando:', { 
+        hasPlan: !!plan, 
+        hasUserId: !!user_id,
+        planValue: plan,
+        userIdValue: user_id,
+        fullBody: req.body
+      });
+      return res.status(400).json({ 
+        error: 'Plano e user_id são obrigatórios',
+        received: { plan, user_id, include_free_bonus }
+      });
     }
 
-    if (!PLAN_PRICES[plan]) {
-      return res.status(400).json({ error: 'Plano não encontrado' });
+    // Normalizar o nome do plano para lowercase
+    const normalizedPlan = plan.toLowerCase();
+    
+    if (!PLAN_PRICES[normalizedPlan]) {
+      console.error('❌ [API] Plano não encontrado:', {
+        receivedPlan: plan,
+        normalizedPlan,
+        availablePlans: Object.keys(PLAN_PRICES)
+      });
+      return res.status(400).json({ 
+        error: 'Plano não encontrado',
+        received: plan,
+        available: Object.keys(PLAN_PRICES)
+      });
     }
 
-    const price = PLAN_PRICES[plan];
-    const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
+    const price = PLAN_PRICES[normalizedPlan];
+    const planName = normalizedPlan.charAt(0).toUpperCase() + normalizedPlan.slice(1);
+
+    // Incluir user_id na URL de sucesso para garantir que o sistema saiba qual usuário fez o pagamento
+    const successUrl = `${FRONTEND_URL}/client?payment=success&session_id={CHECKOUT_SESSION_ID}&plan=${normalizedPlan}&free_bonus=${include_free_bonus ? 'true' : 'false'}&user_id=${user_id}`;
 
     // Criar sessão no Stripe
     const session = await stripe.checkout.sessions.create({
@@ -77,22 +104,25 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${FRONTEND_URL}/client?payment=success&free_bonus=${include_free_bonus}&plan=${plan}&user=${user_id}`,
+      success_url: successUrl,
       cancel_url: `${FRONTEND_URL}/client/plans?payment=cancelled`,
       metadata: {
-        plan: plan,
+        plan: normalizedPlan,
         include_free_bonus: include_free_bonus ? 'true' : 'false',
-        userId: user_id,
+        user_id: user_id,
       },
       client_reference_id: user_id,
     });
 
-    console.log('✅ Sessão criada:', session.id);
+    console.log('✅ [API] Sessão criada:', session.id);
     res.json({ url: session.url });
     
   } catch (error) {
-    console.error('❌ Erro:', error.message);
-    res.status(500).json({ error: 'Erro ao criar sessão de checkout', details: error.message });
+    console.error('❌ [API] Stripe checkout error:', error);
+    res.status(500).json({ 
+      error: 'Erro ao criar sessão de checkout', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 

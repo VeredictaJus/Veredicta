@@ -136,13 +136,21 @@ function AppRoutesContent() {
       const redirectPath = user.role === 'client' ? '/client' : 
                           user.role === 'admin' ? '/admin' : '/writer'
       
+      // ✅ CORREÇÃO: Preservar parâmetros de query na URL ao redirecionar
+      // Isso é importante para preservar payment=success e outros parâmetros do Stripe
+      const preserveQueryParams = (path: string) => {
+        const searchParams = new URLSearchParams(window.location.search);
+        const queryString = searchParams.toString();
+        return queryString ? `${path}?${queryString}` : path;
+      };
+      
       return (
         <Routes>
-          <Route path="/" element={<Navigate to={redirectPath} replace />} />
-          <Route path="/auth/login" element={<Navigate to={redirectPath} replace />} />
-          <Route path="/auth/register" element={<Navigate to={redirectPath} replace />} />
-          <Route path="/auth/forgot-password" element={<Navigate to={redirectPath} replace />} />
-          <Route path="/auth/reset-password" element={<Navigate to={redirectPath} replace />} />
+          <Route path="/" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+          <Route path="/auth/login" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+          <Route path="/auth/register" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+          <Route path="/auth/forgot-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
+          <Route path="/auth/reset-password" element={<Navigate to={preserveQueryParams(redirectPath)} replace />} />
           
           {/* Rotas privadas */}
           <Route

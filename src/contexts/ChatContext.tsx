@@ -7,7 +7,8 @@ import { useNotificationSound } from '@/contexts/NotificationSoundContext';
 import { supabase } from '@/lib/supabaseClient';
 import { containsExplicitLanguage } from '@/utils/messageFilter';
 
-const MESSAGE_PAGE_SIZE = 50;
+// ✅ OTIMIZAÇÃO: Reduzir para carregar mais rápido (usuário pode carregar mais depois)
+const MESSAGE_PAGE_SIZE = 25;
 
 interface ChatContextType {
   // Estado
@@ -148,7 +149,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   
   // ✅ NOVO: Cache de mensagens por conversa para carregamento instantâneo
   const messagesCacheRef = useRef<Map<string, { messages: Message[]; timestamp: number }>>(new Map());
-  const MESSAGES_CACHE_DURATION = 30000; // 30 segundos de cache para mensagens
+  // ✅ OTIMIZAÇÃO: Aumentar duração do cache para 5 minutos (mensagens aparecem instantaneamente ao trocar de conversa)
+  const MESSAGES_CACHE_DURATION = 300000; // 5 minutos de cache (300000ms) - permite carregamento instantâneo ao voltar em conversas recentes
 
   const CHAT_BUCKET = 'chat_attachments';
   const localPreviewOverridesRef = useRef<Map<string, { preview: string; createdAt: string }>>(new Map());
@@ -977,26 +979,79 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         isLoadingOlderMessagesRef.current = false;
       }
       
-      // ✅ OTIMIZAÇÃO: Carregar mensagens e participantes em paralelo para melhor performance
-      // Se já temos cache válido, ainda atualizamos em background para garantir dados frescos
-      const [messagesData, participantsData] = await Promise.all([
+      // ✅ OTIMIZAÇÃO CRÍTICA: Se tem cache válido, carregar mensagens primeiro (rápido)
+      // Participantes podem carregar depois em background sem bloquear UI
+      let messagesData: Message[];
+      let participantsData: ConversationParticipant[];
+      
+      if (isCacheValid && cachedData?.messages.length > 0) {
+        // ✅ OTIMIZAÇÃO: Tem cache - mensagens já estão visíveis, então podemos:
+        // 1. Carregar mensagens atualizadas em background (sem bloquear UI)
+        // 2. Carregar participantes em background também
+        // Isso torna a troca de conversas instantânea!
+        
+        // Carregar mensagens atualizadas em background (não bloqueia UI)
         ChatService.getConversationMessages(conversationId, {
           limit: MESSAGE_PAGE_SIZE,
-        }),
+        }).then(updatedMessages => {
+          const filtered = updatedMessages.filter((msg) => msg.conversation_id === conversationId);
+          // Atualizar cache silenciosamente
+          messagesCacheRef.current.set(conversationId, {
+            messages: filtered,
+            timestamp: Date.now()
+          });
+          // Atualizar mensagens apenas se houver mudanças significativas
+          if (filtered.length !== cachedData.messages.length || 
+              filtered[filtered.length - 1]?.id !== cachedData.messages[cachedData.messages.length - 1]?.id) {
+            handleIncomingMessagesForConversation(filtered, conversationId, { skipSound: true });
+          }
+        }).catch(err => {
+          console.warn('⚠️ Erro ao atualizar mensagens em background:', err);
+        });
+        
+        messagesData = cachedData.messages; // Usar cache imediatamente
+        
+        // Carregar participantes em background (não bloqueia UI)
         ChatService.getConversationParticipants(conversationId)
-      ]);
+          .then(participants => {
+            setParticipants(participants);
+          })
+          .catch(err => {
+            console.warn('⚠️ Erro ao carregar participantes:', err);
+            setParticipants([]);
+          });
+        
+        // Usar participantes vazios por enquanto (carregarão em background)
+        participantsData = [];
+      } else {
+        // ✅ OTIMIZAÇÃO: Sem cache válido - carregar mensagens e participantes em paralelo
+        // Isso garante que quando não há cache, ainda carrega rápido
+        const results = await Promise.all([
+          ChatService.getConversationMessages(conversationId, {
+            limit: MESSAGE_PAGE_SIZE,
+          }),
+          ChatService.getConversationParticipants(conversationId)
+        ]);
+        
+        messagesData = results[0];
+        participantsData = results[1];
+        setParticipants(participantsData);
+      }
       
       // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens carregadas
       const filteredMessages = messagesData.filter(
         (msg) => msg.conversation_id === conversationId
       );
       
-      messagesCacheRef.current.set(conversationId, {
-        messages: filteredMessages,
-        timestamp: Date.now()
-      });
+      // Atualizar cache apenas se não tiver usado cache válido
+      if (!isCacheValid || !cachedData?.messages.length) {
+        messagesCacheRef.current.set(conversationId, {
+          messages: filteredMessages,
+          timestamp: Date.now()
+        });
+      }
       
-      if (messagesData.length === 0) {
+      if (messagesData.length === 0 && !isCacheValid) {
         console.warn('⚠️ [selectConversation] NENHUMA MENSAGEM RETORNADA! Verificar permissões do usuário.');
       }
       
@@ -1007,9 +1062,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           conversationIdFromObject: conversation.id
         });
       }
-      
-      // ✅ OTIMIZAÇÃO: Participantes já foram carregados em paralelo acima
-      setParticipants(participantsData);
       
       if (!isCacheValid || cachedData?.messages.length === 0) {
         // ✅ Se não tinha cache válido, atualizar mensagens agora

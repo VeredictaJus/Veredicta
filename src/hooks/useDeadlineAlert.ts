@@ -19,8 +19,6 @@ export function useDeadlineAlert() {
 
     const checkDeadlines = async () => {
       try {
-        console.log('🔍 [DEADLINE ALERT] Verificando deadlines para redator:', user.uid);
-        
         // Buscar petições em andamento do redator
         const { data: petitions, error } = await supabase
           .from('petitions')
@@ -35,11 +33,8 @@ export function useDeadlineAlert() {
         }
 
         if (!petitions || petitions.length === 0) {
-          console.log('ℹ️ [DEADLINE ALERT] Nenhuma petição em andamento encontrada');
           return;
         }
-
-        console.log('📋 [DEADLINE ALERT] Petições encontradas:', petitions.length, petitions);
 
         const now = new Date();
         const alertPetitions: PetitionAlert[] = [];
@@ -52,14 +47,6 @@ export function useDeadlineAlert() {
           // Alerta se falta entre 55-65 minutos (janela de 10min para garantir que pegue)
           // Isso alerta 1h antes do deadline de 18h (ou seja, às 17h)
           if (diffMinutes >= 55 && diffMinutes <= 65 && !hasShownAlert.has(petition.id)) {
-            console.log('⏰ [DEADLINE ALERT] Alerta detectado:', {
-              petitionId: petition.id,
-              title: petition.title,
-              deadline: deadline.toISOString(),
-              minutesRemaining: diffMinutes,
-              now: now.toISOString()
-            });
-            
             alertPetitions.push({
               id: petition.id,
               title: petition.title,
@@ -70,7 +57,6 @@ export function useDeadlineAlert() {
         });
 
         if (alertPetitions.length > 0) {
-          console.log('✅ [DEADLINE ALERT] Alertas encontrados:', alertPetitions.length, alertPetitions);
           setAlerts(alertPetitions);
           setHasShownAlert(prev => new Set([...prev, ...alertPetitions.map(p => p.id)]));
           
@@ -86,7 +72,6 @@ export function useDeadlineAlert() {
                 related_entity_type: 'petition',
                 related_entity_id: petition.id
               });
-              console.log('✅ Notificação de deadline criada para petição:', petition.id);
             } catch (error) {
               console.error('❌ Erro ao criar notificação de deadline:', error);
             }

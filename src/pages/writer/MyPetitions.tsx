@@ -1,5 +1,5 @@
 /* @ts-nocheck */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,7 +82,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
   // ========= Função para verificar se há correção pendente =========
   const checkPendingCorrection = async (petitionId: string): Promise<boolean> => {
     try {
-      console.log('🔎 Consultando corrections para petition_id:', petitionId);
       const { data, error } = await supabase
         .from('corrections')
         .select('id, status')
@@ -90,15 +89,12 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         .eq('status', 'pending')
         .maybeSingle();
 
-      console.log('📋 Resultado query corrections:', { data, error });
-
       if (error) {
         console.error('Erro ao verificar correção pendente:', error);
         return false;
       }
 
       const hasPending = !!data;
-      console.log('✅ Tem correção pendente?', hasPending);
       return hasPending;
     } catch (error) {
       console.error('Erro ao verificar correção:', error);
@@ -167,9 +163,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         return;
       }
 
-      console.log('🔍 Verificando correção pendente para:', selectedPetition.id);
       const hasPending = await checkPendingCorrection(selectedPetition.id);
-      console.log('📊 Resultado hasPendingCorrection:', hasPending);
       setHasPendingCorrection(hasPending);
 
       try {
@@ -184,7 +178,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           console.error('Erro ao carregar arquivos da petição:', filesError);
           setPetitionFiles([]);
         } else {
-          console.log('📁 Arquivos carregados para petição (writer):', selectedPetition.id, filesData);
           setPetitionFiles(filesData || []);
         }
       } catch (error) {
@@ -199,9 +192,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           .select('id, status, notes, user_id, mode, updated_at')
           .eq('petition_id', selectedPetition.id)
           .order('updated_at', { ascending: false });
-
-        console.log('📝 Buscando correções para petição:', selectedPetition.id);
-        console.log('📝 Correções encontradas:', allCorrections);
 
         if (correctionsError) {
           console.error('Erro ao buscar correções:', correctionsError);
@@ -225,7 +215,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
               status: adminCorrection.status,
               updated_at: adminCorrection.updated_at
             });
-            console.log('✅ Observações do admin encontradas:', adminCorrection.notes);
           } else {
             setAdminReturnNote(null);
           }
@@ -237,10 +226,8 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
               status: clientCorrection.status,
               updated_at: clientCorrection.updated_at
             });
-            console.log('✅ Observações do cliente encontradas:', clientCorrection.notes);
           } else {
             setClientCorrectionNote(null);
-            console.log('ℹ️ Nenhuma correção com observações do cliente encontrada');
           }
         }
       } catch (error) {
@@ -274,7 +261,14 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
 
     loadMyPetitions();
     if (user?.uid) {
-      const subscription = DatabaseService.subscribeToWriterPetitions(user.uid, setPetitions);
+      const subscription = DatabaseService.subscribeToWriterPetitions(
+        user.uid, 
+        (petitions) => {
+          startTransition(() => {
+            setPetitions(petitions);
+          });
+        }
+      );
       return () => subscription?.unsubscribe?.();
     }
   }, [user?.uid]);
@@ -298,7 +292,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         // Se há tab=corrections, abrir tab de correções (se implementado)
         if (tab === 'corrections') {
           // Aqui você pode adicionar lógica para abrir a tab de correções
-          console.log('📋 Abrindo tab de correções para petição:', petitionId);
         }
 
         // Se há deadline=warning, mostrar alerta de prazo
@@ -412,10 +405,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
     }
     
     try {
-      console.log('📤 Iniciando upload:', { petitionId, fileName: file.name, fileSize: file.size });
-      
       const key = `${petitionId}/delivered/${Date.now()}-${file.name}`;
-      console.log('🔑 Key gerada:', key);
       
       const { error: upErr, data: uploadData } = await supabase.storage
         .from(BUCKET)
@@ -425,14 +415,11 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         console.error('❌ Erro no upload do Storage:', upErr);
         throw upErr;
       }
-      console.log('✅ Upload no Storage OK:', uploadData);
 
       // Obter URL pública do arquivo
       const { data: urlData } = supabase.storage
         .from(BUCKET)
         .getPublicUrl(key);
-      
-      console.log('🔗 URL pública obtida:', urlData.publicUrl);
 
       const fileData = {
         petition_id: petitionId,
@@ -442,7 +429,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         file_size: file.size,
         uploaded_by: user.uid
       };
-      console.log('💾 Inserindo na tabela petition_files:', fileData);
 
       const { data: insertData, error: insertErr } = await supabase.from('petition_files').insert(fileData);
       
@@ -450,7 +436,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         console.error('❌ Erro ao inserir na tabela petition_files:', insertErr);
         throw insertErr;
       }
-      console.log('✅ Inserção na tabela OK:', insertData);
 
       await supabase
         .from('petitions')
@@ -485,7 +470,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
 
     try {
       // 🚀 Verificar limite de revisões do plano do cliente
-      console.log('🔍 Verificando limite de revisões para petição:', petitionId);
       const { data: revisionCheckRaw, error: revisionCheckError } = await supabase.rpc('check_revision_limit', { 
         p_petition_id: petitionId 
       });
@@ -513,8 +497,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         return;
       }
 
-      console.log('✅ Limite de revisões OK, prosseguindo com envio...');
-
       // 🚀 Se houver arquivo selecionado, fazer upload primeiro
       if (selectedFile) {
         // Validar se é DOCX
@@ -528,14 +510,10 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           return;
         }
         
-        console.log('📤 Fazendo upload do DOCX antes de enviar para correção...');
-        
         // Gerar nome único sem caracteres especiais
         const timestamp = Date.now();
         const safeName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const key = `${petitionId}_${timestamp}_${safeName}`;
-        
-        console.log('🔑 Key gerada:', key);
         
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
@@ -545,7 +523,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           console.error('❌ Erro no upload do Storage:', upErr);
           throw upErr;
         }
-        console.log('✅ Upload no Storage OK');
 
         // Obter URL pública do arquivo
         const { data: urlData } = supabase.storage
@@ -566,7 +543,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           console.error('❌ Erro ao inserir na tabela petition_files:', insertErr);
           throw insertErr;
         }
-        console.log('✅ Arquivo salvo na tabela petition_files');
       }
 
       // Cria um registro de correção pendente
@@ -708,8 +684,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           if (correctionError) {
             console.warn('⚠️ Erro ao salvar observações do redator:', correctionError);
             // Não falhar a operação se não conseguir salvar observações
-          } else {
-            console.log('✅ Observações do redator salvas');
           }
         } catch (obsError) {
           console.warn('⚠️ Erro ao salvar observações do redator:', obsError);
@@ -724,11 +698,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         status: 'delivered',
         updated_at: deliveredAt
       };
-
-      console.log('🔄 Tentando atualizar petição:', {
-        petitionId,
-        updateData
-      });
 
       const { data: updateResult, error: updateError } = await supabase
         .from('petitions')
@@ -749,11 +718,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         toast.error(`Erro ao atualizar status: ${updateError.message || 'Erro desconhecido'}`);
         throw updateError;
       }
-
-      console.log('✅ Status da petição atualizado para delivered:', {
-        petitionId,
-        result: updateResult
-      });
 
       // Notificar o cliente (removida notificação para admin - tabela notifications não existe)
       if (petition?.client_id) {
@@ -778,8 +742,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
               hint: notifError.hint
             });
             // Não falhar a operação se a notificação falhar
-          } else {
-            console.log('✅ Notificação enviada ao cliente:', petition.client_id);
           }
         } catch (notifError) {
           console.error('⚠️ Erro ao enviar notificação ao cliente:', notifError);
@@ -1426,22 +1388,6 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                                           </div>
                                         ))}
                                       </div>
-                                    </div>
-                                  )}
-                                  {/* @ts-ignore */}
-                                  {petition.delivered_file && (
-                                    <div>
-                                      <h4 className="font-medium mb-2">Arquivo Entregue</h4>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        // @ts-expect-error - delivered_file is a custom property
-                                        onClick={() => handleDownloadFromStorage(petition.delivered_file)}
-                                        className="w-full justify-start"
-                                      >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Download do arquivo entregue
-                                      </Button>
                                     </div>
                                   )}
                                   <div className="flex justify-end">

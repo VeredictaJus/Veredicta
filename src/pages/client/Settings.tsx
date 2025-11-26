@@ -40,9 +40,6 @@ export default function Settings() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { profileTabValue, setProfileTabValue } = useTabNavigation();
-  
-  // Debug logging for tab changes
-  console.log('🔍 Client Settings: profileTabValue =', profileTabValue);
 
   // All useState hooks MUST be before any early returns
   const [formData, setFormData] = useState({
@@ -62,7 +59,6 @@ export default function Settings() {
   });
 
   const [security, setSecurity] = useState({
-    twoFactor: false,
     emailNotifications: true,
     loginAlerts: true
   });
@@ -154,14 +150,7 @@ export default function Settings() {
   const [availablePlans, setAvailablePlans] = useState<UserPlan[]>([]);
   const [loadingPlan, setLoadingPlan] = useState(false);
 
-  const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [twoFactorStep, setTwoFactorStep] = useState('setup');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [isEnabling2FA, setIsEnabling2FA] = useState(false);
-  const [secretKey, setSecretKey] = useState('');
   const [passwordData, setPasswordData] = useState({
     current: '',
     new: '',
@@ -223,20 +212,11 @@ export default function Settings() {
 
           // Atualizar segurança com dados reais
           setSecurity({
-            twoFactor: settings.two_factor_enabled ?? false,
             emailNotifications: settings.email_notifications ?? true,
             loginAlerts: settings.login_alerts ?? true
           });
 
           // Atualizar endereço de cobrança com dados reais
-          console.log('🔍 Settings: Carregando dados de billing do banco:', {
-            billing_street: settings.billing_street,
-            billing_city: settings.billing_city,
-            billing_state: settings.billing_state,
-            billing_zip_code: settings.billing_zip_code,
-            billing_country: settings.billing_country
-          });
-
           setBillingAddress(prev => ({
             ...prev,
             street: settings.billing_street || '',
@@ -248,8 +228,6 @@ export default function Settings() {
             phone: settings.phone || '',
             email: settings.email || ''
           }));
-
-          console.log('✅ Settings: Endereço de cobrança atualizado no estado local');
 
           // Definir foto do perfil se existir
           if (settings.avatar_url) {
@@ -296,7 +274,6 @@ export default function Settings() {
     if (!user?.uid) return;
 
     const handlePlanUpdate = async () => {
-      console.log('🔄 Settings: Plano atualizado, recarregando dados...');
       try {
         const [plan, usageData] = await Promise.all([
           UserSettingsService.getUserCurrentPlan(user.uid),
@@ -435,8 +412,6 @@ export default function Settings() {
   const handleSaveAddress = async () => {
     if (!user?.uid) return;
     
-    console.log('🔍 Salvando endereço:', newAddressData);
-    
     setIsAddressLoading(true);
     try {
       const updateData = {
@@ -447,15 +422,9 @@ export default function Settings() {
         billing_country: 'Brasil'
       };
       
-      console.log('🔍 Dados para atualização:', updateData);
-      
-      console.log('🔍 Chamando UserSettingsService.updateUserSettings...');
       const success = await UserSettingsService.updateUserSettings(user.uid, updateData);
-      console.log('🔍 Resultado do UserSettingsService.updateUserSettings:', success);
 
       if (success) {
-        console.log('✅ Endereço salvo com sucesso!');
-        
         setBillingAddress(prev => ({
           ...prev,
           street: newAddressData.street,
@@ -464,15 +433,12 @@ export default function Settings() {
           zipCode: newAddressData.zipCode
         }));
         
-        console.log('✅ Estado local atualizado com:', newAddressData);
-        
         toast({
           title: "Endereço atualizado",
           description: "Seu endereço foi salvo com sucesso.",
         });
         
         setAddressDialogOpen(false);
-        console.log('✅ Modal fechado');
       } else {
         console.error('❌ Falha ao salvar endereço - success = false');
         throw new Error('Falha ao salvar endereço');
@@ -523,7 +489,6 @@ export default function Settings() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log('📸 Arquivo selecionado:', file.name, file.size, file.type);
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -551,31 +516,17 @@ export default function Settings() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const result = e.target?.result as string;
-      console.log('📸 Base64 gerado, tamanho:', result.length);
       
       try {
         // Salvar no banco de dados
-        console.log('💾 Salvando no banco...');
         const success = await UserSettingsService.updateAvatar(user?.uid || '', result);
         
         if (success) {
-          console.log('✅ [SETTINGS] Avatar salvo com sucesso, atualizando interface...');
-          console.log('📸 [SETTINGS] Avatar URL (result):', result?.substring(0, 50) + '...');
-          
           setProfilePhoto(result);
           
           // Atualizar imediatamente no contexto (para feedback visual rápido)
-          console.log('🔄 [SETTINGS] Chamando updateAvatar...');
           updateAvatar(result); // Update shared context
-          
-          console.log('🔄 [SETTINGS] Chamando updateAvatarFromBase64...');
           updateAvatarFromBase64(result); // Update header avatar - CRÍTICO para header
-          
-          // Forçar re-render do componente UserAvatar adicionando um key único
-          // Mas primeiro, vamos garantir que o estado foi atualizado
-          setTimeout(() => {
-            console.log('🔍 [SETTINGS] Verificando se avatarUrl foi atualizado no contexto...');
-          }, 100);
           
           // Atualizar userSettings local também
           setUserSettings(prev => prev ? { ...prev, avatar_url: result } : null);
@@ -678,11 +629,6 @@ export default function Settings() {
     }
 
     try {
-      console.log('🔍 Debug handleAddCard:');
-      console.log('- user object:', user);
-      console.log('- user.uid:', user?.uid);
-      console.log('- card data:', { lastFour, brand, month, year, name: newCardData.name });
-      
       const success = await UserSettingsService.addPaymentCard(user.uid, {
         last_four: lastFour,
         brand: brand,
@@ -794,11 +740,9 @@ export default function Settings() {
   // Função para buscar endereço por CEP
   const fetchAddressByCEP = async (cep: string) => {
     try {
-      console.log('🔍 fetchAddressByCEP: Iniciando busca para CEP:', cep);
       
       // Limpar CEP (remover hífen e espaços)
       const cleanCEP = cep.replace(/\D/g, '');
-      console.log('🔍 fetchAddressByCEP: CEP limpo:', cleanCEP);
       
       // Validar se tem 8 dígitos
       if (cleanCEP.length !== 8) {
@@ -820,7 +764,6 @@ export default function Settings() {
       for (let i = 0; i < apis.length; i++) {
         try {
           const apiUrl = apis[i];
-          console.log(`🔍 fetchAddressByCEP: Tentativa ${i + 1} - Fazendo requisição para:`, apiUrl);
           
           // Fazer requisição para a API
           response = await fetch(apiUrl, {
@@ -831,21 +774,15 @@ export default function Settings() {
             mode: 'cors'
           });
           
-          console.log(`🔍 fetchAddressByCEP: Tentativa ${i + 1} - Response status:`, response.status);
-          console.log(`🔍 fetchAddressByCEP: Tentativa ${i + 1} - Response ok:`, response.ok);
-          
           if (response.ok) {
             cepData = await response.json();
-            console.log(`🔍 fetchAddressByCEP: Tentativa ${i + 1} - Dados recebidos:`, cepData);
             
             // Verificar se os dados estão válidos para esta API
             if (isValidCepData(cepData, i)) {
-              console.log(`✅ fetchAddressByCEP: API ${i + 1} funcionou!`);
               break;
             }
           }
         } catch (error) {
-          console.log(`❌ fetchAddressByCEP: Tentativa ${i + 1} falhou:`, error.message);
           if (i === apis.length - 1) {
             throw error; // Se for a última tentativa, relança o erro
           }
@@ -855,8 +792,6 @@ export default function Settings() {
       if (!cepData) {
         throw new Error('Todas as APIs de CEP falharam');
       }
-      
-      console.log('✅ fetchAddressByCEP: Dados válidos recebidos, processando...');
       
       // Encontrar qual API funcionou
       let workingApiIndex = -1;
@@ -874,7 +809,6 @@ export default function Settings() {
       
       // Processar dados da API que funcionou
       const processedData = processCepData(cepData, workingApiIndex);
-      console.log('✅ fetchAddressByCEP: Dados processados:', processedData);
       
       // Atualizar os campos do endereço
       setNewAddressData(prev => ({
@@ -884,8 +818,6 @@ export default function Settings() {
         state: processedData.state,
         zipCode: cep
       }));
-      
-      console.log('✅ fetchAddressByCEP: Estado atualizado com sucesso');
       
       toast({
         title: "Endereço encontrado",
@@ -947,7 +879,6 @@ export default function Settings() {
 
     setIsPasswordLoading(true);
     try {
-      console.log('🔐 Iniciando alteração de senha...');
       const success = await UserSettingsService.changePassword(passwordData.new, passwordData.current);
 
       if (success) {
@@ -1008,24 +939,11 @@ export default function Settings() {
     if (!user?.uid) return;
     
     try {
-      console.log('🔄 Atualizando dados de uso e plano na página de configurações...');
-      
       // Atualizar tanto o uso quanto o plano atual em paralelo
       const [usageData, planData] = await Promise.all([
         UserSettingsService.getUserUsage(user.uid),
         UserSettingsService.getUserCurrentPlan(user.uid)
       ]);
-      
-      console.log('✅ Dados de uso recebidos:', usageData);
-      console.log('✅ Plano atual recebido:', planData);
-      console.log('📊 Detalhes:', {
-        petitions: usageData.petitions,
-        petitions_limit: usageData.petitions_limit,
-        plan_code: planData?.plan_code,
-        plan_name: planData?.name,
-        api_calls: usageData.api_calls,
-        storage_used: usageData.storage_used
-      });
       
       setUsage(usageData);
       setCurrentPlan(planData);
@@ -1244,7 +1162,6 @@ export default function Settings() {
                   id="email-notifications"
                   checked={notifications.email}
                   onCheckedChange={async (checked) => {
-                    console.log('📧 Email notifications changed to:', checked);
                     setNotifications(prev => ({...prev, email: checked}));
                     
                     // Salvar no banco de dados
@@ -1253,7 +1170,6 @@ export default function Settings() {
                         const success = await UserSettingsService.updateUserSettings(user.uid, {
                           email_notifications: checked
                         });
-                        console.log('📧 Email notifications saved:', success);
                       } catch (error) {
                         console.error('📧 Error saving email notifications:', error);
                         toast({
@@ -1276,7 +1192,6 @@ export default function Settings() {
                   id="push-notifications"
                   checked={notifications.push}
                   onCheckedChange={async (checked) => {
-                    console.log('🔔 Push notifications changed to:', checked);
                     setNotifications(prev => ({...prev, push: checked}));
                     
                     // Salvar no banco de dados
@@ -1285,7 +1200,6 @@ export default function Settings() {
                         const success = await UserSettingsService.updateUserSettings(user.uid, {
                           push_notifications: checked
                         });
-                        console.log('🔔 Push notifications saved:', success);
                       } catch (error) {
                         console.error('🔔 Error saving push notifications:', error);
                         toast({
@@ -1315,27 +1229,6 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="two-factor">Autenticação de Dois Fatores</Label>
-                  <p className="text-sm text-muted-foreground">Adicione uma camada extra de segurança</p>
-                </div>
-                <Switch
-                  id="two-factor"
-                  checked={security.twoFactor}
-                  onCheckedChange={async (checked) => {
-                    setSecurity(prev => ({...prev, twoFactor: checked}));
-                    
-                    // Salvar no banco de dados
-                    if (user?.uid) {
-                      await UserSettingsService.updateUserSettings(user.uid, {
-                        two_factor_enabled: checked
-                      });
-                    }
-                  }}
-                />
-              </div>
-
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="login-alerts">Alertas de Login</Label>
@@ -1598,18 +1491,11 @@ export default function Settings() {
                           type="button"
                           variant="outline"
                           onClick={() => {
-                            console.log('🔍 Botão Buscar clicado');
-                            console.log('🔍 CEP atual:', newAddressData.zipCode);
-                            
                             const cleanCEP = newAddressData.zipCode.replace(/\D/g, '');
-                            console.log('🔍 CEP limpo:', cleanCEP);
-                            console.log('🔍 Tamanho do CEP:', cleanCEP.length);
                             
                             if (cleanCEP.length === 8) {
-                              console.log('✅ CEP válido, chamando fetchAddressByCEP...');
                               fetchAddressByCEP(newAddressData.zipCode);
                             } else {
-                              console.log('❌ CEP inválido, mostrando toast de erro');
                               toast({
                                 title: "CEP inválido",
                                 description: `CEP deve ter 8 dígitos. Você digitou ${cleanCEP.length} dígitos.`,
@@ -1829,12 +1715,29 @@ export default function Settings() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleChangePassword();
+            }}
+            className="space-y-4"
+          >
+            {/* Campo de username oculto para acessibilidade e autofill */}
+            <input
+              type="text"
+              autoComplete="username"
+              value={user?.email || ''}
+              readOnly
+              className="sr-only"
+              aria-hidden="true"
+              tabIndex={-1}
+            />
             <div className="space-y-2">
               <Label htmlFor="current-password">Senha Atual</Label>
               <Input
                 id="current-password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Digite sua senha atual"
                 value={passwordData.current}
                 onChange={(e) => setPasswordData(prev => ({ ...prev, current: e.target.value }))}
@@ -1849,6 +1752,7 @@ export default function Settings() {
               <Input
                 id="new-password"
                 type="password"
+                autoComplete="new-password"
                 placeholder="Digite sua nova senha"
                 value={passwordData.new}
                 onChange={(e) => {
@@ -1883,6 +1787,7 @@ export default function Settings() {
               <Input
                 id="confirm-password"
                 type="password"
+                autoComplete="new-password"
                 placeholder="Confirme sua nova senha"
                 value={passwordData.confirm}
                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirm: e.target.value }))}
@@ -1906,35 +1811,36 @@ export default function Settings() {
                 <li>• Evite informações pessoais</li>
               </ul>
             </div>
-          </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsPasswordModalOpen(false);
-                setPasswordData({ current: '', new: '', confirm: '' });
-                setPasswordStrength(0);
-              }}
-              disabled={isPasswordLoading}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleChangePassword}
-              disabled={isPasswordLoading || !passwordData.current || !passwordData.new || !passwordData.confirm || passwordData.new !== passwordData.confirm}
-              className="bg-orange-600 hover:bg-orange-700"
-            >
-              {isPasswordLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Alterando...
-                </>
-              ) : (
-                'Alterar Senha'
-              )}
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={() => {
+                  setIsPasswordModalOpen(false);
+                  setPasswordData({ current: '', new: '', confirm: '' });
+                  setPasswordStrength(0);
+                }}
+                disabled={isPasswordLoading}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isPasswordLoading || !passwordData.current || !passwordData.new || !passwordData.confirm || passwordData.new !== passwordData.confirm}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {isPasswordLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Alterando...
+                  </>
+                ) : (
+                  'Alterar Senha'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

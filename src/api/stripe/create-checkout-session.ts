@@ -1,28 +1,39 @@
 import type { Handler } from 'vite-plugin-api-routes';
 import Stripe from 'stripe';
 
-// Chave secreta LIVE do Stripe
-const stripe = new Stripe(import.meta.env.VITE_STRIPE_SECRET_KEY || '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', {
+// Chave secreta do Stripe - usa variável de ambiente ou chave de teste como fallback
+// Em desenvolvimento, usar chave de teste (sk_test_...)
+// Em produção, usar chave live (sk_live_...) via variável de ambiente
+const stripeSecretKey = import.meta.env.VITE_STRIPE_SECRET_KEY || 
+  // Chave de teste para desenvolvimento
+  'sk_test_51Ro45gLnE1r0oPJFCTzcAl1CDFmtJlQU0oeoEd0meag1Nm95npxOgTk0X1per31PN9gRrPYFvszjd23xyNz75pTo00feXmEMlR';
+
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-04-10',
 });
 
 // Usar a URL atual do frontend ou fallback
 // Em desenvolvimento, usar localhost:5176 (porta do Vite)
 // Em produção, usar veredictajus.com.br
-const getDomain = () => {
-  if (typeof window !== 'undefined') {
-    // Se estiver em produção (veredictajus.com.br), usar HTTPS
-    if (window.location.hostname.includes('veredictajus.com.br')) {
-      return 'https://veredictajus.com.br';
-    }
-    return window.location.origin;
+const getDomain = (req?: any) => {
+  // Tentar obter do header da requisição (se disponível)
+  if (req?.headers?.origin) {
+    return req.headers.origin;
   }
+  if (req?.headers?.referer) {
+    try {
+      const url = new URL(req.headers.referer);
+      return url.origin;
+    } catch (e) {
+      // Ignorar erro
+    }
+  }
+  // Fallback para variáveis de ambiente ou localhost
   return import.meta.env.PUBLIC_FRONTEND_URL || 
          import.meta.env.VITE_FRONTEND_URL || 
-         'https://veredictajus.com.br';
+         import.meta.env.VITE_APP_URL ||
+         'http://localhost:5176';
 };
-
-const DOMAIN = getDomain();
 
 const PLAN_PRICES: { [key: string]: number } = {
   'start': 52000, // R$ 520.00
@@ -30,43 +41,55 @@ const PLAN_PRICES: { [key: string]: number } = {
   'elite': 700000, // R$ 7.000.00
 };
 
-// Função auxiliar para ler o body da requisição
-async function readBody(req: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk: any) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (error) {
-        reject(error);
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
 // Export POST handler
 export const POST: Handler = async (req, res) => {
   try {
-    const { plan, include_free_bonus, user_id } = await readBody(req);
+    // O vite-plugin-api-routes já faz o parsing do JSON automaticamente
+    const body = req.body || {};
+    const { plan, include_free_bonus, user_id } = body;
 
-    console.log('📦 Criando checkout para:', { plan, include_free_bonus, user_id });
+    console.log('📦 [API] Body recebido:', JSON.stringify(body));
+    console.log('📦 [API] Criando checkout para:', { plan, include_free_bonus, user_id });
+    console.log('📦 [API] Planos disponíveis:', Object.keys(PLAN_PRICES));
 
     if (!plan || !user_id) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Plano e user_id são obrigatórios' }));
-      return;
+      console.error('❌ [API] Parâmetros faltando:', { 
+        hasPlan: !!plan, 
+        hasUserId: !!user_id,
+        planValue: plan,
+        userIdValue: user_id,
+        fullBody: body
+      });
+      return res.status(400).json({ 
+        error: 'Plano e user_id são obrigatórios',
+        received: { plan, user_id, include_free_bonus }
+      });
     }
 
-    if (!PLAN_PRICES[plan]) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Plano não encontrado' }));
-      return;
+    // Normalizar o nome do plano para lowercase
+    const normalizedPlan = plan.toLowerCase();
+    
+    if (!PLAN_PRICES[normalizedPlan]) {
+      console.error('❌ [API] Plano não encontrado:', {
+        receivedPlan: plan,
+        normalizedPlan,
+        availablePlans: Object.keys(PLAN_PRICES)
+      });
+      return res.status(400).json({ 
+        error: 'Plano não encontrado',
+        received: plan,
+        available: Object.keys(PLAN_PRICES)
+      });
     }
 
-    const price = PLAN_PRICES[plan];
-    const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
+    const price = PLAN_PRICES[normalizedPlan];
+    const planName = normalizedPlan.charAt(0).toUpperCase() + normalizedPlan.slice(1);
+    
+    // Obter domínio baseado na requisição
+    const domain = getDomain(req);
+    
+    // Incluir user_id na URL de sucesso para garantir que o sistema saiba qual usuário fez o pagamento
+    const successUrl = `${domain}/client?payment=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}&free_bonus=${include_free_bonus ? 'true' : 'false'}&user_id=${user_id}`;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -84,8 +107,8 @@ export const POST: Handler = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${DOMAIN}/client?payment=success&session_id={CHECKOUT_SESSION_ID}&plan=${plan}&free_bonus=${include_free_bonus ? 'true' : 'false'}`,
-      cancel_url: `${DOMAIN}/client/plans`,
+      success_url: successUrl,
+      cancel_url: `${domain}/client/plans`,
       metadata: {
         plan: plan,
         include_free_bonus: include_free_bonus ? 'true' : 'false',
@@ -96,12 +119,13 @@ export const POST: Handler = async (req, res) => {
     });
 
     console.log('✅ Sessão criada:', session.id);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ url: session.url }));
+    return res.status(200).json({ url: session.url });
   } catch (error) {
     console.error('❌ Stripe checkout error:', error);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Erro ao criar sessão de checkout', details: error instanceof Error ? error.message : 'Unknown error' }));
+    return res.status(500).json({ 
+      error: 'Erro ao criar sessão de checkout', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 };
 

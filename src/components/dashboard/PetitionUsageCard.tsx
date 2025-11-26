@@ -34,9 +34,34 @@ const planNames = {
   elite: 'Elite'
 };
 
+interface UsageStats {
+  plan_info: {
+    plan_code: string;
+    plan_name: string;
+    base_limit: number;
+    bonus: number;
+    total_limit: number;
+    has_active_plan: boolean;
+  };
+  period_usage: number;
+  total_usage: number;
+  credits_balance: number;
+  period_remaining: number;
+  validity_days: number;
+}
+
+// Função auxiliar para remover caracteres de controle do UID
+const cleanUid = (uid: string): string => {
+  return uid.trim().replace(/\0/g, '').replace(
+    // eslint-disable-next-line no-control-regex
+    /[\u0000-\u001F\u007F]/g, 
+    ''
+  );
+};
+
 export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className }) => {
   const { user } = useNewAuth();
-  const [usageStats, setUsageStats] = useState<any>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -44,7 +69,6 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
     if (!user?.uid) return;
     
     try {
-      console.log('🔍 PetitionUsageCard: Buscando stats para user:', user.uid);
       
       // Buscar plano atual do usuário
       const userPlan = await UserSettingsService.getUserCurrentPlan(user.uid);
@@ -77,13 +101,13 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
         }
       }
       
-      console.log('📅 PetitionUsageCard: Data de início do plano:', planStartDate, 'Plano gratuito:', isFreePlan);
       
       // Contar petições
+      const cleanedUid = cleanUid(user.uid);
       let query = supabase
         .from('petitions')
         .select('*', { count: 'exact', head: true })
-        .eq('client_id', user.uid.trim().replace(/\0/g, '').replace(/[\x00-\x1F\x7F]/g, ''));
+        .eq('client_id', cleanedUid);
       
       // Se tem data de início do plano E não é plano gratuito, filtrar apenas petições criadas após essa data
       if (planStartDate && !isFreePlan) {
@@ -92,14 +116,6 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
       // Para plano gratuito, não filtrar por data - contar TODAS as petições
       
       const { count, error } = await query;
-      
-      console.log('📊 PetitionUsageCard: Contagem de petições:', { 
-        count: count || 0, 
-        error,
-        planStartDate: planStartDate?.toISOString(),
-        filtered: !!planStartDate
-      });
-      console.log('📊 PetitionUsageCard: Plano do usuário:', userPlan);
       
       const petitionCount = count || 0;
       
@@ -111,16 +127,6 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
       
       // Calcular restantes: limite total - petições usadas no período do plano
       const remaining = Math.max(0, limit - petitionCount);
-      
-      console.log('📊 PetitionUsageCard: Cálculo de limites:', {
-        planCode,
-        planName,
-        limit,
-        petitionCount,
-        remaining,
-        calculation: `${limit} - ${petitionCount} = ${remaining}`,
-        planStartDate: planStartDate?.toISOString()
-      });
       
       const stats = {
         plan_info: {
@@ -138,7 +144,6 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
         validity_days: 30
       };
       
-      console.log('📊 PetitionUsageCard: Stats calculadas:', stats);
       setUsageStats(stats);
     } catch (error) {
       console.error('❌ PetitionUsageCard: Erro ao buscar estatísticas de uso:', error);
@@ -153,29 +158,26 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
     fetchUsageStats();
 
     // Escutar mudanças em tempo real nas petições
-    const cleanUid = user.uid.trim().replace(/\0/g, '').replace(/[\x00-\x1F\x7F]/g, '');
+    const cleanedUid = cleanUid(user.uid);
     const channel = supabase
-      .channel(`petition-usage-updates-${cleanUid}`)
+      .channel(`petition-usage-updates-${cleanedUid}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'petitions',
         filter: `client_id=eq.${cleanUid}`
       }, (payload) => {
-        console.log('🔄 PetitionUsageCard: Mudança detectada nas petições:', payload);
         // Aguardar um pouco para garantir que a mudança foi persistida
         setTimeout(() => {
           fetchUsageStats();
         }, 500);
       })
       .subscribe((status) => {
-        console.log('📡 PetitionUsageCard: Status da subscription:', status);
       });
 
     // Escutar evento customizado de atualização de plano
-    const handlePlanUpdate = () => {
-      console.log('🔄 PetitionUsageCard: Plano atualizado, recarregando stats...');
-      fetchUsageStats();
+  const handlePlanUpdate = () => {
+    fetchUsageStats();
     };
     window.addEventListener('planUpdated', handlePlanUpdate);
 

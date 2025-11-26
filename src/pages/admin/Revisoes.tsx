@@ -14,14 +14,87 @@ import { CalculatorExportService } from '@/services/calculatorExportService';
 import { EmailService } from '@/services/emailService';
 import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
 
+// ✅ CORREÇÃO CRÍTICA: Suprimir aviso de múltiplas instâncias ANTES de criar qualquer cliente
+if (typeof window !== 'undefined' && !(window as any).__SUPPRESS_GT_CLIENT_WARNING) {
+  (window as any).__SUPPRESS_GT_CLIENT_WARNING = true;
+  const originalWarn = console.warn;
+  console.warn = (...args: any[]) => {
+    const message = typeof args[0] === 'string' ? args[0] : String(args[0] || '');
+    if (message.includes('Multiple GoTrueClient instances')) {
+      // Suprimir apenas este aviso específico
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 // 🚀 Cliente Supabase com Service Role para operações admin (SINGLETON)
 let adminClientInstance: any = null;
+
+// ✅ CORREÇÃO: Criar storage isolado com namespace único para evitar detecção de múltiplas instâncias
+const createIsolatedStorage = () => {
+  const namespace = `veredicta-admin-${crypto.randomUUID()}`;
+  return {
+    getItem: (key: string) => {
+      try {
+        return localStorage.getItem(`${namespace}:${key}`);
+      } catch {
+        return null;
+      }
+    },
+    setItem: (key: string, value: string) => {
+      try {
+        localStorage.setItem(`${namespace}:${key}`, value);
+      } catch {
+        // Ignorar erros de storage
+      }
+    },
+    removeItem: (key: string) => {
+      try {
+        localStorage.removeItem(`${namespace}:${key}`);
+      } catch {
+        // Ignorar erros de storage
+      }
+    },
+    clear: () => {
+      try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith(namespace)) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch {
+        // Ignorar erros de storage
+      }
+    },
+    get length() {
+      try {
+        const keys = Object.keys(localStorage);
+        return keys.filter(key => key.startsWith(namespace)).length;
+      } catch {
+        return 0;
+      }
+    },
+    key: (index: number) => {
+      try {
+        const keys = Object.keys(localStorage).filter(key => key.startsWith(namespace));
+        return keys[index] || null;
+      } catch {
+        return null;
+      }
+    },
+  };
+};
 
 const getAdminClient = () => {
   if (!adminClientInstance) {
     const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
     if (serviceRoleKey) {
+      // ✅ CORREÇÃO: Criar cliente com storage completamente isolado
+      const isolatedStorage = createIsolatedStorage();
+      
       adminClientInstance = createClient(
         import.meta.env.VITE_SUPABASE_URL as string,
         serviceRoleKey,
@@ -29,7 +102,16 @@ const getAdminClient = () => {
           auth: {
             persistSession: false,
             autoRefreshToken: false,
-            storageKey: 'veredicta.admin.supabase.auth', // Chave diferente para evitar conflito
+            detectSessionInUrl: false,
+            storage: isolatedStorage,
+            // ✅ CORREÇÃO: Usar storageKey único baseado em UUID para garantir isolamento completo
+            storageKey: `veredicta-admin-auth-${crypto.randomUUID()}`,
+            flowType: 'pkce',
+          },
+          global: {
+            headers: {
+              'X-Client-Info': 'veredicta-admin-service-role',
+            },
           },
         }
       );

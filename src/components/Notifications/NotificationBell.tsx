@@ -21,9 +21,6 @@ export const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log('🔔 NotificationBell - notifications:', notifications);
-  console.log('🔔 NotificationBell - unreadCount:', unreadCount);
-
   const recentNotifications = notifications.slice(0, 10);
 
   const getPriorityColor = (priority: string) => {

@@ -524,7 +524,7 @@ export class ChatService {
       }
 
       const {
-        limit = 50,
+        limit = 25, // ✅ OTIMIZAÇÃO: Reduzir limite padrão para carregamento mais rápido
         before = null,
         after = null,
         order = 'asc',

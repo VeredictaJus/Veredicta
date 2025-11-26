@@ -91,6 +91,7 @@ export interface Plan {
 
 export interface Petition {
   id: string;
+  display_id?: string;
   client_id: string;
   writer_id?: string;
   petition_type: PetitionType;

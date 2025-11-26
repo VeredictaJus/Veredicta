@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -68,8 +68,9 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [tab, setTab] = useState<'all' | 'waiting' | 'active' | 'resolved' | 'archived'>('all');
 
-  const filteredConversations = conversations
-    .filter((conv) => {
+  // ✅ OTIMIZAÇÃO: Usar useMemo para cachear filtro e ordenação
+  const filteredConversations = useMemo(() => {
+    const filtered = conversations.filter((conv) => {
       if (tab !== 'all' && conv.status !== tab) return false;
       const term = searchTerm.toLowerCase();
       return (
@@ -77,12 +78,24 @@ export const ChatConversationList: React.FC<ChatConversationListProps> = ({
         conv.lastMessage.toLowerCase().includes(term) ||
         (conv.petitionId && conv.petitionId.toLowerCase().includes(term))
       );
-    })
-    .sort((a, b) => {
+    });
+    
+    // ✅ OTIMIZAÇÃO: Cachear timestamps para evitar múltiplas conversões
+    const timestampCache = new Map<string, number>();
+    return filtered.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+      
+      if (!timestampCache.has(a.lastMessageTime)) {
+        timestampCache.set(a.lastMessageTime, new Date(a.lastMessageTime).getTime());
+      }
+      if (!timestampCache.has(b.lastMessageTime)) {
+        timestampCache.set(b.lastMessageTime, new Date(b.lastMessageTime).getTime());
+      }
+      
+      return timestampCache.get(b.lastMessageTime)! - timestampCache.get(a.lastMessageTime)!;
     });
+  }, [conversations, tab, searchTerm]);
 
   const formatTime = (date: Date | string) => {
     const d = date instanceof Date ? date : new Date(date);

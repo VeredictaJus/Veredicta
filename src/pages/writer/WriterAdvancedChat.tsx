@@ -63,8 +63,6 @@ export default function WriterAdvancedChat() {
       created_at: new Date().toISOString(),
     };
 
-    console.log('📨 Enviando mensagem:', payload);
-
     const { error } = await supabase
       .from('app_d379dcb283_messages')
       .insert(payload);

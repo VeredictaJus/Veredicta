@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface SidebarContextType {
   isDisabled: boolean;
-  disableSidebar: () => void;
+  disableSidebar: (reason?: string) => void;
   enableSidebar: () => void;
   disabledReason?: string;
 }

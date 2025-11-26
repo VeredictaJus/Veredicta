@@ -200,43 +200,24 @@ export default function NewPetition() {
     const state = location.state as any;
     if (state?.editMode && state?.petitionData) {
       const petition = state.petitionData;
-      console.log('📝 ========== CARREGANDO PETIÇÃO PARA EDIÇÃO ==========');
-      console.log('📝 Dados completos da petição:', petition);
-      console.log('📝 petition.area:', petition.area);
-      console.log('📝 petition.type:', petition.type);
-      console.log('📝 petition.title:', petition.title);
-      console.log('📝 petition.description:', petition.description);
-      console.log('📝 petition.priority:', petition.priority);
-      console.log('📝 petition.requires_labor_calculation:', petition.requires_labor_calculation);
-      console.log('📝 petition.files:', petition.files);
       
       // Carregar área do direito
-      console.log('🔍 Verificando área...');
-      console.log('   petition.area:', petition.area);
-      console.log('   typeof:', typeof petition.area);
-      console.log('   selectedArea ANTES:', selectedArea);
       
       if (petition.area) {
-        console.log('✅ Setando área:', petition.area);
         setSelectedArea(petition.area);
         
         // Verificar depois de 100ms se foi setado
         setTimeout(() => {
-          console.log('   selectedArea DEPOIS (100ms):', selectedArea);
         }, 100);
       } else {
-        console.log('⚠️ Petição não tem área salva (area é:', petition.area, ')');
       }
       
       // Carregar tipo de petição (o campo 'type' já vem como string, ex: "Contestação")
       // Precisamos encontrar o ID correspondente em tiposPeticoes
       const tipoEncontrado = tiposPeticoes.find(t => t.name === petition.type);
-      console.log('🔍 Tipo encontrado:', tipoEncontrado);
       if (tipoEncontrado) {
-        console.log('✅ Setando tipo:', tipoEncontrado.id);
         setSelectedType(tipoEncontrado.id);
       } else {
-        console.log('⚠️ Tipo não encontrado em tiposPeticoes, usando direto:', petition.type);
         setSelectedType(petition.type || '');
       }
       
@@ -253,21 +234,9 @@ export default function NewPetition() {
         requiresLaborCalculation: petition.requires_labor_calculation || false,
       });
       
-      console.log('✅ FormData setado:', {
-        title: petition.title,
-        description: petition.description,
-        requiresLaborCalculation: petition.requires_labor_calculation
-      });
-      
       // Carregar arquivos se existirem
-      console.log('🔍 Verificando arquivos...');
-      console.log('   petition.files:', petition.files);
-      console.log('   É array?:', Array.isArray(petition.files));
-      console.log('   Length:', petition.files?.length);
-      console.log('   files state ANTES:', files);
       
       if (petition.files && Array.isArray(petition.files) && petition.files.length > 0) {
-        console.log('📎 Carregando arquivos:', petition.files);
         const loadedFiles = petition.files.map((filePath: string, index: number) => ({
           id: `existing-${index}`,
           name: filePath.split('/').pop() || `Arquivo ${index + 1}`,
@@ -277,22 +246,14 @@ export default function NewPetition() {
           uploading: false
         }));
         setFiles(loadedFiles);
-        console.log('✅ Arquivos setados:', loadedFiles);
         
         // Verificar depois de 100ms se foi setado
         setTimeout(() => {
-          console.log('   files state DEPOIS (100ms):', files);
         }, 100);
       } else {
-        console.log('⚠️ Petição não tem arquivos ou array vazio');
-        console.log('   Condições:');
-        console.log('   - petition.files existe?', !!petition.files);
-        console.log('   - É array?', Array.isArray(petition.files));
-        console.log('   - Tem itens?', petition.files?.length > 0);
       }
       
       toast.info('Editando petição: ' + petition.title);
-      console.log('📝 ========== FIM DO CARREGAMENTO ==========');
     }
   }, [location]);
 
@@ -450,10 +411,6 @@ export default function NewPetition() {
         deadline: (() => {
           const businessDays = getBusinessDaysForPriority(userPlan, formData.priority as PetitionPriority);
           const deadlineDate = calculateBusinessDeadlineFromToday(businessDays);
-          console.log('🎯 Prazo final calculado:', {
-            businessDays,
-            deadline: deadlineDate.toISOString(),
-          });
           return deadlineDate.toISOString();
         })(),
         assigned_writer_id: null as any,
@@ -462,7 +419,6 @@ export default function NewPetition() {
         requires_labor_calculation: formData.requiresLaborCalculation
       };
 
-      console.log('🔍 Dados da petição:', petitionData);
       
       let petitionId: string;
       
@@ -488,20 +444,17 @@ export default function NewPetition() {
         }
         
         petitionId = state.petitionData.id;
-        console.log('✅ Petição atualizada com ID:', petitionId);
         toast.success('Petição atualizada com sucesso!');
       } else {
         // CRIAR nova petição
         const createdPetition = await DatabaseService.createPetition(petitionData as any);
         
-        console.log('🔍 Resultado da criação:', createdPetition);
         
         if (!createdPetition) {
           throw new Error('Erro ao criar petição no banco de dados');
         }
         
         petitionId = createdPetition.id;
-        console.log('✅ Petição criada com ID:', petitionId);
       }
       
       // Upload files if any

@@ -4,8 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import { EmailService } from '../../services/emailService';
 
 // Chave secreta LIVE do Stripe (PRODUÇÃO)
+// ✅ CORREÇÃO: Usar versão da API mais recente e compatível
 const stripe = new Stripe(import.meta.env.VITE_STRIPE_SECRET_KEY || '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', {
-  apiVersion: '2024-04-10',
+  apiVersion: '2024-06-20' as any, // Usar 'as any' para evitar erro de tipo estrito
 });
 
 const supabase = createClient(
@@ -209,14 +210,21 @@ export const POST: APIRoute = async ({ request }) => {
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   console.log('🔄 Processando renovação de assinatura...');
   
-  if (!invoice.subscription) {
-    console.log('⚠️ Invoice sem subscription, ignorando...');
+  // ✅ CORREÇÃO: A propriedade subscription pode ser string ou objeto expandido
+  const subscriptionId = typeof invoice.subscription === 'string' 
+    ? invoice.subscription 
+    : invoice.subscription?.id || null;
+  
+  if (!subscriptionId) {
+    console.log('⚠️ Invoice sem subscription ID, ignorando...');
     return;
   }
 
   try {
-    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
-    const customerId = subscription.customer as string;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const customerId = typeof subscription.customer === 'string' 
+      ? subscription.customer 
+      : subscription.customer.id;
 
     // Buscar usuário pelo customer ID do Stripe
     const { data: user } = await supabaseAdmin

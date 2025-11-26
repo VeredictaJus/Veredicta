@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,6 @@ export default function AvailablePetitions() {
           console.error('Erro ao carregar arquivos da petição disponível:', error);
           setSelectedPetitionFiles([]);
         } else {
-          console.log('📁 Arquivos carregados para petição disponível:', selectedPetition.id, data);
           setSelectedPetitionFiles(data || []);
         }
       } catch (err) {
@@ -106,7 +105,9 @@ export default function AvailablePetitions() {
     // Setup real-time subscription
     const subscription = DatabaseService.subscribeToAvailablePetitions(
       (newPetitions) => {
-        setPetitions(newPetitions);
+        startTransition(() => {
+          setPetitions(newPetitions);
+        });
       },
       user?.uid,
       useSpecialtyFilter

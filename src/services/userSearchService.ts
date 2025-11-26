@@ -19,35 +19,81 @@ export interface UserSearchResult {
 export class UserSearchService {
   
   /**
+   * Função auxiliar para retry com backoff exponencial
+   */
+  private static async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries = 3,
+    initialDelay = 1000
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Se não for erro de rede, não tentar novamente
+        if (error?.message && !error.message.includes('Failed to fetch') && !error.message.includes('network')) {
+          throw error;
+        }
+        
+        // Se não for a última tentativa, aguardar antes de tentar novamente
+        if (attempt < maxRetries - 1) {
+          const delay = initialDelay * Math.pow(2, attempt);
+          console.warn(`⚠️ [UserSearch] Tentativa ${attempt + 1} falhou, tentando novamente em ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /**
    * Buscar todos os usuários da plataforma (exceto o usuário atual)
    */
   static async getAllUsers(currentUserId?: string): Promise<UserSearchResult[]> {
     try {
       console.log('🔍 [UserSearch] Buscando todos os usuários...');
       
-      let query = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('is_active', true)
-        .order('full_name', { ascending: true });
+      return await this.retryWithBackoff(async () => {
+        let query = supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('is_active', true)
+          .order('full_name', { ascending: true });
 
-      // Excluir usuário atual se fornecido
-      if (currentUserId) {
-        query = query.neq('firebase_uid', currentUserId);
-      }
+        // Excluir usuário atual se fornecido
+        if (currentUserId) {
+          query = query.neq('firebase_uid', currentUserId);
+        }
 
-      const { data: users, error } = await query;
+        const { data: users, error } = await query;
 
-      if (error) {
-        console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
-        return [];
-      }
+        if (error) {
+          // Se for erro de rede, lançar para que o retry funcione
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+            throw new Error(`Network error: ${error.message}`);
+          }
+          console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+          return [];
+        }
 
-      console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
-      return users || [];
+        console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
+        return users || [];
+      });
 
-    } catch (error) {
-      console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+    } catch (error: any) {
+      console.error('❌ [UserSearch] Erro ao buscar usuários após retries:', {
+        message: error?.message || 'Erro desconhecido',
+        details: error?.details || error,
+        hint: error?.hint || '',
+        code: error?.code || ''
+      });
+      
+      // Retornar array vazio em caso de erro para não quebrar a UI
       return [];
     }
   }
@@ -63,30 +109,41 @@ export class UserSearchService {
         return this.getAllUsers(currentUserId);
       }
 
-      let query = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('is_active', true)
-        .or(`email.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
-        .order('full_name', { ascending: true });
+      return await this.retryWithBackoff(async () => {
+        let query = supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('is_active', true)
+          .or(`email.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%`)
+          .order('full_name', { ascending: true });
 
-      // Excluir usuário atual se fornecido
-      if (currentUserId) {
-        query = query.neq('firebase_uid', currentUserId);
-      }
+        // Excluir usuário atual se fornecido
+        if (currentUserId) {
+          query = query.neq('firebase_uid', currentUserId);
+        }
 
-      const { data: users, error } = await query;
+        const { data: users, error } = await query;
 
-      if (error) {
-        console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
-        return [];
-      }
+        if (error) {
+          // Se for erro de rede, lançar para que o retry funcione
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+            throw new Error(`Network error: ${error.message}`);
+          }
+          console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+          return [];
+        }
 
-      console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
-      return users || [];
+        console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
+        return users || [];
+      });
 
-    } catch (error) {
-      console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+    } catch (error: any) {
+      console.error('❌ [UserSearch] Erro ao buscar usuários após retries:', {
+        message: error?.message || 'Erro desconhecido',
+        details: error?.details || error,
+        hint: error?.hint || '',
+        code: error?.code || ''
+      });
       return [];
     }
   }
@@ -98,30 +155,41 @@ export class UserSearchService {
     try {
       console.log('🔍 [UserSearch] Buscando usuários do tipo:', role);
       
-      let query = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('role', role)
-        .eq('is_active', true)
-        .order('full_name', { ascending: true });
+      return await this.retryWithBackoff(async () => {
+        let query = supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('role', role)
+          .eq('is_active', true)
+          .order('full_name', { ascending: true });
 
-      // Excluir usuário atual se fornecido
-      if (currentUserId) {
-        query = query.neq('firebase_uid', currentUserId);
-      }
+        // Excluir usuário atual se fornecido
+        if (currentUserId) {
+          query = query.neq('firebase_uid', currentUserId);
+        }
 
-      const { data: users, error } = await query;
+        const { data: users, error } = await query;
 
-      if (error) {
-        console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
-        return [];
-      }
+        if (error) {
+          // Se for erro de rede, lançar para que o retry funcione
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+            throw new Error(`Network error: ${error.message}`);
+          }
+          console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+          return [];
+        }
 
-      console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
-      return users || [];
+        console.log('✅ [UserSearch] Usuários encontrados:', users?.length || 0);
+        return users || [];
+      });
 
-    } catch (error) {
-      console.error('❌ [UserSearch] Erro ao buscar usuários:', error);
+    } catch (error: any) {
+      console.error('❌ [UserSearch] Erro ao buscar usuários após retries:', {
+        message: error?.message || 'Erro desconhecido',
+        details: error?.details || error,
+        hint: error?.hint || '',
+        code: error?.code || ''
+      });
       return [];
     }
   }

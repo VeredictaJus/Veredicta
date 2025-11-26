@@ -168,7 +168,6 @@ export default function Petitions() {
   };
 
   const handleViewPetition = (petitionId: string) => {
-    console.log('Viewing petition:', petitionId);
     // Here would navigate to petition details
     alert(`Visualizando detalhes da petição ${petitionId}`);
   };

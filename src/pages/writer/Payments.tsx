@@ -210,15 +210,6 @@ const Payments: React.FC = () => {
       ? ((thisMonthEarnings - lastMonthEarnings) / lastMonthEarnings) * 100
       : thisMonthEarnings > 0 ? 100 : 0;
 
-    console.log('📊 Stats calculadas:', {
-      totalEarnings,
-      availableBalance,
-      thisMonthEarnings,
-      monthlyAverage,
-      fromBalance: !!balanceData,
-      fromPetitions: !!approvedPetitions
-    });
-
     setStats({
       totalEarnings,
       pendingPayments: availableBalance, // Saldo disponível = pendente de saque

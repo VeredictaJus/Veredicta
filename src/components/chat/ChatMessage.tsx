@@ -133,8 +133,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onReport,
   readBy = [],
 }) => {
-  console.log('[ChatMessage] attachments for', message.id, message.attachments);
-
   return (
     <div className={`relative flex ${isOwn ? 'justify-end pr-8' : 'justify-start pl-8'} my-2`}>
       <div
@@ -318,9 +316,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           title={message.senderName}
         >
           <UserAvatar
-            userId={(message as any)._senderId}
-            userName={message.senderName}
-            size={24}
+            size="sm"
             className="h-6 w-6"
           />
         </span>

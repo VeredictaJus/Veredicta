@@ -139,7 +139,8 @@ export default function Plans() {
     const loadPlans = async () => {
       setLoadingPlans(true);
       try {
-        const plansData = await PlansService.getAllPlans();
+        // ✅ Usar getActivePlans() para buscar apenas planos ativos
+        const plansData = await PlansService.getActivePlans();
         setPlans(plansData);
       } catch (error) {
         console.error('Erro ao carregar planos:', error);

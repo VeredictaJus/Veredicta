@@ -34,7 +34,8 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 const PLAN_PRICES = {
   'start': 52000,   // R$ 520.00 em centavos
   'pro': 168000,    // R$ 1.680.00 em centavos
-  'elite': 700000   // R$ 7.000.00 em centavos
+  'elite': 700000,  // R$ 7.000.00 em centavos
+  'test': 100       // R$ 1.00 em centavos (plano de teste)
 }
 
 // ======================

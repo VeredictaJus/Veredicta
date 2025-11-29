@@ -156,6 +156,7 @@ export default function Plans() {
   useEffect(() => {
     if (desiredPlan) {
       const planNames: { [key: string]: string } = {
+        'test': 'Teste',
         'free': 'Gratuito',
         'start': 'Start',
         'pro': 'Pro',
@@ -267,7 +268,7 @@ export default function Plans() {
     
     try {
       // Criar sessão de checkout usando o endpoint correto
-      const planCode = plan.name.toLowerCase();
+      const planCode = (plan.plan_code || plan.name.toLowerCase()).toLowerCase();
       const includeFreeBonus = planCode === 'start' || planCode === 'pro' || planCode === 'elite';
       
       // Validar dados antes de enviar

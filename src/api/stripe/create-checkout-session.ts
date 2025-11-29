@@ -39,6 +39,7 @@ const PLAN_PRICES: { [key: string]: number } = {
   'start': 52000, // R$ 520.00
   'pro': 168000, // R$ 1.680.00
   'elite': 700000, // R$ 7.000.00
+  'test': 100, // R$ 1.00 (plano de teste)
 };
 
 // Export POST handler

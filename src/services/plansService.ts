@@ -257,10 +257,11 @@ export class PlansService {
   }
 
   /**
-   * Ordenar planos na ordem correta: Free, Start, Pro, Elite
+   * Ordenar planos na ordem correta: Test, Free, Start, Pro, Elite
    */
   private static sortPlans(plans: Plan[]): Plan[] {
     const orderMap: { [key: string]: number } = {
+      'test': 0,   // Plano de teste aparece primeiro
       'free': 1,
       'start': 2,
       'pro': 3,

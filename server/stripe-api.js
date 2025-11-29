@@ -17,7 +17,8 @@ const stripe = new Stripe('sk_live_51Ro45gLnE1r0oPJFRhYAIXj1dOlHUOoM6F9PsKuR2PYd
 const PLAN_PRICES = {
   'start': 52000,   // R$ 520.00 em centavos
   'pro': 168000,    // R$ 1.680.00 em centavos
-  'elite': 700000   // R$ 7.000.00 em centavos
+  'elite': 700000,  // R$ 7.000.00 em centavos
+  'test': 100       // R$ 1.00 em centavos (plano de teste)
 };
 
 // Endpoint para criar sessão de checkout

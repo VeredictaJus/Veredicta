@@ -17,13 +17,15 @@ export const stripePromise = () => {
 export const STRIPE_PRICE_IDS = {
   start: import.meta.env.VITE_STRIPE_PRICE_START || 'price_1SIx0xLnE1r0oPJFSN2Kt41R',
   pro: import.meta.env.VITE_STRIPE_PRICE_PRO || 'price_1SIx2XLnE1r0oPJFljNvb1t3', 
-  elite: import.meta.env.VITE_STRIPE_PRICE_ELITE || 'price_1SIx3jLnE1r0oPJFw8pvuZnO'
+  elite: import.meta.env.VITE_STRIPE_PRICE_ELITE || 'price_1SIx3jLnE1r0oPJFw8pvuZnO',
+  test: import.meta.env.VITE_STRIPE_PRICE_TEST || 'price_1SYbSbLnE1r0oPJFloCSxOBA'
 };
 
 export const PLAN_PRICES = {
   start: 52000, // R$ 520,00 em centavos
   pro: 168000,  // R$ 1.680,00 em centavos
-  elite: 700000 // R$ 7.000,00 em centavos
+  elite: 700000, // R$ 7.000,00 em centavos
+  test: 100     // R$ 1,00 em centavos (plano de teste)
 };
 
 export const WRITER_PRICES = {

@@ -188,6 +188,51 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
   }, [conversationId, currentConversation?.id]);
 
+  // ✅ CORREÇÃO: Função de scroll deve estar declarada ANTES dos useEffects que a utilizam
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      // ✅ CORREÇÃO: Melhorar função de scroll para sempre funcionar
+      // Tentar múltiplas estratégias para garantir que o scroll aconteça
+      const scroll = () => {
+        // Estratégia 1: Usar messagesEndRef com scrollIntoView (mais confiável)
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({
+            behavior: behavior,
+            block: 'end',
+            inline: 'nearest'
+          });
+        }
+        
+        // Estratégia 2: Usar scrollContainerRef (fallback)
+        if (scrollContainerRef.current) {
+          const container = scrollContainerRef.current;
+          const targetScrollTop = container.scrollHeight - container.clientHeight;
+          
+          if (behavior === 'smooth') {
+            container.scrollTo({
+              top: targetScrollTop,
+              behavior: 'smooth'
+            });
+          } else {
+            container.scrollTop = targetScrollTop;
+          }
+        }
+        
+        // Atualizar estado para indicar que está no final
+        isNearBottomRef.current = true;
+        isUserScrollingRef.current = false;
+      };
+      
+      // ✅ CORREÇÃO: Usar requestAnimationFrame para garantir que o DOM foi atualizado
+      requestAnimationFrame(() => {
+        scroll();
+        // Tentar novamente após um pequeno delay para garantir
+        setTimeout(scroll, 50);
+      });
+    },
+    []
+  );
+
   // Selecionar conversa quando conversationId for passado como prop
   useEffect(() => {
     if (conversationId && conversationId !== currentConversation?.id) {
@@ -202,6 +247,13 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
             startTransition(() => {
               setIsTransitioning(false);
             });
+            
+            // ✅ CORREÇÃO: Fazer scroll automático quando conversa é selecionada
+            isNearBottomRef.current = true;
+            isUserScrollingRef.current = false;
+            setTimeout(() => {
+              scrollToBottom('smooth');
+            }, 200);
           }, 100);
         })
         .catch((error) => {
@@ -218,7 +270,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // Se não há conversationId mas há currentConversation, limpar
       setIsTransitioning(false);
     }
-  }, [conversationId, currentConversation?.id, selectConversation, loadConversations]);
+  }, [conversationId, currentConversation?.id, selectConversation, loadConversations, scrollToBottom]);
 
   useEffect(() => {
     // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
@@ -331,6 +383,41 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       prevMessagesRef.current = [];
     }
   }, [contextMessages, currentConversation?.id, conversationId]);
+  
+  // ✅ CORREÇÃO: Scroll automático quando conversa é selecionada pela primeira vez
+  useEffect(() => {
+    if (currentConversation && messages.length > 0) {
+      // Fazer scroll automático quando há mensagens e conversa está selecionada
+      // Aguardar um pouco para garantir que o DOM foi atualizado
+      const timeoutId = setTimeout(() => {
+        isNearBottomRef.current = true;
+        isUserScrollingRef.current = false;
+        scrollToBottom('auto'); // Usar 'auto' para scroll instantâneo ao carregar
+      }, 150);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentConversation?.id, scrollToBottom]);
+  
+  // ✅ CORREÇÃO: Scroll automático quando mensagens são carregadas
+  useEffect(() => {
+    if (messages.length > 0 && currentConversation) {
+      // Verificar se é uma nova conversa ou se acabou de carregar mensagens
+      const timeoutId = setTimeout(() => {
+        // Fazer scroll para o final apenas se estiver próximo do final ou se for mensagem própria
+        const lastMessage = messages[messages.length - 1];
+        const isOwnMessage = lastMessage && user?.uid && lastMessage.sender_id === user.uid;
+        
+        if (isNearBottomRef.current || isOwnMessage) {
+          isNearBottomRef.current = true;
+          isUserScrollingRef.current = false;
+          scrollToBottom(isOwnMessage ? 'smooth' : 'auto');
+        }
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length, currentConversation?.id, user?.uid, scrollToBottom]);
   
   // Função para forçar recarregamento das mensagens
   const forceReloadMessages = async () => {
@@ -642,41 +729,27 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
 
   // Scroll para última mensagem
-  const scrollToBottom = useCallback(
-    (behavior: ScrollBehavior = 'smooth') => {
-      // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para ler propriedades após o layout ser calculado
-      // Isso evita forced reflow ao ler scrollHeight/clientHeight antes do navegador recalcular
-      if (messagesEndRef.current && scrollContainerRef.current) {
-        const container = scrollContainerRef.current;
-        
-        // ✅ OTIMIZAÇÃO: Usar requestAnimationFrame para garantir que o layout já foi calculado
-        requestAnimationFrame(() => {
-          const targetScrollTop = container.scrollHeight - container.clientHeight;
-          
-          // ✅ OTIMIZAÇÃO: Usar scrollTo ao invés de scrollIntoView para melhor performance
-          if (behavior === 'smooth') {
-            container.scrollTo({
-              top: targetScrollTop,
-              behavior: 'smooth'
-            });
-          } else {
-            container.scrollTop = targetScrollTop;
-          }
-          
-          // Atualizar estado de forma assíncrona
-          setTimeout(() => {
-            isNearBottomRef.current = true;
-          }, 0);
-        });
-      }
-    },
-    []
-  );
-
   // Scroll automático apenas se o usuário estiver no final ou se for mensagem própria
   useEffect(() => {
     if (skipAutoScrollRef.current) {
       skipAutoScrollRef.current = false;
+      return;
+    }
+
+    // Verificar se a última mensagem é do próprio usuário
+    const lastMessage = messages[messages.length - 1];
+    const isOwnMessage = lastMessage && user?.uid && lastMessage.sender_id === user.uid;
+
+    // ✅ CORREÇÃO: Se for mensagem própria, sempre fazer scroll automático
+    if (isOwnMessage) {
+      // Forçar scroll para o final quando enviar mensagem
+      isNearBottomRef.current = true;
+      isUserScrollingRef.current = false;
+      
+      // Aguardar um pouco para garantir que o DOM foi atualizado
+      setTimeout(() => {
+        scrollToBottom('smooth');
+      }, 50);
       return;
     }
 
@@ -694,19 +767,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       // Verificar novamente se está próximo do final (atualizar estado)
       isNearBottomRef.current = checkIfNearBottom();
 
-      // Se não está próximo do final, não fazer scroll automático
-      if (!isNearBottomRef.current) {
-        return;
-      }
-
-      // Verificar se a última mensagem é do próprio usuário
-      const lastMessage = messages[messages.length - 1];
-      const isOwnMessage = lastMessage && user?.uid && lastMessage.sender_id === user.uid;
-
-      // Só fazer scroll automático se:
-      // 1. O usuário está próximo do final (já estava vendo as mensagens mais recentes), OU
-      // 2. É uma mensagem própria (o usuário acabou de enviar)
-      if (isNearBottomRef.current || isOwnMessage) {
+      // Só fazer scroll automático se o usuário está próximo do final
+      if (isNearBottomRef.current) {
         scrollToBottom();
       }
     });
@@ -828,10 +890,25 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     // Adicionar mensagem otimista
     setMessages(prev => [...prev, optimisticMessage]);
 
+    // ✅ CORREÇÃO: Fazer scroll automático imediatamente quando adiciona mensagem otimista
+    isNearBottomRef.current = true;
+    isUserScrollingRef.current = false;
+    setTimeout(() => {
+      scrollToBottom('smooth');
+    }, 50);
+
     try {
       await sendMessage(filteredContent); // Envia a mensagem filtrada
       // Se chegou aqui, a mensagem foi enviada com sucesso
       // A mensagem otimista será substituída pela mensagem real quando chegar via real-time
+      
+      // ✅ CORREÇÃO: Forçar scroll automático novamente após envio confirmado
+      // Aguardar um pouco para garantir que a mensagem foi adicionada ao DOM
+      setTimeout(() => {
+        isNearBottomRef.current = true; // Garantir que está no final
+        isUserScrollingRef.current = false; // Permitir scroll automático
+        scrollToBottom('smooth');
+      }, 150);
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       // Remover mensagem otimista em caso de erro

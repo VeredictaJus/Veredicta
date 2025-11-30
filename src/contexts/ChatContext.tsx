@@ -1313,48 +1313,64 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // ✅ CORREÇÃO CRÍTICA: Capturar valores no momento da criação para evitar problemas de closure
       const currentUser = user;
       const notificationSound = playNotificationSound;
+      const capturedConversationId = conversationId; // Capturar conversationId para usar nos callbacks
+      const capturedIsMessageAlreadyProcessed = isMessageAlreadyProcessed; // Capturar função para usar nos callbacks
       
       // Criar nova subscription para a conversa atual
-      console.log('🔌 [ChatContext] Criando subscription real-time para conversa:', conversationId);
+      console.log('🔌 [ChatContext] Criando subscription real-time para conversa:', capturedConversationId);
       const messagesChannel = supabase
-        .channel(`messages-${conversationId}-${Date.now()}`) // Nome único para evitar conflitos
+        .channel(`messages-${capturedConversationId}-${Date.now()}`) // Nome único para evitar conflitos
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`
+            filter: `conversation_id=eq.${capturedConversationId}`
           },
           (payload) => {
-            console.log('🔔 [ChatContext] Nova mensagem recebida via real-time:', payload.new);
-            const newMessage = payload.new as Message;
-            
-            // ✅ CORREÇÃO: Verificar se mensagem já foi processada (evita duplicação)
-            if (isMessageAlreadyProcessed(newMessage.id)) {
-              console.log('⚠️ [ChatContext] Mensagem já processada, ignorando duplicação:', newMessage.id);
-              return;
-            }
-            
-            // ✅ CORREÇÃO: Marcar que real-time está funcionando
-            lastRealtimeMessageRef.current = Date.now();
-            realtimeWorkingRef.current = true;
-            
-            // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
-            const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
-            if (newMessage.conversation_id !== currentConvId) {
-              console.warn('⚠️ [ChatContext] Mensagem recebida de conversa diferente, ignorando:', {
-                receivedConversationId: newMessage.conversation_id,
-                currentConversationId: currentConvId
-              });
-              return;
-            }
-            
-            // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem diretamente ao estado, preservando todas as anteriores
-            startTransition(() => {
-              setMessages((prev) => {
-                // Filtrar apenas mensagens da conversa atual
-                const prevFiltered = prev.filter(msg => msg.conversation_id === conversationId);
+            try {
+              console.log('🔔 [ChatContext] Nova mensagem recebida via real-time:', payload.new);
+              
+              // ✅ CORREÇÃO: Validar payload antes de processar
+              if (!payload || !payload.new) {
+                console.warn('⚠️ [ChatContext] Payload inválido recebido:', payload);
+                return;
+              }
+              
+              const newMessage = payload.new as Message;
+              
+              // ✅ CORREÇÃO: Validar mensagem antes de processar
+              if (!newMessage || !newMessage.id) {
+                console.warn('⚠️ [ChatContext] Mensagem inválida recebida:', newMessage);
+                return;
+              }
+              
+              // ✅ CORREÇÃO: Verificar se mensagem já foi processada (evita duplicação)
+              if (capturedIsMessageAlreadyProcessed(newMessage.id)) {
+                console.log('⚠️ [ChatContext] Mensagem já processada, ignorando duplicação:', newMessage.id);
+                return;
+              }
+              
+              // ✅ CORREÇÃO: Marcar que real-time está funcionando
+              lastRealtimeMessageRef.current = Date.now();
+              realtimeWorkingRef.current = true;
+              
+              // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
+              const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
+              if (newMessage.conversation_id !== currentConvId) {
+                console.warn('⚠️ [ChatContext] Mensagem recebida de conversa diferente, ignorando:', {
+                  receivedConversationId: newMessage.conversation_id,
+                  currentConversationId: currentConvId
+                });
+                return;
+              }
+              
+              // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem diretamente ao estado, preservando todas as anteriores
+              startTransition(() => {
+                setMessages((prev) => {
+                  // Filtrar apenas mensagens da conversa atual
+                  const prevFiltered = prev.filter(msg => msg.conversation_id === capturedConversationId);
                 
                 // ✅ CORREÇÃO MELHORADA: Verificar duplicação de forma mais robusta
                 const existsById = prevFiltered.find(msg => msg.id === newMessage.id);
@@ -1410,7 +1426,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 );
                 
                 // Preservar mensagens de outras conversas no estado
-                const otherConversationMessages = prev.filter(msg => msg.conversation_id !== conversationId);
+                const otherConversationMessages = prev.filter(msg => msg.conversation_id !== capturedConversationId);
                 return [...otherConversationMessages, ...updatedMessages];
               });
             });
@@ -1427,7 +1443,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             }
             
             // ✅ OTIMIZAÇÃO: Atualizar cache com a nova mensagem
-            const cachedData = messagesCacheRef.current.get(conversationId);
+            const cachedData = messagesCacheRef.current.get(capturedConversationId);
             if (cachedData) {
               const existingIds = new Set(cachedData.messages.map(m => m.id));
               if (!existingIds.has(newMessage.id)) {
@@ -1436,11 +1452,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 updatedMessages.sort((a, b) => 
                   new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 );
-                messagesCacheRef.current.set(conversationId, {
+                messagesCacheRef.current.set(capturedConversationId, {
                   messages: updatedMessages,
                   timestamp: Date.now()
                 });
               }
+            }
+            } catch (callbackError) {
+              console.error('❌ [ChatContext] Erro ao processar mensagem do real-time:', callbackError);
             }
           }
         )
@@ -1450,7 +1469,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             event: 'UPDATE',
             schema: 'public',
             table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`
+            filter: `conversation_id=eq.${capturedConversationId}`
           },
           (payload) => {
             console.log('🔄 [ChatContext] Mensagem atualizada via real-time:', payload.new);
@@ -1465,7 +1484,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             // ✅ CORREÇÃO CRÍTICA: Atualizar mensagem existente preservando TODAS as mensagens
             startTransition(() => {
               setMessages((prev) => {
-                const filtered = prev.filter((msg) => msg.conversation_id === conversationId);
+                const filtered = prev.filter((msg) => msg.conversation_id === capturedConversationId);
                 const exists = filtered.find((msg) => msg.id === updatedMessage.id);
                 
                 let updated: Message[];
@@ -1482,50 +1501,62 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 }
                 
                 // ✅ CORREÇÃO: Preservar mensagens de outras conversas
-                const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== conversationId);
+                const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== capturedConversationId);
                 return [...otherConversationMessages, ...updated];
               });
             });
           }
         )
         .subscribe((status, err) => {
-          subscriptionStatusRef.current = status as any;
-          
-          if (err) {
-            console.error('❌ [ChatContext] Erro na subscription de mensagens:', err);
-            // ✅ Forçar polling quando há erro
-            lastRealtimeMessageRef.current = 0;
-            realtimeWorkingRef.current = false;
-          } else if (status === 'SUBSCRIBED') {
-            console.log('✅ [ChatContext] Subscription de mensagens ativa para conversa:', conversationId);
-            realtimeWorkingRef.current = true;
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.error('❌ [ChatContext] Erro no canal de mensagens, forçando polling:', status);
-            // ✅ Forçar polling quando canal falha
-            lastRealtimeMessageRef.current = 0;
-            realtimeWorkingRef.current = false;
+          try {
+            // ✅ CORREÇÃO: Verificar se status é válido antes de usar
+            if (status && typeof status === 'string') {
+              subscriptionStatusRef.current = status as 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED' | null;
+            } else {
+              subscriptionStatusRef.current = null;
+            }
             
-            // ✅ Tentar reconectar após 5 segundos
-            setTimeout(() => {
-              const currentConvId = pollingConversationIdRef.current;
-              if (currentConvId === conversationId && messagesSubscriptionRef.current) {
-                console.log('🔄 [ChatContext] Tentando reconectar subscription...');
+            if (err) {
+              console.error('❌ [ChatContext] Erro na subscription de mensagens:', err);
+              // ✅ Forçar polling quando há erro
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+              return;
+            }
+            
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ [ChatContext] Subscription de mensagens ativa para conversa:', capturedConversationId);
+              realtimeWorkingRef.current = true;
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.error('❌ [ChatContext] Erro no canal de mensagens, forçando polling:', status);
+              // ✅ Forçar polling quando canal falha
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+              
+              // ✅ Tentar reconectar após 5 segundos
+              setTimeout(() => {
                 try {
-                  supabase.removeChannel(messagesSubscriptionRef.current);
-                  messagesSubscriptionRef.current = null;
-                  // A subscription será recriada no próximo ciclo do useEffect
+                  const currentConvId = pollingConversationIdRef.current;
+                  if (currentConvId === capturedConversationId && messagesSubscriptionRef.current) {
+                    console.log('🔄 [ChatContext] Tentando reconectar subscription...');
+                    supabase.removeChannel(messagesSubscriptionRef.current);
+                    messagesSubscriptionRef.current = null;
+                    // A subscription será recriada no próximo ciclo do useEffect
+                  }
                 } catch (e) {
                   console.warn('⚠️ [ChatContext] Erro ao remover canal antigo:', e);
                 }
-              }
-            }, 5000);
-          } else if (status === 'CLOSED') {
-            console.warn('⚠️ [ChatContext] Canal fechado, forçando polling:', status);
-            // ✅ Forçar polling quando canal fecha
-            lastRealtimeMessageRef.current = 0;
-            realtimeWorkingRef.current = false;
-          } else {
-            console.log('📡 [ChatContext] Status da subscription:', status);
+              }, 5000);
+            } else if (status === 'CLOSED') {
+              console.warn('⚠️ [ChatContext] Canal fechado, forçando polling:', status);
+              // ✅ Forçar polling quando canal fecha
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+            } else if (status) {
+              console.log('📡 [ChatContext] Status da subscription:', status);
+            }
+          } catch (callbackError) {
+            console.error('❌ [ChatContext] Erro no callback do subscribe:', callbackError);
           }
         });
 

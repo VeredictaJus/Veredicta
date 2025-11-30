@@ -155,6 +155,43 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const CHAT_BUCKET = 'chat_attachments';
   const localPreviewOverridesRef = useRef<Map<string, { preview: string; createdAt: string }>>(new Map());
+  
+  // ✅ CORREÇÃO: Sistema de deduplicação global de mensagens
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  const processedMessageIdsTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  // ✅ CORREÇÃO: Rastreamento de real-time para desabilitar polling quando funciona
+  const realtimeWorkingRef = useRef<boolean>(false);
+  const lastRealtimeMessageRef = useRef<number>(0);
+  
+  // ✅ CORREÇÃO: Debounce para envio de mensagens
+  const lastMessageSentRef = useRef<string>('');
+  const messageSendTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ CORREÇÃO: Limpar IDs processados após 1 minuto para evitar memory leak
+  const cleanupProcessedIds = useCallback((messageId: string) => {
+    const existingTimeout = processedMessageIdsTimeoutRef.current.get(messageId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      processedMessageIdsRef.current.delete(messageId);
+      processedMessageIdsTimeoutRef.current.delete(messageId);
+    }, 60000); // 1 minuto
+    
+    processedMessageIdsTimeoutRef.current.set(messageId, timeout);
+  }, []);
+
+  // ✅ CORREÇÃO: Verificar se mensagem já foi processada
+  const isMessageAlreadyProcessed = useCallback((messageId: string): boolean => {
+    if (processedMessageIdsRef.current.has(messageId)) {
+      return true;
+    }
+    processedMessageIdsRef.current.add(messageId);
+    cleanupProcessedIds(messageId);
+    return false;
+  }, [cleanupProcessedIds]);
 
   const applyLastMessageOverride = useCallback(
     (
@@ -1139,8 +1176,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       // ✅ CORREÇÃO CRÍTICA: Atualizar ref com conversationId atual
       pollingConversationIdRef.current = conversationId;
 
-      // ✅ OTIMIZAÇÃO: Aumentar intervalo para 2000ms (2 segundos) para reduzir carga
-      // ✅ OTIMIZAÇÃO: Adicionar proteção contra execuções simultâneas
+      // ✅ CORREÇÃO: Polling apenas como fallback quando real-time não funciona
+      // ✅ OTIMIZAÇÃO: Aumentar intervalo para 10000ms (10 segundos) para reduzir carga significativamente
       messagePollingRef.current = setInterval(async () => {
         // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
         if (isPollingRef.current) {
@@ -1167,7 +1204,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             return; // Parar polling se a conversa mudou
           }
           
-          // ✅ OTIMIZAÇÃO: Buscar mensagens (removidos console.log para melhor performance)
+          // ✅ NOVA CORREÇÃO: Verificar se real-time está funcionando (se recebeu mensagem nos últimos 10s)
+          const timeSinceLastRealtime = Date.now() - lastRealtimeMessageRef.current;
+          if (timeSinceLastRealtime < 10000 && lastRealtimeMessageRef.current > 0) {
+            // Real-time está funcionando, pular polling para reduzir carga
+            isPollingRef.current = false;
+            return;
+          }
+          
+          // ✅ OTIMIZAÇÃO: Buscar mensagens apenas se real-time não está funcionando
           const latestMessages = await ChatService.getConversationMessages(currentPollingId, {
             limit: MESSAGE_PAGE_SIZE,
           });
@@ -1180,9 +1225,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             const existingIds = new Set(currentMessages.map(m => m.id));
             const newMessages = latestMessages.filter(msg => !existingIds.has(msg.id));
             
-            // ✅ CORREÇÃO: Só processar se houver mensagens realmente novas
-            // Isso evita que o polling substitua mensagens que chegaram via real-time
-            if (newMessages.length > 0 || latestMessages.length !== currentMessages.length) {
+            // ✅ CORREÇÃO: Filtrar mensagens já processadas pelo sistema de deduplicação
+            const trulyNewMessages = newMessages.filter(msg => !isMessageAlreadyProcessed(msg.id));
+            
+            // ✅ CORREÇÃO: Só processar se houver mensagens realmente novas e não processadas
+            if (trulyNewMessages.length > 0) {
               handleIncomingMessagesForConversation(latestMessages, currentPollingId, { skipSound: false });
             }
             oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
@@ -1232,7 +1279,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           // ✅ OTIMIZAÇÃO: Sempre liberar o flag, mesmo em caso de erro
           isPollingRef.current = false;
         }
-      }, 2000); // ✅ OTIMIZAÇÃO: Aumentado de 1000ms para 2000ms (2 segundos)
+      }, 10000); // ✅ CORREÇÃO: Aumentado para 10000ms (10 segundos) para reduzir carga e evitar competição com real-time
 
       // ✅ NOVO: Adicionar subscription real-time para mensagens
       // Limpar subscription anterior se existir
@@ -1266,6 +1313,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             console.log('🔔 [ChatContext] Nova mensagem recebida via real-time:', payload.new);
             const newMessage = payload.new as Message;
             
+            // ✅ CORREÇÃO: Verificar se mensagem já foi processada (evita duplicação)
+            if (isMessageAlreadyProcessed(newMessage.id)) {
+              console.log('⚠️ [ChatContext] Mensagem já processada, ignorando duplicação:', newMessage.id);
+              return;
+            }
+            
+            // ✅ CORREÇÃO: Marcar que real-time está funcionando
+            lastRealtimeMessageRef.current = Date.now();
+            realtimeWorkingRef.current = true;
+            
             // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
             const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
             if (newMessage.conversation_id !== currentConvId) {
@@ -1282,15 +1339,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                 // Filtrar apenas mensagens da conversa atual
                 const prevFiltered = prev.filter(msg => msg.conversation_id === conversationId);
                 
-                // Verificar se a mensagem já existe (evitar duplicatas)
-                // ✅ CORREÇÃO: Verificar também por ID otimista (temp-*) que pode corresponder a esta mensagem confirmada
+                // ✅ CORREÇÃO MELHORADA: Verificar duplicação de forma mais robusta
                 const existsById = prevFiltered.find(msg => msg.id === newMessage.id);
-                const existsByContent = prevFiltered.find(msg => 
-                  (msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')) &&
-                  msg.content === newMessage.content &&
-                  msg.sender_id === newMessage.sender_id &&
-                  Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000
-                );
                 
                 if (existsById) {
                   console.log('⚠️ [ChatContext] Mensagem já existe no estado, atualizando:', newMessage.id);
@@ -1301,13 +1351,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
                   return updated;
                 }
                 
+                // ✅ CORREÇÃO MELHORADA: Verificar por conteúdo e timestamp (para mensagens otimistas)
+                const existsByContent = prevFiltered.find(msg => {
+                  const isOptimistic = msg.id.startsWith('temp-') || msg.id.startsWith('tmp-');
+                  if (!isOptimistic) return false;
+                  
+                  const timeDiff = Math.abs(
+                    new Date(msg.created_at).getTime() - 
+                    new Date(newMessage.created_at).getTime()
+                  );
+                  
+                  // Verificar se conteúdo e remetente são iguais e timestamp está dentro de 5 segundos
+                  return (
+                    msg.content === newMessage.content &&
+                    msg.sender_id === newMessage.sender_id &&
+                    timeDiff < 5000 // 5 segundos de janela
+                  );
+                });
+                
                 if (existsByContent) {
                   console.log('✅ [ChatContext] Substituindo mensagem otimista por confirmada:', existsByContent.id, '->', newMessage.id);
                   // Substituir mensagem otimista pela confirmada preservando todas as outras
                   const updated = prev.map(msg => 
-                    (msg.id === existsByContent.id || msg.id === newMessage.id) ? newMessage : msg
+                    msg.id === existsByContent.id ? newMessage : msg
                   );
-                  // Remover duplicatas se houver
+                  // ✅ CORREÇÃO: Remover duplicatas se houver (caso mensagem confirmada já exista)
                   const seen = new Set<string>();
                   return updated.filter(msg => {
                     if (seen.has(msg.id)) return false;
@@ -1520,6 +1588,25 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         return;
       }
 
+      // ✅ CORREÇÃO: Verificar debounce para evitar envio duplicado da mesma mensagem
+      const messageKey = `${content}-${fileData?.name || ''}-${Date.now()}`;
+      const messageHash = messageKey.split('-').slice(0, -1).join('-'); // Remove timestamp para comparação
+      
+      // Limpar timeout anterior se existir
+      if (messageSendTimeoutRef.current) {
+        clearTimeout(messageSendTimeoutRef.current);
+        messageSendTimeoutRef.current = null;
+      }
+      
+      // Verificar se é mensagem duplicada (mesmo conteúdo em menos de 1 segundo)
+      if (lastMessageSentRef.current === messageHash) {
+        console.log('⚠️ [ChatContext] Mensagem duplicada detectada, ignorando envio');
+        return;
+      }
+      
+      // Marcar mensagem como sendo enviada
+      lastMessageSentRef.current = messageHash;
+
       const now = new Date().toISOString();
       const optimisticId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const optimisticMessage: Message = {
@@ -1677,6 +1764,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           console.error('Erro ao criar notificação:', err);
         });
         
+        // ✅ CORREÇÃO: Limpar ref de debounce após envio bem-sucedido
+        lastMessageSentRef.current = '';
+        
         // Não recarregar mensagens após envio - a mensagem já foi adicionada otimisticamente
         // e será atualizada via real-time quando chegar do servidor
         // loadConversationMessages(currentConversation.id).catch(err => {
@@ -1732,6 +1822,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setError('Erro ao enviar mensagem');
         console.error('Erro ao enviar mensagem:', err);
         messageId = null;
+        
+        // ✅ CORREÇÃO: Limpar ref de debounce em caso de erro
+        lastMessageSentRef.current = '';
+        
         // ✅ CORREÇÃO: Lançar erro para que o ChatWindow possa tratá-lo e remover a mensagem otimista
         throw err;
       }
@@ -2132,6 +2226,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           console.warn('⚠️ [ChatContext] Erro ao remover subscription no cleanup:', err);
         }
         messagesSubscriptionRef.current = null;
+      }
+      
+      // ✅ CORREÇÃO: Limpar timeouts de deduplicação e debounce
+      processedMessageIdsTimeoutRef.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      processedMessageIdsTimeoutRef.current.clear();
+      processedMessageIdsRef.current.clear();
+      
+      if (messageSendTimeoutRef.current) {
+        clearTimeout(messageSendTimeoutRef.current);
+        messageSendTimeoutRef.current = null;
       }
     };
   }, []);

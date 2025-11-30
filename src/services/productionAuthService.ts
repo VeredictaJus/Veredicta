@@ -1,5 +1,5 @@
 // src/services/productionAuthService.ts
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { EmailService } from './emailService'
 import { supabase } from '@/lib/supabaseClient' // Usar o cliente principal
@@ -490,23 +490,25 @@ class ProductionAuthService {
         console.warn('⚠️ Não foi possível obter nome do usuário para o reset:', profileError)
       }
 
-      // 3. Enviar apenas o email customizado com link funcional
-      await EmailService.sendPasswordResetEmail(email, userName, customResetLink)
-      console.log('📧 Email customizado de reset enviado:', email)
+      // 3. Enviar apenas o email customizado bonito com link funcional
+      console.log('📧 [ProductionAuthService] Preparando para enviar email bonito de reset para:', email)
+      console.log('📧 [ProductionAuthService] Link customizado gerado:', customResetLink.substring(0, 100) + '...')
+      
+      const emailSent = await EmailService.sendPasswordResetEmail(email, userName, customResetLink)
+      
+      if (!emailSent) {
+        console.error('❌ [ProductionAuthService] Falha ao enviar email customizado')
+        throw new Error('Falha ao enviar email customizado de redefinição de senha')
+      }
+      
+      console.log('✅ 📧 [ProductionAuthService] Email customizado bonito de reset enviado com sucesso para:', email)
     } catch (error: any) {
       console.error('❌ Erro ao enviar email de recuperação customizado:', error)
-
-      // Fallback: tentar enviar email padrão do Firebase
-      try {
-        await sendPasswordResetEmail(auth, email, {
-          url: `${window.location.origin}/#/auth/reset-password`
-        })
-        console.log('✅ Email padrão do Firebase enviado como fallback')
-      } catch (fallbackError: any) {
-        console.error('❌ Falha também no fallback do Firebase:', fallbackError)
-        const message = fallbackError?.message || error?.message || 'Não foi possível enviar o email de redefinição'
-        throw new Error(this.translateError(message))
-      }
+      
+      // ✅ CORREÇÃO: NÃO usar fallback do Firebase que envia email padrão
+      // Sempre usar apenas nosso email bonito. Se falhar, mostrar erro ao usuário.
+      const message = error?.message || 'Não foi possível enviar o email de redefinição'
+      throw new Error(this.translateError(message))
     }
   }
 

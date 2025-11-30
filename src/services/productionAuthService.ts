@@ -400,29 +400,87 @@ class ProductionAuthService {
   // Recuperar senha
   async forgotPassword(email: string): Promise<void> {
     try {
-      // 1. Gerar link oficial via backend (Firebase Admin)
-      const baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
-      const endpoint = `${baseApiUrl}/api/auth/password-reset-link`
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email,
-          redirectTo: `${window.location.origin}/#/auth/reset-password`
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Falha ao gerar link de reset personalizado')
+      // 1. Tentar gerar link via backend API
+      // Se falhar, tentar via Supabase Edge Function (produção)
+      let resetLink: string | null = null
+      
+      // Determinar URL do backend: usar VITE_API_URL se disponível, senão usar URL padrão de produção
+      let baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
+      
+      // Se não houver VITE_API_URL configurada e estivermos em produção, usar URL padrão
+      if (!baseApiUrl && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        baseApiUrl = 'https://api.veredictajus.com.br'
       }
+      
+      // Tentar primeiro a API backend (se disponível)
+      if (baseApiUrl) {
+        const endpoint = `${baseApiUrl}/api/auth/password-reset-link`
+        
+        try {
+          console.log(`📡 Tentando gerar link via backend em: ${endpoint}`)
+          
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email,
+              redirectTo: `${window.location.origin}/#/auth/reset-password`
+            })
+          })
 
-      const { resetLink } = await response.json()
-
+          if (response.ok) {
+            const data = await response.json()
+            resetLink = data.resetLink
+            console.log('✅ Link gerado via API backend')
+          } else {
+            console.warn(`⚠️ Backend retornou erro ${response.status}, tentando Supabase Edge Function...`)
+          }
+        } catch (apiError) {
+          console.warn('⚠️ API backend não disponível, tentando Supabase Edge Function:', apiError)
+        }
+      }
+      
+      // Se a API backend falhou ou não está disponível, usar Supabase Edge Function
       if (!resetLink) {
-        throw new Error('Link de reset não retornado pelo backend')
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+        
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Configuração do Supabase não encontrada. Não é possível gerar link de reset.')
+        }
+        
+        const supabaseEndpoint = `${supabaseUrl}/functions/v1/generate-password-reset-link`
+        
+        console.log('📡 Tentando gerar link via Supabase Edge Function...')
+        
+        const supabaseResponse = await fetch(supabaseEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          },
+          body: JSON.stringify({
+            email,
+            redirectTo: `${window.location.origin}/#/auth/reset-password`
+          })
+        })
+        
+        if (!supabaseResponse.ok) {
+          const errorText = await supabaseResponse.text()
+          console.error('❌ Erro na Supabase Edge Function:', errorText)
+          throw new Error('Falha ao gerar link de reset via Supabase Edge Function')
+        }
+        
+        const supabaseData = await supabaseResponse.json()
+        resetLink = supabaseData.resetLink
+        
+        if (!resetLink) {
+          throw new Error('Link de reset não retornado pela Supabase Edge Function')
+        }
+        
+        console.log('✅ Link gerado via Supabase Edge Function')
       }
 
       // Converter o link do Firebase para a rota personalizada da aplicação

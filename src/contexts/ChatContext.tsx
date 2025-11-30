@@ -164,6 +164,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const realtimeWorkingRef = useRef<boolean>(false);
   const lastRealtimeMessageRef = useRef<number>(0);
   
+  // ✅ CORREÇÃO: Monitoramento do status da subscription para detectar falhas
+  const subscriptionStatusRef = useRef<'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED' | null>(null);
+  const subscriptionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   // ✅ CORREÇÃO: Debounce para envio de mensagens
   const lastMessageSentRef = useRef<string>('');
   const messageSendTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1204,12 +1208,25 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             return; // Parar polling se a conversa mudou
           }
           
-          // ✅ NOVA CORREÇÃO: Verificar se real-time está funcionando (se recebeu mensagem nos últimos 10s)
+          // ✅ CORREÇÃO MELHORADA: Verificar status da subscription e tempo desde última mensagem
           const timeSinceLastRealtime = Date.now() - lastRealtimeMessageRef.current;
-          if (timeSinceLastRealtime < 10000 && lastRealtimeMessageRef.current > 0) {
-            // Real-time está funcionando, pular polling para reduzir carga
+          const isRealtimeHealthy = subscriptionStatusRef.current === 'SUBSCRIBED' && 
+                                    timeSinceLastRealtime < 30000 && // 30 segundos de tolerância
+                                    lastRealtimeMessageRef.current > 0;
+          
+          if (isRealtimeHealthy) {
+            // Real-time está funcionando bem, pular polling
             isPollingRef.current = false;
             return;
+          }
+          
+          // ✅ Se chegou aqui, real-time não está funcionando bem - fazer polling
+          if (timeSinceLastRealtime > 30000 || subscriptionStatusRef.current !== 'SUBSCRIBED') {
+            console.log('🔄 [ChatContext] Polling ativo - Real-time não está funcionando:', {
+              status: subscriptionStatusRef.current,
+              timeSinceLastMessage: timeSinceLastRealtime,
+              lastMessageTime: lastRealtimeMessageRef.current
+            });
           }
           
           // ✅ OTIMIZAÇÃO: Buscar mensagens apenas se real-time não está funcionando
@@ -1472,12 +1489,41 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           }
         )
         .subscribe((status, err) => {
+          subscriptionStatusRef.current = status as any;
+          
           if (err) {
             console.error('❌ [ChatContext] Erro na subscription de mensagens:', err);
+            // ✅ Forçar polling quando há erro
+            lastRealtimeMessageRef.current = 0;
+            realtimeWorkingRef.current = false;
           } else if (status === 'SUBSCRIBED') {
             console.log('✅ [ChatContext] Subscription de mensagens ativa para conversa:', conversationId);
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ [ChatContext] Erro no canal de mensagens:', status);
+            realtimeWorkingRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('❌ [ChatContext] Erro no canal de mensagens, forçando polling:', status);
+            // ✅ Forçar polling quando canal falha
+            lastRealtimeMessageRef.current = 0;
+            realtimeWorkingRef.current = false;
+            
+            // ✅ Tentar reconectar após 5 segundos
+            setTimeout(() => {
+              const currentConvId = pollingConversationIdRef.current;
+              if (currentConvId === conversationId && messagesSubscriptionRef.current) {
+                console.log('🔄 [ChatContext] Tentando reconectar subscription...');
+                try {
+                  supabase.removeChannel(messagesSubscriptionRef.current);
+                  messagesSubscriptionRef.current = null;
+                  // A subscription será recriada no próximo ciclo do useEffect
+                } catch (e) {
+                  console.warn('⚠️ [ChatContext] Erro ao remover canal antigo:', e);
+                }
+              }
+            }, 5000);
+          } else if (status === 'CLOSED') {
+            console.warn('⚠️ [ChatContext] Canal fechado, forçando polling:', status);
+            // ✅ Forçar polling quando canal fecha
+            lastRealtimeMessageRef.current = 0;
+            realtimeWorkingRef.current = false;
           } else {
             console.log('📡 [ChatContext] Status da subscription:', status);
           }
@@ -2239,6 +2285,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         clearTimeout(messageSendTimeoutRef.current);
         messageSendTimeoutRef.current = null;
       }
+      
+      // ✅ CORREÇÃO: Limpar intervalo de verificação de saúde da subscription
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -2253,6 +2305,69 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           console.warn('⚠️ [ChatContext] Erro ao remover subscription:', err);
         }
         messagesSubscriptionRef.current = null;
+      }
+    };
+  }, [currentConversation?.id]);
+
+  // ✅ NOVO: Verificação periódica de saúde da subscription
+  useEffect(() => {
+    if (!currentConversation?.id) {
+      // Limpar intervalo se não há conversa ativa
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
+      }
+      return;
+    }
+    
+    // Limpar intervalo anterior
+    if (subscriptionCheckIntervalRef.current) {
+      clearInterval(subscriptionCheckIntervalRef.current);
+    }
+    
+    // Verificar saúde da subscription a cada 30 segundos
+    subscriptionCheckIntervalRef.current = setInterval(() => {
+      const currentConvId = pollingConversationIdRef.current;
+      
+      // Só verificar se ainda é a conversa atual
+      if (currentConvId !== currentConversation?.id) {
+        return;
+      }
+      
+      const status = subscriptionStatusRef.current;
+      const timeSinceLastMessage = Date.now() - lastRealtimeMessageRef.current;
+      
+      // Se subscription não está ativa OU não recebeu mensagens há mais de 30 segundos
+      if ((status !== 'SUBSCRIBED' && status !== null) || 
+          (timeSinceLastMessage > 30000 && lastRealtimeMessageRef.current > 0)) {
+        console.warn('⚠️ [ChatContext] Subscription pode ter parado de funcionar, forçando polling...', {
+          status,
+          timeSinceLastMessage,
+          lastRealtimeMessage: lastRealtimeMessageRef.current,
+          conversationId: currentConvId
+        });
+        
+        // Forçar polling ativo
+        lastRealtimeMessageRef.current = 0;
+        realtimeWorkingRef.current = false;
+        
+        // Tentar reconectar subscription se não estiver SUBSCRIBED
+        if (messagesSubscriptionRef.current && status !== 'SUBSCRIBED') {
+          try {
+            supabase.removeChannel(messagesSubscriptionRef.current);
+            messagesSubscriptionRef.current = null;
+            console.log('🔄 [ChatContext] Canal removido para reconexão...');
+          } catch (e) {
+            console.warn('⚠️ [ChatContext] Erro ao remover canal:', e);
+          }
+        }
+      }
+    }, 30000); // Verificar a cada 30 segundos
+    
+    return () => {
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
       }
     };
   }, [currentConversation?.id]);

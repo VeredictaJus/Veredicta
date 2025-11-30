@@ -32,38 +32,11 @@ serve(async (req) => {
       );
     }
 
-    // Obter credenciais do Firebase das variáveis de ambiente
-    const firebaseProjectId = Deno.env.get('FIREBASE_PROJECT_ID');
-    const firebasePrivateKey = Deno.env.get('FIREBASE_PRIVATE_KEY');
-    const firebaseClientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL');
+    // Obter URL do backend e da aplicação
     const appPublicUrl = Deno.env.get('APP_PUBLIC_URL') || 'https://www.veredictajus.com.br';
-
-    if (!firebaseProjectId || !firebasePrivateKey || !firebaseClientEmail) {
-      console.error('❌ Variáveis do Firebase não configuradas');
-      return new Response(
-        JSON.stringify({ error: 'Configuração do Firebase não encontrada' }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    // Usar a API REST do Firebase Admin para gerar o link
-    // Primeiro, precisamos obter um token de acesso usando as credenciais
     const defaultRedirect = `${appPublicUrl}/#/auth/reset-password`;
-    const actionCodeSettings = {
-      url: redirectTo || defaultRedirect,
-      handleCodeInApp: true,
-    };
-
-    // Construir o payload para a API REST do Firebase Admin
-    // Nota: Para gerar o link, precisamos usar o Firebase Admin SDK
-    // Como estamos no Deno, vamos fazer uma chamada para um serviço backend que tem o Admin SDK
-    // OU podemos usar o método OOB code generation do Firebase
     
-    // Solução alternativa: usar o Firebase REST API diretamente para gerar o OOB code
-    // Mas isso requer autenticação complexa. Vamos usar uma abordagem mais simples:
-    // Chamar o próprio backend se disponível, ou retornar instruções para usar o método padrão
-    
-    // Chamar o backend que já existe (bridge/server.js)
+    // Chamar o backend que já existe (bridge/server.js) e tem Firebase Admin SDK configurado
     // Em produção, o backend deve estar em https://api.veredictajus.com.br
     // Em desenvolvimento, pode estar em http://localhost:3001
     const backendUrl = Deno.env.get('BACKEND_URL') || 'https://api.veredictajus.com.br';

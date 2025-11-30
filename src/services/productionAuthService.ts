@@ -404,10 +404,16 @@ class ProductionAuthService {
       // Se falhar, tentar via Supabase Edge Function (produção)
       let resetLink: string | null = null
       
-      // Determinar URL do backend: usar VITE_API_URL se disponível, senão usar URL padrão de produção
+      // Determinar URL do backend: usar VITE_API_URL se disponível e válida, senão usar URL padrão de produção
       let baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
       
-      // Se não houver VITE_API_URL configurada e estivermos em produção, usar URL padrão
+      // Filtrar URLs antigas ou inválidas (como onrender.com)
+      if (baseApiUrl && (baseApiUrl.includes('onrender.com') || baseApiUrl.includes('veredicta.onrender'))) {
+        console.warn('⚠️ URL antiga detectada, usando URL padrão de produção')
+        baseApiUrl = ''
+      }
+      
+      // Se não houver VITE_API_URL configurada/válida e estivermos em produção, usar URL padrão
       if (!baseApiUrl && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         baseApiUrl = 'https://api.veredictajus.com.br'
       }

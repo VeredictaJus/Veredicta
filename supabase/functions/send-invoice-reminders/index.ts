@@ -6,7 +6,7 @@ import {
   petitionAssignedEmailTemplate,
   newChatMessageEmailTemplate,
   petitionCompletedEmailTemplate,
-} from "../../../src/services/emailTemplates.ts";
+} from "../_shared/emailTemplates.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 

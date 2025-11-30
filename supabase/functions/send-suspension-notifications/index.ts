@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.199.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { writerSuspensionEmailTemplate } from "../../../src/services/emailTemplates.ts";
+import { writerSuspensionEmailTemplate } from "../_shared/emailTemplates.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 

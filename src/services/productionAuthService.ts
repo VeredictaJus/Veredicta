@@ -407,23 +407,49 @@ class ProductionAuthService {
       // Determinar URL do backend: usar VITE_API_URL se disponível e válida, senão usar URL padrão de produção
       let baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
       
-      // Filtrar URLs antigas ou inválidas (como onrender.com)
-      if (baseApiUrl && (baseApiUrl.includes('onrender.com') || baseApiUrl.includes('veredicta.onrender'))) {
-        console.warn('⚠️ URL antiga detectada, usando URL padrão de produção')
+      // Filtrar URLs antigas ou inválidas (como onrender.com, vercel.app antigos, etc)
+      const isInvalidUrl = baseApiUrl && (
+        baseApiUrl.includes('onrender.com') || 
+        baseApiUrl.includes('veredicta.onrender') ||
+        baseApiUrl.includes('verodicta.onrender') ||
+        !baseApiUrl.startsWith('https://') ||
+        baseApiUrl.includes('localhost') && window.location.hostname !== 'localhost'
+      )
+      
+      if (isInvalidUrl) {
+        console.warn('⚠️ URL inválida ou antiga detectada, ignorando e usando URL padrão:', baseApiUrl)
         baseApiUrl = ''
       }
       
       // Se não houver VITE_API_URL configurada/válida e estivermos em produção, usar URL padrão
       if (!baseApiUrl && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         baseApiUrl = 'https://api.veredictajus.com.br'
+        console.log('✅ Usando URL padrão de produção:', baseApiUrl)
       }
       
-      // Tentar primeiro a API backend (se disponível)
-      if (baseApiUrl) {
+      // Em desenvolvimento, se não houver URL, usar localhost
+      if (!baseApiUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        baseApiUrl = 'http://localhost:3001'
+        console.log('✅ Usando URL de desenvolvimento:', baseApiUrl)
+      }
+      
+      // Tentar primeiro a API backend (se disponível e válida)
+      // Pular URLs conhecidas como problemáticas diretamente
+      const skipBackend = baseApiUrl && (
+        baseApiUrl.includes('onrender.com') ||
+        baseApiUrl.includes('veredicta.onrender') ||
+        baseApiUrl.includes('verodicta.onrender')
+      )
+      
+      if (baseApiUrl && !skipBackend) {
         const endpoint = `${baseApiUrl}/api/auth/password-reset-link`
         
         try {
           console.log(`📡 Tentando gerar link via backend em: ${endpoint}`)
+          
+          // Timeout curto para não ficar esperando muito
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos
           
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -433,8 +459,11 @@ class ProductionAuthService {
             body: JSON.stringify({
               email,
               redirectTo: `${window.location.origin}/#/auth/reset-password`
-            })
+            }),
+            signal: controller.signal
           })
+          
+          clearTimeout(timeoutId)
 
           if (response.ok) {
             const data = await response.json()
@@ -443,9 +472,15 @@ class ProductionAuthService {
           } else {
             console.warn(`⚠️ Backend retornou erro ${response.status}, tentando Supabase Edge Function...`)
           }
-        } catch (apiError) {
-          console.warn('⚠️ API backend não disponível, tentando Supabase Edge Function:', apiError)
+        } catch (apiError: any) {
+          if (apiError.name === 'AbortError') {
+            console.warn('⚠️ Timeout ao chamar backend, tentando Supabase Edge Function...')
+          } else {
+            console.warn('⚠️ API backend não disponível, tentando Supabase Edge Function:', apiError.message || apiError)
+          }
         }
+      } else if (skipBackend) {
+        console.log('⚠️ Pulando backend (URL antiga/inválida detectada), usando Supabase Edge Function diretamente')
       }
       
       // Se a API backend falhou ou não está disponível, usar Supabase Edge Function

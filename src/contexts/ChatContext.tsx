@@ -1208,26 +1208,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             return; // Parar polling se a conversa mudou
           }
           
-          // ✅ CORREÇÃO MELHORADA: Verificar status da subscription e tempo desde última mensagem
+          // ✅ CORREÇÃO CRÍTICA: Sempre fazer polling quando há conversa ativa
+          // O polling funciona como backup garantido, independente do status do real-time
+          // Isso garante que mensagens do admin apareçam mesmo se o real-time falhar silenciosamente
           const timeSinceLastRealtime = Date.now() - lastRealtimeMessageRef.current;
           const isRealtimeHealthy = subscriptionStatusRef.current === 'SUBSCRIBED' && 
-                                    timeSinceLastRealtime < 30000 && // 30 segundos de tolerância
+                                    timeSinceLastRealtime < 10000 && // 10 segundos de tolerância
                                     lastRealtimeMessageRef.current > 0;
           
-          if (isRealtimeHealthy) {
-            // Real-time está funcionando bem, pular polling
-            isPollingRef.current = false;
-            return;
-          }
+          // ✅ CORREÇÃO CRÍTICA: SEMPRE fazer polling quando há conversa ativa
+          // O polling serve como garantia de que mensagens do admin aparecerão mesmo se o real-time falhar
+          // Não pular polling mesmo quando real-time está funcionando - ele funciona como backup duplo
           
-          // ✅ Se chegou aqui, real-time não está funcionando bem - fazer polling
-          if (timeSinceLastRealtime > 30000 || subscriptionStatusRef.current !== 'SUBSCRIBED') {
-            console.log('🔄 [ChatContext] Polling ativo - Real-time não está funcionando:', {
+          // Log apenas quando real-time não está funcionando
+          if (!isRealtimeHealthy) {
+            console.log('🔄 [ChatContext] Polling ativo - Real-time não está funcionando (usando polling como principal):', {
               status: subscriptionStatusRef.current,
               timeSinceLastMessage: timeSinceLastRealtime,
               lastMessageTime: lastRealtimeMessageRef.current
             });
           }
+          
+          // ✅ SEMPRE continuar com polling - não retornar aqui
           
           // ✅ OTIMIZAÇÃO: Buscar mensagens apenas se real-time não está funcionando
           const latestMessages = await ChatService.getConversationMessages(currentPollingId, {
@@ -1242,12 +1244,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             const existingIds = new Set(currentMessages.map(m => m.id));
             const newMessages = latestMessages.filter(msg => !existingIds.has(msg.id));
             
-            // ✅ CORREÇÃO: Filtrar mensagens já processadas pelo sistema de deduplicação
-            const trulyNewMessages = newMessages.filter(msg => !isMessageAlreadyProcessed(msg.id));
-            
-            // ✅ CORREÇÃO: Só processar se houver mensagens realmente novas e não processadas
-            if (trulyNewMessages.length > 0) {
-              handleIncomingMessagesForConversation(latestMessages, currentPollingId, { skipSound: false });
+            // ✅ CORREÇÃO MELHORADA: Processar todas as novas mensagens, mas usar deduplicação para evitar duplicatas
+            // Não filtrar mensagens já processadas aqui, deixar o handleIncomingMessagesForConversation lidar com duplicatas
+            if (newMessages.length > 0) {
+              console.log(`📥 [ChatContext] Polling encontrou ${newMessages.length} nova(s) mensagem(ns) para a conversa ${currentPollingId}`);
+              handleIncomingMessagesForConversation(newMessages, currentPollingId, { skipSound: false });
             }
             oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
             
@@ -1296,7 +1297,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           // ✅ OTIMIZAÇÃO: Sempre liberar o flag, mesmo em caso de erro
           isPollingRef.current = false;
         }
-      }, 10000); // ✅ CORREÇÃO: Aumentado para 10000ms (10 segundos) para reduzir carga e evitar competição com real-time
+      }, 3000); // ✅ CORREÇÃO CRÍTICA: Reduzido para 3000ms (3 segundos) para garantir que mensagens do admin apareçam rapidamente
 
       // ✅ NOVO: Adicionar subscription real-time para mensagens
       // Limpar subscription anterior se existir
@@ -1359,12 +1360,21 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
               const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
               if (newMessage.conversation_id !== currentConvId) {
-                console.warn('⚠️ [ChatContext] Mensagem recebida de conversa diferente, ignorando:', {
+                console.log('ℹ️ [ChatContext] Mensagem recebida de conversa diferente (esperado):', {
                   receivedConversationId: newMessage.conversation_id,
-                  currentConversationId: currentConvId
+                  currentConversationId: currentConvId,
+                  messageId: newMessage.id,
+                  senderId: newMessage.sender_id
                 });
                 return;
               }
+              
+              console.log('✅ [ChatContext] Mensagem recebida via real-time para conversa correta:', {
+                messageId: newMessage.id,
+                conversationId: newMessage.conversation_id,
+                senderId: newMessage.sender_id,
+                content: newMessage.content?.substring(0, 50)
+              });
               
               // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem diretamente ao estado, preservando todas as anteriores
               startTransition(() => {
@@ -2368,9 +2378,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       const status = subscriptionStatusRef.current;
       const timeSinceLastMessage = Date.now() - lastRealtimeMessageRef.current;
       
-      // Se subscription não está ativa OU não recebeu mensagens há mais de 30 segundos
+      // ✅ CORREÇÃO: Reduzir tempo para detectar problemas mais rapidamente (15 segundos)
       if ((status !== 'SUBSCRIBED' && status !== null) || 
-          (timeSinceLastMessage > 30000 && lastRealtimeMessageRef.current > 0)) {
+          (timeSinceLastMessage > 15000 && lastRealtimeMessageRef.current > 0)) {
         console.warn('⚠️ [ChatContext] Subscription pode ter parado de funcionar, forçando polling...', {
           status,
           timeSinceLastMessage,

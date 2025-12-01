@@ -49,8 +49,21 @@ export class EmailService {
         replyTo: options.replyTo
       });
 
-      // Chamar a API do backend em vez de chamar Resend diretamente
-      const response = await fetch('/api/send-email', {
+      // ✅ Determinar URL da API baseado no ambiente
+      let apiUrl = '';
+      
+      // Em desenvolvimento, usar rota local do Vite API Routes
+      if (import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        apiUrl = '/api/send-email';
+      } else {
+        // Em produção, usar backend
+        const baseApiUrl = import.meta.env.VITE_API_URL || 'https://api.veredictajus.com.br';
+        apiUrl = `${baseApiUrl}/api/send-email`;
+      }
+
+      console.log(`📡 Chamando API de email em: ${apiUrl}`);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

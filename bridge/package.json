@@ -1,7 +1,7 @@
 {
   "name": "bridge",
   "version": "1.0.0",
-    "type": "module",
+  "type": "module",
   "main": "bridge.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -18,6 +18,8 @@
     "express-rate-limit": "^8.1.0",
     "firebase-admin": "^13.5.0",
     "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "resend": "^4.8.0",
+    "stripe": "^17.7.0"
   }
 }

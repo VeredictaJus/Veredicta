@@ -7,6 +7,7 @@ import dotenv from 'dotenv'
 import jwt from 'jsonwebtoken'
 import admin from 'firebase-admin'
 import Stripe from 'stripe'
+import { Resend } from 'resend'
 
 // ======================
 // ⚙️ CONFIGURAÇÕES INICIAIS
@@ -84,6 +85,8 @@ app.options('/session', cors(corsOptions)) // ✅ habilita o preflight sem erro
 // ✅ Lida explicitamente com preflight requests (OPTIONS)
 app.options('/session', cors())
 app.options('/health', cors())
+app.options('/api/send-email', cors())
+app.options('/api/auth/password-reset-link', cors())
 
 // Segurança e parsing
 app.use(helmet())
@@ -231,6 +234,72 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro ao gerar link de reset:', error)
     return res.status(500).json({ error: 'Não foi possível gerar o link de reset' })
+  }
+})
+
+// ======================
+// 📧 SEND EMAIL (Resend)
+// ======================
+function getResendApiKey() {
+  return process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || ''
+}
+
+app.post('/api/send-email', async (req, res) => {
+  try {
+    const { to, subject, html, from, replyTo } = req.body || {}
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: to, subject, html' 
+      })
+    }
+
+    const apiKey = getResendApiKey()
+    
+    if (!apiKey) {
+      console.error('❌ API key do Resend não encontrada')
+      return res.status(500).json({ 
+        error: 'Email service not configured',
+        message: 'RESEND_API_KEY not found in environment variables'
+      })
+    }
+
+    const resend = new Resend(apiKey)
+
+    const resendPayload = {
+      from: from || 'Veredicta - Plataforma de Petições Jurídicas <contato@veredictajus.com>',
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html
+    }
+
+    if (replyTo) {
+      resendPayload.reply_to = replyTo
+    }
+
+    const { data, error } = await resend.emails.send(resendPayload)
+
+    if (error) {
+      console.error('❌ Erro ao enviar email:', error)
+      return res.status(500).json({ 
+        error: 'Failed to send email',
+        details: error 
+      })
+    }
+
+    console.log('✅ Email enviado com sucesso via Resend:', data)
+
+    return res.json({ 
+      success: true, 
+      data 
+    })
+
+  } catch (error) {
+    console.error('❌ Erro geral ao enviar email:', error)
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 })
 

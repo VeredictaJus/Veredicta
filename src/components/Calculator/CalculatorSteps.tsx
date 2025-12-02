@@ -18,6 +18,10 @@ interface CalculatorStepsProps {
 
 export default function CalculatorSteps({ data, onDataChange, onCalculate }: CalculatorStepsProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [dateErrors, setDateErrors] = useState<{
+    admissionDate?: string;
+    terminationDate?: string;
+  }>({});
 
   const steps: CalculatorStep[] = useMemo(() => [
     {
@@ -51,6 +55,16 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
 
   const updateData = (updates: Partial<LaborCalculatorData>) => {
     onDataChange({ ...data, ...updates });
+  };
+
+  // ✅ Handler para atualizar data de admissão
+  const handleAdmissionDateChange = (value: string) => {
+    updateData({ admissionDate: value });
+  };
+
+  // ✅ Handler para atualizar data de demissão
+  const handleTerminationDateChange = (value: string) => {
+    updateData({ terminationDate: value });
   };
 
   const formatCPF = (value: string) => {
@@ -202,6 +216,23 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
     return totalMonths;
   };
 
+  // ✅ Validar datas quando mudarem
+  useEffect(() => {
+    const errors: { admissionDate?: string; terminationDate?: string } = {};
+
+    if (data.admissionDate && data.terminationDate) {
+      const admission = new Date(data.admissionDate);
+      const termination = new Date(data.terminationDate);
+
+      if (admission > termination) {
+        errors.terminationDate = 'A data de demissão deve ser posterior à data de admissão';
+        errors.admissionDate = 'A data de admissão deve ser anterior à data de demissão';
+      }
+    }
+
+    setDateErrors(errors);
+  }, [data.admissionDate, data.terminationDate]);
+
   // Atualizar automaticamente férias, 13º, saldo de dias e aviso prévio quando as datas mudarem
   useEffect(() => {
     if (data.admissionDate) {
@@ -231,7 +262,8 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
 
   const canProceed = () => {
     const isCompleted = steps[currentStep].completed;
-    return isCompleted;
+    const hasDateErrors = Object.keys(dateErrors).length > 0;
+    return isCompleted && !hasDateErrors;
   };
 
   const nextStep = () => {
@@ -278,8 +310,13 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
             id="admissionDate"
             type="date"
             value={data.admissionDate || ''}
-            onChange={(e) => updateData({ admissionDate: e.target.value })}
+            onChange={(e) => handleAdmissionDateChange(e.target.value)}
+            max={data.terminationDate || undefined}
+            className={dateErrors.admissionDate ? 'border-red-500' : ''}
           />
+          {dateErrors.admissionDate && (
+            <p className="text-sm text-red-500 mt-1">{dateErrors.admissionDate}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -288,8 +325,13 @@ export default function CalculatorSteps({ data, onDataChange, onCalculate }: Cal
             id="terminationDate"
             type="date"
             value={data.terminationDate || ''}
-            onChange={(e) => updateData({ terminationDate: e.target.value })}
+            onChange={(e) => handleTerminationDateChange(e.target.value)}
+            min={data.admissionDate || undefined}
+            className={dateErrors.terminationDate ? 'border-red-500' : ''}
           />
+          {dateErrors.terminationDate && (
+            <p className="text-sm text-red-500 mt-1">{dateErrors.terminationDate}</p>
+          )}
         </div>
       </div>
 

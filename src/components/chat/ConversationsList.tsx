@@ -248,6 +248,14 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
     return metadata.avatar_url || undefined;
   };
 
+  // Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string): string => {
+    if (name && name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   const getConversationDisplayName = (conversation: Conversation): string => {
     const userRole = user?.role || 'client';
     
@@ -257,7 +265,7 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
       if (userRole === 'admin') {
         const otherName = getOtherParticipantName(conversation);
         if (otherName && otherName !== 'Suporte Veredicta') {
-          return otherName;
+          return truncateLongName(otherName);
         }
         return 'Cliente'; // Fallback para admin
       } else {
@@ -269,10 +277,10 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
     // Para outras conversas, buscar nome do outro participante
     const otherName = getOtherParticipantName(conversation);
     if (otherName) {
-      return otherName;
+      return truncateLongName(otherName);
     }
 
-    return conversation.title;
+    return truncateLongName(conversation.title);
   };
 
   // Obter ícone baseado no tipo e nome

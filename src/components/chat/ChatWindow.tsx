@@ -648,6 +648,14 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     };
   };
 
+  // Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string): string => {
+    if (name && name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   // Obter nome de exibição da conversa
   const getConversationDisplayName = (): string => {
     if (!currentConversation) return '';
@@ -662,7 +670,7 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
       if (userRole === 'admin') {
         // Primeiro tentar pelo metadata (otherParticipantName) - mais confiável
         if (metadataName && metadataName !== 'Usuário' && metadataName !== 'Suporte Veredicta') {
-          return metadataName;
+          return truncateLongName(metadataName);
         }
         
         // Se há outro participante, buscar o nome dele de forma mais robusta
@@ -670,10 +678,10 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           // PRIORIDADE 1: Metadata do participante
           const participantMetadata = (otherParticipant as any).metadata || {};
           if (participantMetadata.full_name && participantMetadata.full_name !== 'Suporte Veredicta') {
-            return participantMetadata.full_name;
+            return truncateLongName(participantMetadata.full_name);
           }
           if (participantMetadata.name && participantMetadata.name !== 'Suporte Veredicta') {
-            return participantMetadata.name;
+            return truncateLongName(participantMetadata.name);
           }
           
           // PRIORIDADE 2: User object do participante
@@ -686,13 +694,13 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           ].filter(Boolean) as string[];
           
           if (possibleNames.length > 0 && possibleNames[0] !== 'Suporte Veredicta' && possibleNames[0] !== 'Usuário') {
-            return possibleNames[0];
+            return truncateLongName(possibleNames[0]);
           }
           
           // PRIORIDADE 3: Usar getUserDisplayName como fallback
           const name = getUserDisplayName(otherParticipant);
           if (name && name !== 'Suporte Veredicta' && name !== 'Usuário') {
-            return name;
+            return truncateLongName(name);
           }
         }
         
@@ -706,13 +714,13 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
 
     // Para outras conversas, também priorizar metadata
     if (metadataName && metadataName !== 'Usuário') {
-      return metadataName;
+      return truncateLongName(metadataName);
     }
 
     if (otherParticipant) {
       const name = getUserDisplayName(otherParticipant);
       if (name && name !== 'Usuário') {
-        return name;
+        return truncateLongName(name);
       }
     }
 
@@ -724,7 +732,8 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     }
 
     // Só usar título como último recurso
-    return currentConversation.title || 'Conversa';
+    const title = currentConversation.title || 'Conversa';
+    return truncateLongName(title);
   };
 
 
@@ -2045,9 +2054,14 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
               </Avatar>
             )}
             
-            <div>
-              <CardTitle className="text-lg">{getConversationDisplayName()}</CardTitle>
-              <div className="flex items-center space-x-2 mt-1">
+            <div className="flex-1 min-w-0">
+              <CardTitle 
+                className="text-lg truncate" 
+                title={getConversationDisplayName()}
+              >
+                {getConversationDisplayName()}
+              </CardTitle>
+              <div className="flex items-center space-x-2 mt-1 flex-wrap">
                 <Badge variant={currentConversation.status === 'active' ? 'default' : 'secondary'}>
                   {getStatusLabel(currentConversation.status)}
                 </Badge>

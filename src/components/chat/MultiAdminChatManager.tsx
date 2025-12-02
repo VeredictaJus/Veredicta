@@ -75,6 +75,15 @@ export default function MultiAdminChatManager({
     }
   };
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   // Carregar dados iniciais
   useEffect(() => {
     loadData();
@@ -573,16 +582,18 @@ export default function MultiAdminChatManager({
                       key={activeUser.firebase_uid}
                       className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <Avatar className="flex-shrink-0">
                           <AvatarImage src={activeUser.avatar_url} alt={activeUser.full_name} />
                           <AvatarFallback>
                             {activeUser.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium">{activeUser.full_name || activeUser.email}</p>
-                          <p className="text-sm text-gray-500">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate" title={activeUser.full_name || activeUser.email}>
+                            {truncateLongName(activeUser.full_name) || activeUser.email}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
                             {activeUser.email} • {activeUser.role === 'client' ? 'Cliente' : 'Redator'}
                           </p>
                         </div>
@@ -633,12 +644,14 @@ export default function MultiAdminChatManager({
                           isSelected ? 'border-orange-500 bg-orange-50/40' : ''
                         }`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(conversation.status)}`} />
-                          <div>
-                            <p className="font-medium">{conversation.title}</p>
-                            <p className="text-sm text-gray-500">
-                              {conversation.client_name} • {conversation.response_count} respostas
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(conversation.status)}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" title={conversation.title}>
+                              {truncateLongName(conversation.title)}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate" title={conversation.client_name}>
+                              {truncateLongName(conversation.client_name)} • {conversation.response_count} respostas
                             </p>
                           </div>
                         </div>
@@ -720,12 +733,14 @@ export default function MultiAdminChatManager({
                           isSelected ? 'border-orange-500 bg-orange-50/40' : ''
                         }`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(conversation.status)}`} />
-                          <div>
-                            <p className="font-medium">{conversation.title}</p>
-                            <p className="text-sm text-gray-500">
-                              {conversation.client_name} • {conversation.response_count} respostas
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(conversation.status)}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" title={conversation.title}>
+                              {truncateLongName(conversation.title)}
+                            </p>
+                            <p className="text-sm text-gray-500 truncate" title={conversation.client_name}>
+                              {truncateLongName(conversation.client_name)} • {conversation.response_count} respostas
                             </p>
                           </div>
                         </div>

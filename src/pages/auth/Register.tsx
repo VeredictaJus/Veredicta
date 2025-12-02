@@ -364,6 +364,21 @@ const verifyCNPJ = async (cnpj: string) => {
 const handleInputChange = (field: keyof FormData, value: string) => {
   let formattedValue = value;
 
+  // Limitar caracteres antes de formatar
+  const maxLengths: Record<string, number> = {
+    companyName: 60,
+    contactName: 60,
+    fullName: 60,
+    oabNumber: 15,
+    phone: 15,
+    email: 80,
+  };
+
+  // Aplicar limite de caracteres
+  if (maxLengths[field] && value.length > maxLengths[field]) {
+    return; // Não atualiza se exceder o limite
+  }
+
   // Formata CPF quando tiver 11 dígitos
   if (field === 'cpf') {
     const numbers = value.replace(/\D/g, '');
@@ -635,6 +650,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       value={formData.companyName}
                       onChange={(e) => handleInputChange('companyName', e.target.value)}
                       placeholder={documentType === 'cpf' ? 'Seu nome completo' : 'Nome da sua empresa'}
+                      maxLength={60}
                       className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.companyName ? 'border-red-500' : ''}`}
                     />
                     {errors.companyName && (
@@ -710,6 +726,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                         value={formData.contactName}
                         onChange={(e) => handleInputChange('contactName', e.target.value)}
                         placeholder="Nome do responsável"
+                        maxLength={60}
                         className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.contactName ? 'border-red-500' : ''}`}
                       />
                       {errors.contactName && (
@@ -731,6 +748,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                             value={formData.oabNumber}
                             onChange={(e) => handleInputChange('oabNumber', e.target.value)}
                             placeholder="123456/SP"
+                            maxLength={15}
                             className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.oabNumber ? 'border-red-500' : ''}`}
                           />
                           {errors.oabNumber && (
@@ -843,6 +861,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       value={formData.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
                       placeholder="Seu nome completo"
+                      maxLength={60}
                       className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.fullName ? 'border-red-500' : ''}`}
                     />
                     {errors.fullName && (
@@ -872,6 +891,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       value={formData.oabNumber}
                       onChange={(e) => handleInputChange('oabNumber', e.target.value)}
                       placeholder="123456/SP"
+                      maxLength={15}
                       className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.oabNumber ? 'border-red-500' : ''}`}
                     />
                     {errors.oabNumber && (
@@ -1007,6 +1027,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="seu@email.com"
+                  maxLength={80}
                   className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.email ? 'border-red-500' : ''}`}
                 />
                 {errors.email && (
@@ -1021,6 +1042,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder="(11) 99999-9999"
+                  maxLength={15}
                   className="bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                 />
               </div>

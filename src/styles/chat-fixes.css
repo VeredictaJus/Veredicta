@@ -2,7 +2,7 @@
 
 /* Forçar quebra de linha em todos os balões de mensagem */
 .chat-message-bubble {
-  word-break: break-all !important;
+  word-break: normal !important;
   overflow-wrap: break-word !important;
   hyphens: auto !important;
   white-space: pre-wrap !important;
@@ -13,7 +13,7 @@
 
 /* Forçar quebra de linha no texto das mensagens */
 .chat-message-text {
-  word-break: break-all !important;
+  word-break: normal !important;
   overflow-wrap: break-word !important;
   white-space: pre-wrap !important;
   max-width: 100% !important;
@@ -33,13 +33,14 @@
 .chat-messages-container {
   max-width: 100% !important;
   overflow: hidden !important;
-  word-break: break-all !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
   width: 100% !important;
 }
 
 /* Forçar quebra em qualquer elemento com texto longo */
 [class*="message"] {
-  word-break: break-all !important;
+  word-break: normal !important;
   overflow-wrap: break-word !important;
 }
 

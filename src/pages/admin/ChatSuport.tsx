@@ -253,13 +253,22 @@ export default function ChatSuport() {
               <CardHeader className="pb-1 pt-2 px-3">
                 <CardTitle className="flex items-center space-x-2 text-sm">
                   <MessageSquare className="h-3 w-3" />
-                  <span>{selectedConversation.title || selectedConversation.client_name || 'Conversa'}</span>
+                  <span className="truncate" title={selectedConversation.title || selectedConversation.client_name || 'Conversa'}>
+                    {(() => {
+                      const displayName = selectedConversation.title || selectedConversation.client_name || 'Conversa';
+                      return displayName.length > 50 ? displayName.substring(0, 47) + '...' : displayName;
+                    })()}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-2 px-3">
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   {selectedConversation.client_name && (
-                    <p>👤 Cliente: {selectedConversation.client_name}</p>
+                    <p className="truncate" title={selectedConversation.client_name}>
+                      👤 Cliente: {selectedConversation.client_name.length > 50 
+                        ? selectedConversation.client_name.substring(0, 47) + '...' 
+                        : selectedConversation.client_name}
+                    </p>
                   )}
                   {selectedConversation.priority && (
                     <p>🏷️ Prioridade: {selectedConversation.priority}</p>

@@ -84,6 +84,15 @@ export default function MultiAdminChatManager({
     return name;
   };
 
+  // ✅ Função auxiliar para truncar título de conversa (máximo 255 caracteres no banco)
+  const truncateConversationTitle = (title: string): string => {
+    const maxLength = 250; // Deixar margem de segurança
+    if (title.length > maxLength) {
+      return title.substring(0, maxLength - 3) + '...';
+    }
+    return title;
+  };
+
   // Carregar dados iniciais
   useEffect(() => {
     loadData();
@@ -179,12 +188,13 @@ export default function MultiAdminChatManager({
       if (existingConversationId) {
         // Se já existe, abrir a conversa existente IMEDIATAMENTE
         conversationId = existingConversationId;
+        const userName = truncateLongName(targetUser.full_name) || targetUser.email;
         
         // Abrir a conversa imediatamente (sem esperar recarregar dados)
         emitConversationSelection(conversationId, {
           conversation_id: conversationId,
-          title: `Conversa com ${targetUser.full_name || targetUser.email}`,
-          client_name: targetUser.full_name || targetUser.email,
+          title: truncateConversationTitle(`Conversa com ${userName}`),
+          client_name: userName,
           priority: 'normal',
           status: 'active',
           type: 'support',
@@ -206,12 +216,13 @@ export default function MultiAdminChatManager({
         
         if (doubleCheckId) {
           conversationId = doubleCheckId;
+          const userName = truncateLongName(targetUser.full_name) || targetUser.email;
           
           // Abrir a conversa existente
           emitConversationSelection(conversationId, {
             conversation_id: conversationId,
-            title: `Conversa com ${targetUser.full_name || targetUser.email}`,
-            client_name: targetUser.full_name || targetUser.email,
+            title: truncateConversationTitle(`Conversa com ${userName}`),
+            client_name: userName,
             priority: 'normal',
             status: 'active',
             type: 'support',
@@ -225,11 +236,12 @@ export default function MultiAdminChatManager({
           });
         } else {
           // Criar nova conversa (a função createConversationWithUser também verifica antes de criar)
-          const title = `Conversa com ${targetUser.full_name || targetUser.email}`;
+          const userName = truncateLongName(targetUser.full_name) || targetUser.email;
+          const title = truncateConversationTitle(`Conversa com ${userName}`);
           conversationId = await createConversationWithUser(
             targetUser.firebase_uid,
             title,
-            `Olá ${targetUser.full_name || 'usuário'}! Entrei em contato para te ajudar.`
+            `Olá ${userName}! Entrei em contato para te ajudar.`
           );
           
           if (!conversationId) {
@@ -239,8 +251,8 @@ export default function MultiAdminChatManager({
           // Abrir a conversa IMEDIATAMENTE após criar
           emitConversationSelection(conversationId, {
             conversation_id: conversationId,
-            title: `Conversa com ${targetUser.full_name || targetUser.email}`,
-            client_name: targetUser.full_name || targetUser.email,
+            title: title,
+            client_name: userName,
             priority: 'normal',
             status: 'active',
             type: 'support',

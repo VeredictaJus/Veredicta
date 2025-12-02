@@ -156,6 +156,15 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
     }
   };
 
+  // ✅ Função auxiliar para truncar título de conversa (máximo 255 caracteres no banco)
+  const truncateConversationTitle = (title: string): string => {
+    const maxLength = 250; // Deixar margem de segurança
+    if (title.length > maxLength) {
+      return title.substring(0, maxLength - 3) + '...';
+    }
+    return title;
+  };
+
   // Criar conversa com usuário selecionado (APENAS ADMIN)
   const handleUserSelected = async (selectedUser: UserSearchResult) => {
     if (!user) return;
@@ -177,7 +186,8 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
       }
 
       // Criar nova conversa
-      const conversationTitle = `Suporte: ${selectedUser.full_name || selectedUser.email}`;
+      const userName = truncateLongName(selectedUser.full_name) || selectedUser.email;
+      const conversationTitle = truncateConversationTitle(`Suporte: ${userName}`);
       const participants = [
         { userId: user.uid, role: 'admin' as const },
         { userId: selectedUser.firebase_uid, role: selectedUser.role }

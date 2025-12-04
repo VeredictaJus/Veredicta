@@ -51,23 +51,40 @@ export class EmailService {
 
       // ✅ Determinar URL da API baseado no ambiente
       let apiUrl = '';
+      let headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
       
       // Em desenvolvimento, usar rota local do Vite API Routes
       if (import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         apiUrl = '/api/send-email';
       } else {
-        // Em produção, usar backend
-        const baseApiUrl = import.meta.env.VITE_API_URL || 'https://api.veredictajus.com.br';
-        apiUrl = `${baseApiUrl}/api/send-email`;
+        // Em produção, usar Supabase Edge Function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          console.error('❌ VITE_SUPABASE_URL não configurado');
+          return false;
+        }
+        // Remover trailing slash se existir
+        const baseUrl = supabaseUrl.replace(/\/$/, '');
+        apiUrl = `${baseUrl}/functions/v1/send-email`;
+        
+        // Adicionar autenticação para Supabase Edge Function
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        if (supabaseAnonKey) {
+          headers = {
+            ...headers,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
+          };
+        }
       }
 
       console.log(`📡 Chamando API de email em: ${apiUrl}`);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           to: options.to,
           subject: options.subject,

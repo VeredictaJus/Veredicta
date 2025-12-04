@@ -28,6 +28,15 @@ import { DatabaseService } from '@/services/databaseService';
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
   const [stats, setStats] = useState({
     totalClients: 0, totalWriters: 0, totalPetitions: 0, monthlyRevenue: 0,
     pendingPetitions: 0, completedPetitions: 0, averageCompletionTime: 0,
@@ -802,11 +811,14 @@ export default function AdminDashboard() {
                 <SelectValue placeholder="Selecione um redator" />
               </SelectTrigger>
               <SelectContent>
-                {availableWriters.map((writer) => (
-                  <SelectItem key={writer.firebase_uid} value={writer.firebase_uid}>
-                    {writer.full_name || writer.email} {writer.email ? `(${writer.email})` : ''}
-                  </SelectItem>
-                ))}
+                {availableWriters.map((writer) => {
+                  const writerName = truncateLongName(writer.full_name) || writer.email;
+                  return (
+                    <SelectItem key={writer.firebase_uid} value={writer.firebase_uid} title={writer.full_name || writer.email}>
+                      {writerName} {writer.email && `(${writer.email})`}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

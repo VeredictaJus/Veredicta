@@ -90,16 +90,28 @@ export default function Header() {
     return routeMap[pathname] || 'Dashboard';
   };
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   const getDisplayName = () => {
     if (!userProfile) return user?.email?.split('@')[0] || 'Usuário';
     
+    let displayName = '';
     if ('company_name' in userProfile) {
-      return (userProfile as ClientProfile).company_name;
+      displayName = (userProfile as ClientProfile).company_name;
+    } else if ('full_name' in userProfile) {
+      displayName = (userProfile as WriterProfile | AdminProfile).full_name;
+    } else {
+      displayName = user?.email?.split('@')[0] || 'Usuário';
     }
-    if ('full_name' in userProfile) {
-      return (userProfile as WriterProfile | AdminProfile).full_name;
-    }
-    return user?.email?.split('@')[0] || 'Usuário';
+    
+    return truncateLongName(displayName);
   };
 
   const getRoleLabel = () => {
@@ -156,8 +168,8 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2">
               <UserAvatar size="md" />
-              <div className="text-left">
-                <div className="text-sm font-medium">{getDisplayName()}</div>
+              <div className="text-left flex-1 min-w-0">
+                <div className="text-sm font-medium truncate" title={getDisplayName()}>{getDisplayName()}</div>
                 <div className="text-xs text-muted-foreground">{getRoleLabel()}</div>
               </div>
             </Button>

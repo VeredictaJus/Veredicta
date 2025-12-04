@@ -37,6 +37,15 @@ export default function PetitionReview() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   useEffect(() => {
     loadPetitionsForReview();
   }, []);
@@ -427,11 +436,11 @@ OAB/SP nº 123.456`,
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
                         <div className="flex items-center space-x-1">
                           <User className="h-3 w-3" />
-                          <span>Redator: {petition.writer}</span>
+                          <span className="truncate" title={petition.writer}>Redator: {truncateLongName(petition.writer)}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <User className="h-3 w-3" />
-                          <span>Cliente: {petition.client}</span>
+                          <span className="truncate" title={petition.client}>Cliente: {truncateLongName(petition.client)}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Clock className="h-3 w-3" />

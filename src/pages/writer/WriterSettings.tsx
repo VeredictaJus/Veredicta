@@ -17,6 +17,7 @@ import { useAvatar } from '@/contexts/AvatarContext';
 import { useTabNavigation } from '@/contexts/TabNavigationContext';
 import { supabase } from '@/lib/supabaseClient'
 import { notifyAdmin } from '@/api/notify-admin';
+import { DatabaseService, WriterRatingStats } from '@/services/databaseService';
 
 interface WriterProfile {
   id: string;
@@ -186,6 +187,12 @@ export default function WriterSettings() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // ✅ Estatísticas de avaliações (mesmas do dashboard)
+  const [ratingStats, setRatingStats] = useState<WriterRatingStats>({
+    average_rating: 0,
+    total_ratings: 0,
+    rating_distribution: {}
+  });
   const [notifications, setNotifications] = useState({
     email: true,
     sms: false,
@@ -204,10 +211,25 @@ export default function WriterSettings() {
     }
   }, [searchParams]);
 
-  // Carrega perfil
+  // Carrega perfil e estatísticas de avaliações
   useEffect(() => {
-    if (user) loadWriterProfile();
+    if (user) {
+      loadWriterProfile();
+      loadRatingStats();
+    }
   }, [user]);
+
+  // ✅ Carregar estatísticas de avaliações (mesmas do dashboard)
+  const loadRatingStats = async () => {
+    if (!user?.uid) return;
+    
+    try {
+      const stats = await DatabaseService.getWriterRatingStats(user.uid);
+      setRatingStats(stats);
+    } catch (error) {
+      console.error('❌ Erro ao carregar estatísticas de avaliações:', error);
+    }
+  };
 
   // Sincronizar photoPreview com contextAvatarUrl quando mudar
   useEffect(() => {
@@ -276,7 +298,7 @@ export default function WriterSettings() {
           availability: profileData.availability || 'full_time',
           city: profileData.city || '',
           state: profileData.state || '',
-          rating: profileData.rating || 0,
+          rating: profileData.average_rating || profileData.rating || 0, // ✅ Usar average_rating (atualizado por trigger) ou rating (fallback)
           completed_petitions: profileData.completed_petitions || 0,
           bank_data: {
             bank: profileData.bank_name || '',
@@ -810,8 +832,14 @@ export default function WriterSettings() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Avaliação</p>
                         <div className="flex items-center space-x-1">
-                          {renderStars(profile.rating)}
-                          <span className="text-sm font-medium">({profile.rating})</span>
+                          {ratingStats.total_ratings > 0 ? (
+                            <>
+                              {renderStars(ratingStats.average_rating)}
+                              <span className="text-sm font-medium">({ratingStats.average_rating.toFixed(1)})</span>
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Sem avaliações</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -824,7 +852,7 @@ export default function WriterSettings() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Trabalhos</p>
-                      <p className="text-2xl font-bold">{profile.completed_petitions}</p>
+                      <p className="text-2xl font-bold">{profile.completed_petitions || 0}</p>
                     </div>
                   </div>
                 </Card>
@@ -837,7 +865,9 @@ export default function WriterSettings() {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Localização</p>
                       <p className="text-sm font-bold">
-                        {profile.city}, {profile.state}
+                        {profile.city && profile.state 
+                          ? `${profile.city}, ${profile.state}`
+                          : profile.city || profile.state || 'Não informado'}
                       </p>
                     </div>
                   </div>

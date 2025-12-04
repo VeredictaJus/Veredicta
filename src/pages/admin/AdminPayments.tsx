@@ -88,6 +88,14 @@ function mapRow(r: PaymentRow): PaymentUI {
 }
 
 export default function AdminPayments() {
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
   const [rows, setRows] = useState<PaymentUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
@@ -344,8 +352,12 @@ export default function AdminPayments() {
                         {p.transaction_id || '—'}
                       </div>
                     </TableCell>
-                    <TableCell>{p.client_name || '—'}</TableCell>
-                    <TableCell>{p.writer_name || '—'}</TableCell>
+                    <TableCell className="truncate max-w-[200px]" title={p.client_name || '—'}>
+                      {truncateLongName(p.client_name) || '—'}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[200px]" title={p.writer_name || '—'}>
+                      {truncateLongName(p.writer_name) || '—'}
+                    </TableCell>
                     <TableCell>
                       <span className="font-semibold text-green-600">
                         R$ {Number(p.amount || 0).toLocaleString()}

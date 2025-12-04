@@ -27,6 +27,16 @@ export default function AvailablePetitions() {
   const { user } = useNewAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+  
   // Declare state variables
   const [petitions, setPetitions] = useState<Petition[]>([]);
   const [loading, setLoading] = useState(true);
@@ -398,8 +408,8 @@ export default function AvailablePetitions() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <CardTitle className="text-lg line-clamp-2">{petition.title}</CardTitle>
-                  <CardDescription className="mt-1 whitespace-normal break-words">
-                    {petition.client_name} • {petition.client_location}
+                  <CardDescription className="mt-1 whitespace-normal break-words truncate" title={`${petition.client_name} • ${petition.client_location}`}>
+                    {truncateLongName(petition.client_name)} • {petition.client_location}
                   </CardDescription>
                 </div>
                 <Badge className={priorityConfig[petition.priority].color}>

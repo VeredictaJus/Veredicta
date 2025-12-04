@@ -353,7 +353,13 @@ const History: React.FC = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                       <div>
-                        <span className="font-medium">Cliente:</span> {petition.client_name}
+                        <span className="font-medium">Cliente:</span>{' '}
+                        <span className="truncate inline-block max-w-[200px]" title={petition.client_name}>
+                          {(() => {
+                            const name = petition.client_name || 'Cliente não informado';
+                            return name.length > 50 ? name.substring(0, 47) + '...' : name;
+                          })()}
+                        </span>
                       </div>
                       <div>
                         <span className="font-medium">Tipo:</span> {petition.type || 'Não especificado'}

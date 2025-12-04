@@ -46,6 +46,15 @@ export default function MyPetitions() {
   const [searchParams] = useSearchParams();
   const { user } = useNewAuth();
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   const [petitions, setPetitions] = useState<Petition[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -978,7 +987,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{petition.client_name}</TableCell>
+                    <TableCell className="truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
                     <TableCell>
                       <Badge className={info.color}>
                         <StatusIcon className="h-3 w-3 mr-1" />
@@ -1047,7 +1056,9 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                               <div className="grid grid-cols-2 gap-6">
                                 <div>
                                   <label className="block text-sm font-semibold text-muted-foreground mb-1">Cliente</label>
-                                  <p className="text-foreground">{selectedPetition?.client_name || petition.client_name}</p>
+                                  <p className="text-foreground truncate" title={selectedPetition?.client_name || petition.client_name}>
+                                    {truncateLongName(selectedPetition?.client_name || petition.client_name)}
+                                  </p>
                                 </div>
                                 <div>
                                   <label className="block text-sm font-semibold text-muted-foreground mb-1">Valor</label>
@@ -1324,7 +1335,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell>{petition.client_name}</TableCell>
+                        <TableCell className="truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
                         <TableCell>
                           <Badge className={info.color}>
                             <StatusIcon className="h-3 w-3 mr-1" />
@@ -1359,7 +1370,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                                 <div className="space-y-4">
                                   <div>
                                     <h4 className="font-medium mb-2">Cliente</h4>
-                                    <p className="text-sm text-muted-foreground">{petition.client_name}</p>
+                                    <p className="text-sm text-muted-foreground truncate" title={petition.client_name}>{truncateLongName(petition.client_name)}</p>
                                   </div>
                                   <div>
                                     <h4 className="font-medium mb-2">Descrição</h4>

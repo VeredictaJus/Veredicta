@@ -78,6 +78,15 @@ export default function MyPetitions() {
   const { user, loading } = useNewAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
   
   // Declare ALL state and hooks before any early returns
   const [petitions, setPetitions] = useState<Petition[]>([]);
@@ -1315,7 +1324,9 @@ export default function MyPetitions() {
                           {priorityConfig[petition.priority].label}
                         </Badge>
                       </TableCell>
-                      <TableCell>{petition.writer_name || 'Não atribuído'}</TableCell>
+                      <TableCell className="truncate max-w-[200px]" title={petition.writer_name || 'Não atribuído'}>
+                        {truncateLongName(petition.writer_name) || 'Não atribuído'}
+                      </TableCell>
                       <TableCell>{new Date(petition.deadline).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">

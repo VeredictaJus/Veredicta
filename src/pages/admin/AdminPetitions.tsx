@@ -117,6 +117,15 @@ export default function AdminPetitions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | PetitionStatus>('all');
   const [priorityFilter, setPriorityFilter] = useState<'all' | PetitionPriority>('all');
@@ -899,11 +908,14 @@ export default function AdminPetitions() {
                     <SelectValue placeholder="Selecione um redator..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableWriters.map((writer) => (
-                      <SelectItem key={writer.firebase_uid} value={writer.firebase_uid}>
-                        {writer.full_name} {writer.email && `(${writer.email})`}
-                      </SelectItem>
-                    ))}
+                    {availableWriters.map((writer) => {
+                      const writerName = truncateLongName(writer.full_name);
+                      return (
+                        <SelectItem key={writer.firebase_uid} value={writer.firebase_uid} title={writer.full_name}>
+                          {writerName} {writer.email && `(${writer.email})`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

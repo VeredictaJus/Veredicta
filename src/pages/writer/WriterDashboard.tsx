@@ -79,6 +79,15 @@ const getPriorityColor = (priority: string) => {
 export default function WriterDashboard() {
   const { user } = useNewAuth();
   const navigate = useNavigate();
+
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
   
   // Real-time data states
 const [availablePetitions, setAvailablePetitions] = useState<RealPetition[]>([]);
@@ -829,7 +838,9 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
                 {/* Cliente */}
                 <div>
                   <label className="block text-sm font-semibold text-muted-foreground mb-1">Cliente</label>
-                  <p className="text-foreground">{selectedPetition.client_name || 'Não informado'}</p>
+                  <p className="text-foreground truncate" title={selectedPetition.client_name || 'Não informado'}>
+                    {truncateLongName(selectedPetition.client_name) || 'Não informado'}
+                  </p>
                 </div>
 
                 {/* Localização do Cliente */}
@@ -947,7 +958,9 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
                 {/* Cliente */}
                 <div>
                   <label className="block text-sm font-semibold text-muted-foreground mb-1">Cliente</label>
-                  <p className="text-foreground">{selectedMyPetition.client_name || 'Não informado'}</p>
+                  <p className="text-foreground truncate" title={selectedMyPetition.client_name || 'Não informado'}>
+                    {truncateLongName(selectedMyPetition.client_name) || 'Não informado'}
+                  </p>
                 </div>
 
                 {/* Localização do Cliente */}

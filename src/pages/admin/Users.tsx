@@ -108,6 +108,15 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState<'all' | UiUser['role']>('all');
   const [statusFilter, setStatusFilter] =
     useState<'all' | 'active' | 'pending' | 'suspended' | 'blocked'>('all');
+  
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
 
   const [selected, setSelected] = useState<UiUser | null>(null);
 
@@ -789,8 +798,8 @@ export default function Users() {
                     return (
                       <TableRow key={u.id || crypto.randomUUID()}>
                         <TableCell>
-                          <div className="font-medium">{u.name}</div>
-                          <div className="text-sm text-muted-foreground">{u.email ?? '—'}</div>
+                          <div className="font-medium truncate" title={u.name}>{truncateLongName(u.name)}</div>
+                          <div className="text-sm text-muted-foreground truncate" title={u.email || ''}>{u.email ?? '—'}</div>
                         </TableCell>
                         <TableCell>{ROLE_LABEL[u.role]}</TableCell>
                         <TableCell>
@@ -831,7 +840,7 @@ export default function Users() {
                                     <div className="space-y-4">
                                       <div>
                                         <div className="text-sm font-medium">Nome</div>
-                                        <div className="text-sm text-muted-foreground">{selected.name}</div>
+                                        <div className="text-sm text-muted-foreground truncate" title={selected.name}>{truncateLongName(selected.name)}</div>
                                       </div>
                                       <div>
                                         <div className="text-sm font-medium">Email</div>

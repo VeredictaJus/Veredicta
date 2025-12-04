@@ -235,7 +235,12 @@ export default function WriterApproval() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">{writer.full_name || 'Nome não informado'}</CardTitle>
+                  <CardTitle className="text-lg truncate" title={writer.full_name || 'Nome não informado'}>
+                    {(() => {
+                      const name = writer.full_name || 'Nome não informado';
+                      return name.length > 50 ? name.substring(0, 47) + '...' : name;
+                    })()}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground">{writer.email}</p>
                 </div>
                 <div className="flex items-center gap-2">

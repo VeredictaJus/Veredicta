@@ -118,6 +118,15 @@ export default function Users() {
     return name;
   };
 
+  // ✅ Função auxiliar para truncar emails muito longos (> 40 caracteres)
+  const truncateLongEmail = (email: string | undefined | null): string => {
+    if (!email) return '';
+    if (email.length > 40) {
+      return email.substring(0, 37) + '...';
+    }
+    return email;
+  };
+
   const [selected, setSelected] = useState<UiUser | null>(null);
 
   const calculateSuspensionDays = (suspendedUntil?: string | null, lateCount = 0) => {
@@ -769,7 +778,7 @@ export default function Users() {
             </div>
 
             {/* Tabela */}
-            <div className="bg-card border rounded-md">
+            <div className="bg-card border rounded-md overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-muted/50">
@@ -797,9 +806,9 @@ export default function Users() {
 
                     return (
                       <TableRow key={u.id || crypto.randomUUID()}>
-                        <TableCell>
+                        <TableCell className="max-w-[300px]">
                           <div className="font-medium truncate" title={u.name}>{truncateLongName(u.name)}</div>
-                          <div className="text-sm text-muted-foreground truncate" title={u.email || ''}>{u.email ?? '—'}</div>
+                          <div className="text-sm text-muted-foreground truncate" title={u.email || ''}>{truncateLongEmail(u.email) ?? '—'}</div>
                         </TableCell>
                         <TableCell>{ROLE_LABEL[u.role]}</TableCell>
                         <TableCell>
@@ -844,7 +853,7 @@ export default function Users() {
                                       </div>
                                       <div>
                                         <div className="text-sm font-medium">Email</div>
-                                        <div className="text-sm text-muted-foreground">{selected.email ?? '—'}</div>
+                                        <div className="text-sm text-muted-foreground truncate" title={selected.email || ''}>{truncateLongEmail(selected.email) ?? '—'}</div>
                                       </div>
 
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

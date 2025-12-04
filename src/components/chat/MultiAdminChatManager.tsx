@@ -84,6 +84,15 @@ export default function MultiAdminChatManager({
     return name;
   };
 
+  // ✅ Função auxiliar para truncar emails muito longos (> 40 caracteres)
+  const truncateLongEmail = (email: string | undefined | null): string => {
+    if (!email) return '';
+    if (email.length > 40) {
+      return email.substring(0, 37) + '...';
+    }
+    return email;
+  };
+
   // ✅ Função auxiliar para truncar título de conversa (máximo 255 caracteres no banco)
   const truncateConversationTitle = (title: string): string => {
     const maxLength = 250; // Deixar margem de segurança
@@ -592,30 +601,30 @@ export default function MultiAdminChatManager({
                   {activeUsers.map((activeUser) => (
                     <div
                       key={activeUser.firebase_uid}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-background hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 p-3 border rounded-lg bg-background hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <Avatar className="flex-shrink-0">
-                          <AvatarImage src={activeUser.avatar_url} alt={activeUser.full_name} />
-                          <AvatarFallback>
-                            {activeUser.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" title={activeUser.full_name || activeUser.email}>
-                            {truncateLongName(activeUser.full_name) || activeUser.email}
-                          </p>
-                          <p className="text-sm text-gray-500 truncate">
-                            {activeUser.email} • {activeUser.role === 'client' ? 'Cliente' : 'Redator'}
-                          </p>
-                        </div>
+                      <Avatar className="flex-shrink-0 h-10 w-10">
+                        <AvatarImage src={activeUser.avatar_url} alt={activeUser.full_name} />
+                        <AvatarFallback>
+                          {activeUser.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="font-medium truncate" title={activeUser.full_name || activeUser.email}>
+                          {truncateLongName(activeUser.full_name) || truncateLongEmail(activeUser.email)}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate" title={activeUser.email}>
+                          {truncateLongEmail(activeUser.email)} • {activeUser.role === 'client' ? 'Cliente' : 'Redator'}
+                        </p>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => handleStartConversationWithUser(activeUser)}
+                        className="flex-shrink-0"
                       >
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Iniciar Conversa
+                        <span className="hidden sm:inline">Iniciar Conversa</span>
+                        <span className="sm:hidden">Iniciar</span>
                       </Button>
                     </div>
                   ))}

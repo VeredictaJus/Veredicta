@@ -83,9 +83,14 @@ serve(async (req) => {
       const admin = await import("npm:firebase-admin@11.11.0");
       
       console.log('✅ [generate-password-reset-link] Firebase Admin SDK importado com sucesso');
+      console.log(`🔍 [generate-password-reset-link] admin.apps existe? ${admin.apps !== undefined}`);
+      console.log(`🔍 [generate-password-reset-link] admin.apps.length: ${admin.apps?.length ?? 'undefined'}`);
 
       // Verificar se já está inicializado
-      if (admin.apps.length === 0) {
+      // admin.apps pode ser undefined em algumas versões, então verificamos de forma segura
+      const appsLength = (admin.apps && admin.apps.length) ? admin.apps.length : 0;
+      
+      if (appsLength === 0) {
         console.log('🔧 [generate-password-reset-link] Inicializando Firebase Admin SDK...');
         
         // Normalizar a chave privada - garantir que as quebras de linha estejam corretas

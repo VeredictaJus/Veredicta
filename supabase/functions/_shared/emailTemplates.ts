@@ -352,7 +352,7 @@ export function invoiceReminderEmailTemplate(writerName: string, month: string, 
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${appUrl}/#/writer/invoices" class="button" style="color: white;">
+        <a href="${appUrl}/#/writer/payments" class="button" style="color: white;">
           Anexar Nota Fiscal
         </a>
       </div>

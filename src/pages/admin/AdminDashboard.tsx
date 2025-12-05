@@ -37,6 +37,15 @@ export default function AdminDashboard() {
     }
     return name;
   };
+
+  // ✅ Função auxiliar para truncar emails muito longos (> 40 caracteres)
+  const truncateLongEmail = (email: string | undefined | null): string => {
+    if (!email) return '';
+    if (email.length > 40) {
+      return email.substring(0, 37) + '...';
+    }
+    return email;
+  };
   const [stats, setStats] = useState({
     totalClients: 0, totalWriters: 0, totalPetitions: 0, monthlyRevenue: 0,
     pendingPetitions: 0, completedPetitions: 0, averageCompletionTime: 0,
@@ -913,10 +922,17 @@ export default function AdminDashboard() {
               </SelectTrigger>
               <SelectContent>
                 {availableWriters.map((writer) => {
-                  const writerName = truncateLongName(writer.full_name) || writer.email;
+                  const writerName = truncateLongName(writer.full_name) || truncateLongEmail(writer.email);
+                  const displayEmail = writer.email ? truncateLongEmail(writer.email) : '';
+                  const fullName = writer.full_name || '';
+                  const fullEmail = writer.email || '';
                   return (
-                    <SelectItem key={writer.firebase_uid} value={writer.firebase_uid} title={writer.full_name || writer.email}>
-                      {writerName} {writer.email && `(${writer.email})`}
+                    <SelectItem 
+                      key={writer.firebase_uid} 
+                      value={writer.firebase_uid} 
+                      title={`${fullName}${fullEmail ? ` (${fullEmail})` : ''}`}
+                    >
+                      {writerName} {displayEmail && `(${displayEmail})`}
                     </SelectItem>
                   );
                 })}

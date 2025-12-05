@@ -88,22 +88,51 @@ serve(async (req) => {
       if (admin.apps.length === 0) {
         console.log('🔧 [generate-password-reset-link] Inicializando Firebase Admin SDK...');
         
-        // Normalizar a chave privada
-        const normalizedKey = firebasePrivateKey
-          .replace(/\\n/g, '\n')
-          .replace(/\r\n/g, '\n')
-          .replace(/\r/g, '\n')
-          .trim();
-
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: firebaseProjectId,
-            clientEmail: firebaseClientEmail,
-            privateKey: normalizedKey,
-          }),
-        });
+        // Normalizar a chave privada - garantir que as quebras de linha estejam corretas
+        let normalizedKey = firebasePrivateKey;
         
-        console.log('✅ [generate-password-reset-link] Firebase Admin inicializado com sucesso');
+        // Se a chave não começa com -----BEGIN, pode estar toda em uma linha
+        if (!normalizedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+          console.warn('⚠️ [generate-password-reset-link] Chave privada pode estar mal formatada');
+        }
+        
+        // Substituir \\n por quebras de linha reais
+        normalizedKey = normalizedKey.replace(/\\n/g, '\n');
+        
+        // Garantir que não há espaços extras no início/fim
+        normalizedKey = normalizedKey.trim();
+        
+        // Verificar se a chave tem o formato correto
+        if (!normalizedKey.includes('BEGIN PRIVATE KEY') || !normalizedKey.includes('END PRIVATE KEY')) {
+          console.error('❌ [generate-password-reset-link] Chave privada não contém marcadores BEGIN/END');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Chave privada do Firebase está mal formatada. Verifique FIREBASE_PRIVATE_KEY no Supabase Dashboard.',
+            }),
+            { status: 500, headers: corsHeaders }
+          );
+        }
+        
+        console.log(`📝 [generate-password-reset-link] Chave privada normalizada. Tamanho: ${normalizedKey.length} caracteres`);
+        console.log(`📝 [generate-password-reset-link] Primeiros 50 chars: ${normalizedKey.substring(0, 50)}...`);
+        console.log(`📝 [generate-password-reset-link] Últimos 50 chars: ...${normalizedKey.substring(normalizedKey.length - 50)}`);
+
+        try {
+          admin.initializeApp({
+            credential: admin.credential.cert({
+              projectId: firebaseProjectId,
+              clientEmail: firebaseClientEmail,
+              privateKey: normalizedKey,
+            }),
+          });
+          
+          console.log('✅ [generate-password-reset-link] Firebase Admin inicializado com sucesso');
+        } catch (initError: any) {
+          console.error('❌ [generate-password-reset-link] Erro ao inicializar Firebase Admin:', initError);
+          console.error('   Mensagem:', initError.message);
+          console.error('   Stack:', initError.stack?.substring(0, 300));
+          throw initError;
+        }
       } else {
         console.log('ℹ️ [generate-password-reset-link] Firebase Admin já estava inicializado');
       }

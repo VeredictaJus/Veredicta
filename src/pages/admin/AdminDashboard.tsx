@@ -183,7 +183,7 @@ export default function AdminDashboard() {
       const [result2, result3, result4] = await Promise.all([
         supabase
         .from('petitions')
-          .select('id, status, assigned_writer_id, client_id, title, priority, deadline, type, price, created_at, updated_at')
+          .select('id, status, assigned_writer_id, client_id, title, priority, deadline, type, price, created_at, updated_at, display_id, description')
           .gte('created_at', threeMonthsAgo.toISOString())
           .order('created_at', { ascending: false })
           .limit(1000),
@@ -420,25 +420,68 @@ export default function AdminDashboard() {
       
       setStats(statsData);
 
+      // Buscar petições pendentes e buscar nomes dos clientes
+      const pendingPetitionsFiltered = petitionsArray
+        .filter(p => {
+          const status = (p.status || '').toLowerCase();
+          const hasNoWriter = !p.assigned_writer_id;
+          // Incluir petições com status 'pending' ou 'available' que não têm redator atribuído
+          return (status === 'pending' || status === 'available') && hasNoWriter;
+        })
+        .slice(0, 5);
+
+      // Buscar nomes dos clientes em paralelo
+      const clientIds = [...new Set(pendingPetitionsFiltered.map(p => p.client_id).filter(Boolean))];
+      const clientNamesMap = new Map<string, string>();
+      
+      if (clientIds.length > 0) {
+        // Buscar de profiles_v2 primeiro
+        const { data: profilesV2 } = await supabase
+          .from('profiles_v2')
+          .select('firebase_uid, full_name, email')
+          .in('firebase_uid', clientIds);
+        
+        if (profilesV2) {
+          profilesV2.forEach(p => {
+            if (p.firebase_uid) {
+              clientNamesMap.set(p.firebase_uid, p.full_name || p.email || 'Cliente');
+            }
+          });
+        }
+        
+        // Buscar de user_profiles para clientes que não estão em profiles_v2
+        const missingIds = clientIds.filter(id => !clientNamesMap.has(id));
+        if (missingIds.length > 0) {
+          const { data: userProfiles } = await supabase
+            .from('user_profiles')
+            .select('firebase_uid, full_name, email')
+            .in('firebase_uid', missingIds);
+          
+          if (userProfiles) {
+            userProfiles.forEach(p => {
+              if (p.firebase_uid) {
+                clientNamesMap.set(p.firebase_uid, p.full_name || p.email || 'Cliente');
+              }
+            });
+          }
+        }
+      }
+
       setPendingPetitions(
-        petitionsArray
-          .filter(p => {
-            const status = (p.status || '').toLowerCase();
-            const hasNoWriter = !p.assigned_writer_id;
-            // Incluir petições com status 'pending' ou 'available' que não têm redator atribuído
-            return (status === 'pending' || status === 'available') && hasNoWriter;
-          })
-          .slice(0, 5)
-          .map((p, i) => ({
-            id: String(p.id),
-            title: p.title,
-            client_name: null,
-            status: p.status,
-            priority: p.priority ?? (i < 2 ? 'URGENT' : 'HIGH'),
-            deadline: p.deadline,
-            value: Number(p.price || 0),
-            created_at: p.created_at,
-          }))
+        pendingPetitionsFiltered.map((p, i) => ({
+          id: String(p.id),
+          title: p.title || 'Sem título',
+          display_id: p.display_id || null,
+          client_id: p.client_id || null,
+          client_name: p.client_id ? (clientNamesMap.get(p.client_id) || 'Cliente') : 'N/A',
+          status: p.status,
+          type: p.type || 'Diversos',
+          priority: p.priority ?? (i < 2 ? 'URGENT' : 'HIGH'),
+          deadline: p.deadline,
+          value: Number(p.price || 0),
+          created_at: p.created_at,
+          description: p.description || null,
+        }))
       );
 
       // 🚀 OTIMIZAÇÃO: Consolidar loops de processamento de dados
@@ -755,18 +798,66 @@ export default function AdminDashboard() {
               <p className="text-muted-foreground">Todas as petições foram atribuídas!</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {pendingPetitions.map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-md border p-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">#{p.id} — {p.title}</div>
-                    <div className="text-sm text-muted-foreground truncate">{p.client_id || 'N/A'}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 's/ prazo'}
-                    </Badge>
-                    <Button size="sm" onClick={() => handleAssignPetition(p.id)}>Atribuir</Button>
+                <div key={p.id} className="rounded-md border p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="font-semibold text-base truncate">
+                          {p.display_id ? `#${p.display_id}` : `#${p.id.substring(0, 8)}...`} — {p.title}
+                        </div>
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {p.type}
+                        </Badge>
+                        {p.priority && (
+                          <Badge 
+                            variant={p.priority === 'urgent' || p.priority === 'URGENT' ? 'destructive' : p.priority === 'express' || p.priority === 'EXPRESS' ? 'default' : 'secondary'}
+                            className="text-xs shrink-0"
+                          >
+                            {p.priority === 'urgent' || p.priority === 'URGENT' ? 'Urgente' : 
+                             p.priority === 'express' || p.priority === 'EXPRESS' ? 'Express' : 'Normal'}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Cliente:</span>
+                          <div className="font-medium truncate" title={p.client_name}>
+                            {truncateLongName(p.client_name)}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Valor:</span>
+                          <div className="font-medium">R$ {p.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Prazo:</span>
+                          <div className="font-medium">
+                            {p.deadline ? new Date(p.deadline).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Criada em:</span>
+                          <div className="font-medium">
+                            {p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {p.description && (
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {p.description}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button size="sm" onClick={() => handleAssignPetition(p.id)}>
+                        Atribuir
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

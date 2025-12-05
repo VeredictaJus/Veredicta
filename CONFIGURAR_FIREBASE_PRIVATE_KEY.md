@@ -52,3 +52,4 @@ Copie o valor do campo `"private_key"` (incluindo as quebras de linha `\n`).
 
 Após configurar, teste novamente o "Esqueci minha senha" e verifique os logs para confirmar que a chave está sendo lida corretamente.
 
+

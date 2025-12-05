@@ -120,3 +120,4 @@ Agora quando testar "Esqueci minha senha":
 - A URL do Render pode mudar se você recriar o serviço. Mantenha `VITE_API_URL` atualizada
 - Todas as variáveis de ambiente são sensíveis. Não compartilhe publicamente
 
+

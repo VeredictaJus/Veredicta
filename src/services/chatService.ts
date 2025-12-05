@@ -134,15 +134,16 @@ export class ChatService {
       let error: any = null;
       
       if (isAdmin) {
-        console.log(`✅ [getUserConversations] Usuário ${user.uid} é admin - buscando TODAS as conversas`);
+        console.log(`✅ [getUserConversations] Usuário ${user.uid} é admin - buscando conversas de SUPORTE`);
         
-        // Buscar todas as conversas para admin (sem filtrar por participante)
+        // ✅ CORREÇÃO: Buscar apenas conversas de suporte para admin (não conversas de petição)
         const { data: allConversations, error: adminError } = await supabase
           .from('conversations')
           .select(`
             id, title, type, status, priority, created_by, created_at, updated_at, petition_id, metadata, 
             assigned_to, assigned_admin_id, assigned_at
           `)
+          .eq('type', 'support') // ✅ FILTRAR APENAS CONVERSAS DE SUPORTE
           .order('updated_at', { ascending: false })
           .limit(100);
 

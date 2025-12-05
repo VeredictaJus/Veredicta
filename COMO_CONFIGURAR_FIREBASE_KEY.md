@@ -62,3 +62,4 @@ Certifique-se de que estas também estão configuradas:
 - `RESEND_API_KEY` = (sua chave do Resend)
 - `APP_PUBLIC_URL` = `https://www.veredictajus.com.br`
 
+

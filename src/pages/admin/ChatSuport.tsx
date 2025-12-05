@@ -72,12 +72,12 @@ export default function ChatSuport() {
     
     // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
     // Não precisa chamar loadConversationMessages aqui pois selectConversation já faz isso
-    try {
-      await selectConversation(conversationId);
-    } catch (error) {
-      console.error('Erro ao carregar conversa no contexto:', error);
-      toast.error('Erro ao carregar conversa');
-    }
+    // Usar .then() em vez de await para evitar erro de build
+    selectConversation(conversationId)
+      .catch((error) => {
+        console.error('Erro ao carregar conversa no contexto:', error);
+        toast.error('Erro ao carregar conversa');
+      });
     
     // Resetar flag após um pequeno delay
     setTimeout(() => {
@@ -139,14 +139,11 @@ export default function ChatSuport() {
             });
             setViewMode('chat');
 
-            // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
-            (async () => {
-              try {
-                await selectConversation(conversation.id);
-              } catch (err) {
+            // ✅ CORREÇÃO: Usar .then() em vez de await para evitar erro de build
+            selectConversation(conversation.id)
+              .catch((err) => {
                 console.error('Erro ao carregar conversa no contexto:', err);
-              }
-            })();
+              });
 
             // Limpar parâmetro da URL após processar
             setSearchParams({});
@@ -195,17 +192,14 @@ export default function ChatSuport() {
       newSearchParams.delete('conversation');
       setSearchParams(newSearchParams, { replace: true });
       
-      // ✅ CORREÇÃO: Carregar conversa (selectConversation já carrega mensagens)
-      (async () => {
-        try {
-          await selectConversation(conversationId);
-        } catch (error) {
+      // ✅ CORREÇÃO: Usar .then() em vez de await para evitar erro de build
+      selectConversation(conversationId)
+        .catch((error) => {
           console.error('Erro ao abrir conversa:', error);
           toast.error('Erro ao abrir conversa');
           setViewMode('manager'); // Voltar para o gerenciador em caso de erro
           setSelectedConversationId(null);
-        }
-      })();
+        });
     }
 
     // Resetar flag quando o componente desmonta ou quando não há mais conversation

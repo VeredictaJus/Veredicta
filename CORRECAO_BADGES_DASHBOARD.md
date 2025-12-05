@@ -159,3 +159,4 @@ console.log(`📊 Satisfação calculada: ${clientSatisfaction}/5.0 (${totalRati
 
 
 
+

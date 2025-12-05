@@ -239,7 +239,79 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
     console.log('✅ Link de reset gerado com sucesso para', email)
     console.log(`✅ Link gerado: ${resetLink.substring(0, 80)}...`)
 
-    return res.json({ resetLink })
+    // Enviar email customizado via Resend
+    try {
+      const resendApiKey = getResendApiKey()
+      
+      if (!resendApiKey) {
+        console.warn('⚠️ RESEND_API_KEY não configurada, apenas retornando link')
+        return res.json({ resetLink })
+      }
+
+      const resend = new Resend(resendApiKey)
+
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Redefinição de Senha</h1>
+          </div>
+          <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <p style="font-size: 16px;">Olá,</p>
+            <p>Recebemos uma solicitação para redefinir a senha da sua conta na <strong>Veredicta</strong>.</p>
+            <p>Clique no botão abaixo para criar uma nova senha:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="display: inline-block; background: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Senha</a>
+            </div>
+            <p style="font-size: 14px; color: #666;">Ou copie e cole este link no seu navegador:</p>
+            <p style="font-size: 12px; color: #999; word-break: break-all;">${resetLink}</p>
+            <div style="background: #fef3c7; border-left: 4px solid #f97316; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <strong>⚠️ Importante:</strong>
+              <ul style="margin: 10px 0 0; padding-left: 20px;">
+                <li>Este link expira em 1 hora</li>
+                <li>Se você não solicitou esta redefinição, ignore este email</li>
+                <li>Nunca compartilhe este link com outras pessoas</li>
+              </ul>
+            </div>
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+              Se você não solicitou esta redefinição, pode ignorar este email com segurança.
+            </p>
+            <p style="margin-top: 30px;">
+              Atenciosamente,<br>
+              <strong style="color: #ea580c;">Equipe Veredicta</strong>
+            </p>
+          </div>
+        </body>
+        </html>
+      `
+
+      await resend.emails.send({
+        from: 'Veredicta - Plataforma de Petições Jurídicas <contato@veredictajus.com>',
+        to: [email],
+        subject: '🔐 Redefinição de Senha - Veredicta',
+        html: emailHtml,
+      })
+
+      console.log('✅ Email customizado enviado com sucesso via Resend')
+      
+      return res.json({ 
+        success: true,
+        message: 'Link de redefinição de senha enviado por email',
+        resetLink // Incluir para compatibilidade, mas não é necessário
+      })
+    } catch (emailError) {
+      console.error('❌ Erro ao enviar email customizado:', emailError)
+      // Mesmo se falhar o email, retornar o link para o frontend enviar
+      return res.json({ 
+        resetLink,
+        warning: 'Link gerado, mas falha ao enviar email customizado'
+      })
+    }
   } catch (error) {
     console.error('❌ Erro ao gerar link de reset:', error)
     

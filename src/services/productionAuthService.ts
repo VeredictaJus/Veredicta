@@ -468,6 +468,14 @@ class ProductionAuthService {
 
           if (response.ok) {
             const data = await response.json()
+            
+            // Se o backend já enviou o email (success: true), não precisamos fazer mais nada
+            if (data.success) {
+              console.log('✅ Email de reset enviado pelo backend')
+              return // Sucesso - o backend já enviou o email customizado
+            }
+            
+            // Se ainda retornou resetLink (compatibilidade), usar para enviar email
             resetLink = data.resetLink
             console.log('✅ Link gerado via API backend')
           } else {

@@ -225,20 +225,36 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
       return res.status(400).json({ error: 'E-mail é obrigatório' })
     }
 
-    const defaultRedirect = `${process.env.APP_PUBLIC_URL || 'http://localhost:5176'}/#/auth/reset-password`
+    const defaultRedirect = `${process.env.APP_PUBLIC_URL || process.env.FRONTEND_URL || 'http://localhost:5176'}/#/auth/reset-password`
     const actionCodeSettings = {
       url: redirectTo || defaultRedirect,
       handleCodeInApp: true
     }
 
+    console.log(`📡 [password-reset-link] Gerando link para: ${email}`)
+    console.log(`📡 [password-reset-link] Redirect URL: ${actionCodeSettings.url}`)
+
     const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings)
 
     console.log('✅ Link de reset gerado com sucesso para', email)
+    console.log(`✅ Link gerado: ${resetLink.substring(0, 80)}...`)
 
     return res.json({ resetLink })
   } catch (error) {
     console.error('❌ Erro ao gerar link de reset:', error)
-    return res.status(500).json({ error: 'Não foi possível gerar o link de reset' })
+    
+    // Se o email não existe, retornar sucesso por segurança
+    if (error.code === 'auth/user-not-found') {
+      return res.status(200).json({ 
+        success: true,
+        message: 'Se este email estiver cadastrado, você receberá um link de redefinição de senha.'
+      })
+    }
+    
+    return res.status(500).json({ 
+      error: 'Não foi possível gerar o link de reset',
+      details: error.message 
+    })
   }
 })
 

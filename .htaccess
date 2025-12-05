@@ -39,3 +39,19 @@ RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -129,3 +129,14 @@ Certifique-se de que estes arquivos foram commitados:
 **Depois:** 🚀 Vercel fará deploy automático
 **Resultado esperado:** ✅ Plano de teste funcionando em produção
 
+
+
+
+
+
+
+
+
+
+
+

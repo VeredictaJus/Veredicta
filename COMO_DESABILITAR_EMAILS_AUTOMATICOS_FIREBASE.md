@@ -67,3 +67,11 @@ Após desabilitar os emails automáticos:
 - Se ainda receber emails do Firebase, verifique todas as configurações listadas acima
 - O código já está preparado para usar apenas nosso sistema de emails
 
+
+
+
+
+
+
+
+

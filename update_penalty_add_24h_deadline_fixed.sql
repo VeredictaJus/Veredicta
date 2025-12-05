@@ -204,3 +204,5 @@ SELECT
 FROM pg_proc
 WHERE proname IN ('apply_late_penalty', 'check_and_apply_late_penalties');
 
+
+

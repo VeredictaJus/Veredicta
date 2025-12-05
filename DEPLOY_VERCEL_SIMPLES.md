@@ -123,3 +123,19 @@ Agora seu site está no ar com HTTPS automático! 🚀
 Veja `DEPLOY_VERCEL_COMPLETO.md` para instruções detalhadas.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

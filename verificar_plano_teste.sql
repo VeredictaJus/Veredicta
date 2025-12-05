@@ -39,3 +39,14 @@ ORDER BY price;
 
 -- 4. Se o plano não existir, execute o script create_test_plan.sql primeiro
 
+
+
+
+
+
+
+
+
+
+
+

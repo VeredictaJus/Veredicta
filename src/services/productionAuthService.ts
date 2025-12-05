@@ -524,6 +524,20 @@ class ProductionAuthService {
         console.log('✅ Link gerado via Supabase Edge Function')
       }
 
+      // Verificar se o link é um placeholder (quando o backend não está disponível)
+      const isPlaceholderLink = resetLink && (
+        resetLink.includes('oobCode=placeholder') || 
+        resetLink.includes('oobCode=check-email') ||
+        resetLink.includes('mode=resetPassword&oobCode=check-email')
+      )
+
+      // Se for um placeholder, o Firebase já enviou o email padrão
+      // Não precisamos enviar email customizado neste caso
+      if (isPlaceholderLink) {
+        console.log('ℹ️ Link placeholder detectado. Firebase já enviou email padrão. Não enviando email customizado.')
+        return // Sucesso - o Firebase já enviou o email
+      }
+
       // Converter o link do Firebase para a rota personalizada da aplicação
       const buildCustomResetLink = (firebaseLink: string): string => {
         try {

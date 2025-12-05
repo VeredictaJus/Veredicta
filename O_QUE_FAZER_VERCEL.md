@@ -92,3 +92,19 @@ Agora é só testar! 🎉
 - **Guia Completo**: `DEPLOY_VERCEL_COMPLETO.md`
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

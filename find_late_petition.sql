@@ -186,3 +186,5 @@ WHERE p.deadline < NOW()
 ORDER BY wp.applied_at DESC NULLS LAST
 LIMIT 5;
 
+
+

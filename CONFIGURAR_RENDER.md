@@ -83,3 +83,19 @@ Este é o arquivo que processa os pagamentos Stripe!
 O **Start Command** está apontando para o arquivo errado! Precisa ser `stripe-server-standalone.js` para processar pagamentos!
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

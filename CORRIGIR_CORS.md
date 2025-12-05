@@ -54,3 +54,19 @@ ALLOWED_ORIGINS=https://veredicta-certo-flq2kmnfu-natalias-projects-649eefbe.ver
 3. Deve funcionar! 🎉
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -89,3 +89,5 @@ Certifique-se de que estas variáveis estão configuradas no seu ambiente de pro
 - [Supabase Edge Functions Docs](https://supabase.com/docs/guides/functions)
 - [Resend API Docs](https://resend.com/docs/api-reference/emails/send-email)
 
+
+

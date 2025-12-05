@@ -57,3 +57,19 @@ O erro mostra que está tentando acessar `verodicta.onrender.com` (com "o"). Iss
 Aguarde alguns segundos para o redeploy e teste novamente! 🚀
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -85,3 +85,19 @@ VITE_FB_APP_ID=1:123456789:web:xxxxxxxxxxxxxxxx
 3. ✅ Testar o chat após as correções
 4. ✅ Monitorar logs para ver se o erro persiste
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

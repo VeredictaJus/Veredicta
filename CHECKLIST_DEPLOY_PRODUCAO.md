@@ -316,3 +316,19 @@ pm2 restart veredicta-api
 Após seguir todos os passos, seu sistema estará rodando em produção! 🎉
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

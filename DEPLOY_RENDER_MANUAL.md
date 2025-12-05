@@ -99,3 +99,19 @@ Você precisa criar um arquivo `package.json` junto com o `stripe-server-standal
 **Ou me diga qual repositório GitHub você quer usar e eu te ajudo a configurar!** 😊
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

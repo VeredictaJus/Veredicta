@@ -102,3 +102,19 @@ Se quiser ver menos avisos:
 **Tudo está funcionando perfeitamente!** 🚀
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

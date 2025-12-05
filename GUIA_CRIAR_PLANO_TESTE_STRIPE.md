@@ -131,3 +131,14 @@ Após seguir todos os passos:
 - Verifique se os IDs estão atualizados no banco de dados
 - Confirme que está usando a chave API correta do Stripe
 
+
+
+
+
+
+
+
+
+
+
+

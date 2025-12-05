@@ -50,3 +50,19 @@ https://veredicta-certo-bteoy7uoe-natalias-projects-649eefbe.vercel.app,https://
 Após salvar, o Render vai fazer redeploy automaticamente. Aguarde alguns segundos e teste novamente o pagamento! 🚀
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

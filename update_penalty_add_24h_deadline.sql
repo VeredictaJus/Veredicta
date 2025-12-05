@@ -18,11 +18,18 @@ DECLARE
   suspension_status TEXT;
   current_deadline TIMESTAMP WITH TIME ZONE;
   new_deadline TIMESTAMP WITH TIME ZONE;
+  old_status TEXT;
+  was_approved BOOLEAN;
+  current_completed_count INTEGER;
 BEGIN
-  -- Buscar valor, título e deadline atual da petição
-  SELECT price, title, deadline INTO petition_value, petition_title, current_deadline
+  -- Buscar valor, título, deadline e status atual da petição
+  SELECT price, title, deadline, status 
+  INTO petition_value, petition_title, current_deadline, old_status
   FROM petitions 
   WHERE id = petition_id;
+  
+  -- Verificar se a petição estava aprovada (precisa decrementar completed_petitions)
+  was_approved := (old_status = 'approved');
   
   -- Se a petição não tem valor, usar valor padrão R$ 60,00
   IF petition_value IS NULL OR petition_value = 0 THEN
@@ -76,6 +83,29 @@ BEGIN
     deadline = new_deadline,  -- ✅ NOVO: Adicionar 24h ao prazo
     updated_at = NOW()
   WHERE id = petition_id;
+  
+  -- 📊 RECALCULAR completed_petitions (garantir que está sempre correto)
+  -- Recalcular contador baseado nas petições realmente aprovadas e atribuídas ao redator
+  -- Isso garante que se a petição estava aprovada, o contador seja decrementado
+  SELECT COUNT(*) INTO current_completed_count
+  FROM petitions
+  WHERE status = 'approved'
+    AND assigned_writer_id = apply_late_penalty.writer_id;
+  
+  -- Atualizar contador com o valor correto
+  UPDATE profiles_v2
+  SET 
+    completed_petitions = GREATEST(0, current_completed_count), -- Não permitir negativo
+    updated_at = NOW()
+  WHERE firebase_uid = apply_late_penalty.writer_id;
+  
+  IF was_approved THEN
+    RAISE NOTICE '📊 completed_petitions recalculado para writer % (petição estava aprovada, agora: %)', 
+      apply_late_penalty.writer_id, current_completed_count;
+  ELSE
+    RAISE NOTICE '📊 completed_petitions recalculado para writer % (agora: %)', 
+      apply_late_penalty.writer_id, current_completed_count;
+  END IF;
   
   -- ⚠️ VERIFICAR E APLICAR SUSPENSÃO PROGRESSIVA
   BEGIN

@@ -98,3 +98,5 @@ FROM pg_policies
 WHERE tablename = 'petitions'
   AND schemaname = 'public';
 
+
+

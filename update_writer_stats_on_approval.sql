@@ -108,3 +108,5 @@ WHERE pv2.role = 'writer'
 ORDER BY pv2.completed_petitions DESC NULLS LAST
 LIMIT 10;
 
+
+

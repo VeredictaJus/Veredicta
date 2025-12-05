@@ -128,3 +128,19 @@ Veja `CHECKLIST_DEPLOY_PRODUCAO.md` para instruções detalhadas.
 - Monitore os logs: `pm2 logs veredicta-api`
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

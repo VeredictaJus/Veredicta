@@ -167,3 +167,5 @@ SELECT
 FROM writer_balance
 WHERE writer_id = 'WRITER_ID_AQUI'; -- ⚠️ SUBSTITUA PELO ID DO REDATOR
 
+
+

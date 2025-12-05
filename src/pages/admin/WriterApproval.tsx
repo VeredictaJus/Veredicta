@@ -39,6 +39,24 @@ export default function WriterApproval() {
   const [showPetitionsModal, setShowPetitionsModal] = useState(false)
   const [showOABModal, setShowOABModal] = useState(false)
 
+  // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
+  const truncateLongName = (name: string | undefined | null): string => {
+    if (!name) return '';
+    if (name.length > 50) {
+      return name.substring(0, 47) + '...';
+    }
+    return name;
+  };
+
+  // ✅ Função auxiliar para truncar emails muito longos (> 40 caracteres)
+  const truncateLongEmail = (email: string | undefined | null): string => {
+    if (!email) return '';
+    if (email.length > 40) {
+      return email.substring(0, 37) + '...';
+    }
+    return email;
+  };
+
   useEffect(() => {
     loadWriters()
   }, [])
@@ -234,14 +252,13 @@ export default function WriterApproval() {
           <Card key={writer.id}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg truncate" title={writer.full_name || 'Nome não informado'}>
-                    {(() => {
-                      const name = writer.full_name || 'Nome não informado';
-                      return name.length > 50 ? name.substring(0, 47) + '...' : name;
-                    })()}
+                    {truncateLongName(writer.full_name) || 'Nome não informado'}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">{writer.email}</p>
+                  <p className="text-sm text-muted-foreground truncate" title={writer.email}>
+                    {truncateLongEmail(writer.email)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(writer.status)}
@@ -343,7 +360,9 @@ export default function WriterApproval() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-orange-600" />
-              Petições Autorais - {selectedWriter?.full_name || 'Redator'}
+              <span className="truncate" title={selectedWriter?.full_name || 'Redator'}>
+                Petições Autorais - {truncateLongName(selectedWriter?.full_name) || 'Redator'}
+              </span>
             </DialogTitle>
             <DialogDescription>
               Amostras de trabalho enviadas durante o cadastro
@@ -495,7 +514,9 @@ export default function WriterApproval() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-purple-600" />
-              Carteirinha OAB - {selectedWriter?.full_name || 'Redator'}
+              <span className="truncate" title={selectedWriter?.full_name || 'Redator'}>
+                Carteirinha OAB - {truncateLongName(selectedWriter?.full_name) || 'Redator'}
+              </span>
             </DialogTitle>
             <DialogDescription>
               Documentos de identificação profissional enviados durante o cadastro

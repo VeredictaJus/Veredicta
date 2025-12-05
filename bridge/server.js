@@ -234,10 +234,29 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
     console.log(`📡 [password-reset-link] Gerando link para: ${email}`)
     console.log(`📡 [password-reset-link] Redirect URL: ${actionCodeSettings.url}`)
 
-    const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings)
+    const firebaseResetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings)
 
     console.log('✅ Link de reset gerado com sucesso para', email)
-    console.log(`✅ Link gerado: ${resetLink.substring(0, 80)}...`)
+    console.log(`✅ Link do Firebase: ${firebaseResetLink.substring(0, 80)}...`)
+
+    // Extrair o oobCode do link do Firebase e construir link customizado para o site
+    let customResetLink = firebaseResetLink
+    try {
+      const firebaseUrl = new URL(firebaseResetLink)
+      const oobCode = firebaseUrl.searchParams.get('oobCode')
+      const mode = firebaseUrl.searchParams.get('mode') || 'resetPassword'
+      
+      if (oobCode) {
+        const appPublicUrl = process.env.APP_PUBLIC_URL || process.env.FRONTEND_URL || 'https://www.veredictajus.com.br'
+        const customUrl = new URL(`${appPublicUrl}/#/auth/reset-password`)
+        customUrl.searchParams.set('oobCode', oobCode)
+        customUrl.searchParams.set('mode', mode)
+        customResetLink = customUrl.toString()
+        console.log(`✅ Link customizado criado: ${customResetLink.substring(0, 80)}...`)
+      }
+    } catch (urlError) {
+      console.warn('⚠️ Erro ao construir link customizado, usando link do Firebase:', urlError)
+    }
 
     // Enviar email customizado via Resend
     try {
@@ -245,7 +264,7 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
       
       if (!resendApiKey) {
         console.warn('⚠️ RESEND_API_KEY não configurada, apenas retornando link')
-        return res.json({ resetLink })
+        return res.json({ resetLink: customResetLink })
       }
 
       const resend = new Resend(resendApiKey)
@@ -266,10 +285,10 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
             <p>Recebemos uma solicitação para redefinir a senha da sua conta na <strong>Veredicta</strong>.</p>
             <p>Clique no botão abaixo para criar uma nova senha:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="display: inline-block; background: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Senha</a>
+              <a href="${customResetLink}" style="display: inline-block; background: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Senha</a>
             </div>
             <p style="font-size: 14px; color: #666;">Ou copie e cole este link no seu navegador:</p>
-            <p style="font-size: 12px; color: #999; word-break: break-all;">${resetLink}</p>
+            <p style="font-size: 12px; color: #999; word-break: break-all;">${customResetLink}</p>
             <div style="background: #fef3c7; border-left: 4px solid #f97316; padding: 15px; margin: 20px 0; border-radius: 4px;">
               <strong>⚠️ Importante:</strong>
               <ul style="margin: 10px 0 0; padding-left: 20px;">
@@ -302,13 +321,13 @@ app.post('/api/auth/password-reset-link', async (req, res) => {
       return res.json({ 
         success: true,
         message: 'Link de redefinição de senha enviado por email',
-        resetLink // Incluir para compatibilidade, mas não é necessário
+        resetLink: customResetLink // Retornar o link customizado
       })
     } catch (emailError) {
       console.error('❌ Erro ao enviar email customizado:', emailError)
       // Mesmo se falhar o email, retornar o link para o frontend enviar
       return res.json({ 
-        resetLink,
+        resetLink: customResetLink,
         warning: 'Link gerado, mas falha ao enviar email customizado'
       })
     }

@@ -516,9 +516,24 @@ class ProductionAuthService {
         }
         
         const supabaseData = await supabaseResponse.json()
+        
+        // A Edge Function agora retorna success: true sem resetLink
+        // O Firebase já enviou o email padrão com o link
+        // Não precisamos fazer mais nada, apenas retornar sucesso
+        if (supabaseData.success) {
+          console.log('✅ Email de reset enviado via Supabase Edge Function (Firebase enviará o link)')
+          return // Sucesso - o Firebase já enviou o email com o link
+        }
+        
+        // Se ainda retornou resetLink (compatibilidade com versões antigas)
         resetLink = supabaseData.resetLink
         
         if (!resetLink) {
+          // Se não tem resetLink mas tem success, está tudo certo
+          if (supabaseData.success) {
+            console.log('✅ Email de reset enviado via Supabase Edge Function')
+            return
+          }
           throw new Error('Link de reset não retornado pela Supabase Edge Function')
         }
         

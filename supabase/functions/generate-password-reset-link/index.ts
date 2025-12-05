@@ -1,4 +1,13 @@
+// Supabase Edge Function - Deno runtime
+// @ts-ignore - Deno imports não são reconhecidos pelo TypeScript
 import { serve } from "https://deno.land/std@0.199.0/http/server.ts";
+
+// @ts-ignore - Deno global não é reconhecido pelo TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
 
 interface RequestBody {
   email: string;
@@ -7,7 +16,7 @@ interface RequestBody {
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-// Importar Firebase Admin SDK via npm
+// @ts-ignore - Firebase Admin SDK via npm não tem tipos para Deno
 import admin from "npm:firebase-admin@11.11.0";
 
 serve(async (req) => {
@@ -34,13 +43,18 @@ serve(async (req) => {
 
     console.log(`📧 [generate-password-reset-link] Processando reset para: ${email}`);
 
+    // @ts-ignore - Deno.env não é reconhecido pelo TypeScript
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    // @ts-ignore
     const appPublicUrl = Deno.env.get('APP_PUBLIC_URL') || 'https://www.veredictajus.com.br';
     const defaultRedirect = `${appPublicUrl}/#/auth/reset-password`;
     const continueUrl = redirectTo || defaultRedirect;
 
+    // @ts-ignore
     const firebaseProjectId = Deno.env.get('FIREBASE_PROJECT_ID') || 'veredicta-85b8c';
+    // @ts-ignore
     const firebaseClientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL');
+    // @ts-ignore
     const firebasePrivateKey = Deno.env.get('FIREBASE_PRIVATE_KEY');
 
     console.log(`🔍 [generate-password-reset-link] Verificando variáveis de ambiente...`);

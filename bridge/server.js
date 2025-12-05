@@ -70,7 +70,12 @@ const app = express()
 // ======================
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    // Permitir requisições sem origin (mobile apps, Postman, etc)
+    if (!origin) {
+      return callback(null, true)
+    }
+    // Permitir origens da lista ou qualquer origem em desenvolvimento
+    if (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== 'production') {
       return callback(null, true)
     }
     console.warn(`🚫 CORS bloqueou origem não autorizada: ${origin}`)

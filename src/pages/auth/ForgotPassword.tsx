@@ -90,12 +90,12 @@ export default function ForgotPassword() {
 </CardHeader>
             
             <CardContent className="space-y-4 bg-white dark:bg-white">
-              <Alert className="pl-0 text-center flex flex-col items-center space-y-3 py-6 bg-white border-gray-200">
+              <Alert className="px-0 text-center flex flex-col items-center space-y-3 py-6 bg-white border-gray-200">
   {/* override do posicionamento padrão do Alert */}
   <div className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 shadow-sm border border-orange-200">
     <Mail className="h-9 w-9 text-orange-600" />
   </div>
-  <AlertDescription className="text-base max-w-md mx-auto text-gray-900">
+  <AlertDescription className="text-base max-w-md mx-auto text-gray-900 text-center px-4">
     Verifique sua caixa de entrada no email <strong>{email}</strong> e siga as instruções para redefinir sua senha.
   </AlertDescription>
 </Alert>

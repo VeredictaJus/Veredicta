@@ -10,10 +10,6 @@ interface RequestBody {
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-// Importar Firebase Admin SDK via npm
-// @deno-types="https://esm.sh/@types/node@18.15.0"
-import admin from "npm:firebase-admin@11.11.0";
-
 serve(async (req) => {
   // CORS headers
   const corsHeaders = {
@@ -38,6 +34,8 @@ serve(async (req) => {
       );
     }
 
+    console.log(`📧 [generate-password-reset-link] Processando reset para: ${email}`);
+
     // Obter variáveis de ambiente
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const appPublicUrl = Deno.env.get('APP_PUBLIC_URL') || 'https://www.veredictajus.com.br';
@@ -48,6 +46,12 @@ serve(async (req) => {
     const firebaseProjectId = Deno.env.get('FIREBASE_PROJECT_ID') || 'veredicta-85b8c';
     const firebaseClientEmail = Deno.env.get('FIREBASE_CLIENT_EMAIL');
     const firebasePrivateKey = Deno.env.get('FIREBASE_PRIVATE_KEY');
+
+    console.log(`🔍 [generate-password-reset-link] Verificando variáveis de ambiente...`);
+    console.log(`  - RESEND_API_KEY: ${resendApiKey ? '✅ configurada' : '❌ não configurada'}`);
+    console.log(`  - FIREBASE_PROJECT_ID: ${firebaseProjectId}`);
+    console.log(`  - FIREBASE_CLIENT_EMAIL: ${firebaseClientEmail ? '✅ configurada' : '❌ não configurada'}`);
+    console.log(`  - FIREBASE_PRIVATE_KEY: ${firebasePrivateKey ? '✅ configurada' : '❌ não configurada'}`);
 
     if (!resendApiKey) {
       console.error('❌ RESEND_API_KEY não configurada');
@@ -63,17 +67,27 @@ serve(async (req) => {
       console.error('❌ Firebase Admin credentials não configuradas');
       return new Response(
         JSON.stringify({ 
-          error: 'Firebase Admin SDK não configurado. Configure FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY.',
+          error: 'Firebase Admin SDK não configurado. Configure FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY no Supabase Dashboard.',
         }),
         { status: 500, headers: corsHeaders }
       );
     }
 
-    // 1. Inicializar Firebase Admin SDK
-    let firebaseApp;
+    // 1. Tentar importar e inicializar Firebase Admin SDK
+    let resetLink: string;
+    
     try {
+      console.log('📦 [generate-password-reset-link] Importando Firebase Admin SDK...');
+      
+      // Importar Firebase Admin SDK via npm
+      const admin = await import("npm:firebase-admin@11.11.0");
+      
+      console.log('✅ [generate-password-reset-link] Firebase Admin SDK importado com sucesso');
+
       // Verificar se já está inicializado
       if (admin.apps.length === 0) {
+        console.log('🔧 [generate-password-reset-link] Inicializando Firebase Admin SDK...');
+        
         // Normalizar a chave privada
         const normalizedKey = firebasePrivateKey
           .replace(/\\n/g, '\n')
@@ -88,23 +102,14 @@ serve(async (req) => {
             privateKey: normalizedKey,
           }),
         });
-        console.log('✅ Firebase Admin inicializado com sucesso');
+        
+        console.log('✅ [generate-password-reset-link] Firebase Admin inicializado com sucesso');
+      } else {
+        console.log('ℹ️ [generate-password-reset-link] Firebase Admin já estava inicializado');
       }
-      firebaseApp = admin.app();
-    } catch (initError) {
-      console.error('❌ Erro ao inicializar Firebase Admin:', initError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Erro ao inicializar Firebase Admin SDK',
-        }),
-        { status: 500, headers: corsHeaders }
-      );
-    }
 
-    // 2. Gerar link de reset usando Firebase Admin SDK
-    let resetLink: string;
-    try {
-      console.log(`📡 Gerando link de reset via Firebase Admin SDK para: ${email}`);
+      // 2. Gerar link de reset usando Firebase Admin SDK
+      console.log(`📡 [generate-password-reset-link] Gerando link de reset via Firebase Admin SDK para: ${email}`);
       
       const actionCodeSettings = {
         url: continueUrl,
@@ -112,12 +117,18 @@ serve(async (req) => {
       };
 
       resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
-      console.log('✅ Link gerado via Firebase Admin SDK:', resetLink.substring(0, 80) + '...');
-    } catch (linkError: any) {
-      console.error('❌ Erro ao gerar link:', linkError);
+      console.log('✅ [generate-password-reset-link] Link gerado via Firebase Admin SDK:', resetLink.substring(0, 80) + '...');
+      
+    } catch (sdkError: any) {
+      console.error('❌ [generate-password-reset-link] Erro ao usar Firebase Admin SDK:', sdkError);
+      console.error('   Detalhes:', {
+        message: sdkError.message,
+        code: sdkError.code,
+        stack: sdkError.stack?.substring(0, 200)
+      });
       
       // Se o email não existe, retornar sucesso por segurança
-      if (linkError.code === 'auth/user-not-found') {
+      if (sdkError.code === 'auth/user-not-found') {
         return new Response(
           JSON.stringify({ 
             success: true,
@@ -130,13 +141,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao gerar link de reset. Tente novamente mais tarde.',
+          details: sdkError.message || 'Erro desconhecido'
         }),
         { status: 500, headers: corsHeaders }
       );
     }
 
-    // 3. Enviar email personalizado via Resend (sem enviar email padrão do Firebase)
+    // 3. Enviar email personalizado via Resend
     try {
+      console.log('📧 [generate-password-reset-link] Enviando email personalizado via Resend...');
+      
       const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -192,7 +206,8 @@ serve(async (req) => {
       });
 
       if (emailResponse.ok) {
-        console.log('✅ Email personalizado enviado com sucesso');
+        const emailResult = await emailResponse.json();
+        console.log('✅ [generate-password-reset-link] Email personalizado enviado com sucesso:', emailResult);
         return new Response(
           JSON.stringify({ 
             success: true,
@@ -203,7 +218,7 @@ serve(async (req) => {
         );
       } else {
         const emailError = await emailResponse.text();
-        console.error('❌ Erro ao enviar email:', emailError);
+        console.error('❌ [generate-password-reset-link] Erro ao enviar email:', emailError);
         // Mesmo se o email falhar, retornar o link (o usuário pode copiar)
         return new Response(
           JSON.stringify({ 
@@ -215,7 +230,7 @@ serve(async (req) => {
         );
       }
     } catch (emailError) {
-      console.error('❌ Erro ao enviar email personalizado:', emailError);
+      console.error('❌ [generate-password-reset-link] Erro ao enviar email personalizado:', emailError);
       // Mesmo se o email falhar, retornar o link
       return new Response(
         JSON.stringify({ 
@@ -228,10 +243,11 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('❌ Erro ao gerar link de reset:', error);
+    console.error('❌ [generate-password-reset-link] Erro geral:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erro desconhecido ao gerar link de reset' 
+        error: error instanceof Error ? error.message : 'Erro desconhecido ao gerar link de reset',
+        details: error instanceof Error ? error.stack?.substring(0, 200) : 'N/A'
       }),
       { status: 500, headers: corsHeaders }
     );

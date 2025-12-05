@@ -280,7 +280,12 @@ export default function AdminDashboard() {
       const totalClients = clients.length;
       const totalWriters = writers.length;
       const totalPetitions = petitionsArray.length;
-      const pendingCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+      // Petições pendentes: status 'pending' ou 'available' E sem redator atribuído
+      const pendingCount = petitionsArray.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        const hasNoWriter = !p.assigned_writer_id;
+        return (status === 'pending' || status === 'available') && hasNoWriter;
+      }).length;
       const completedCount = petitionsArray.filter(p => (p.status || '').toLowerCase() === 'completed').length;
       
       // 🚀 CALCULAR RECEITA MENSAL: Total recebido no mês - Total a pagar aos redatores (notas fiscais aprovadas)
@@ -417,7 +422,12 @@ export default function AdminDashboard() {
 
       setPendingPetitions(
         petitionsArray
-          .filter(p => (p.status || '').toLowerCase() === 'pending')
+          .filter(p => {
+            const status = (p.status || '').toLowerCase();
+            const hasNoWriter = !p.assigned_writer_id;
+            // Incluir petições com status 'pending' ou 'available' que não têm redator atribuído
+            return (status === 'pending' || status === 'available') && hasNoWriter;
+          })
           .slice(0, 5)
           .map((p, i) => ({
             id: String(p.id),

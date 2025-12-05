@@ -182,47 +182,185 @@ serve(async (req) => {
       console.warn('⚠️ Erro ao construir link customizado, usando link do Firebase:', urlError);
     }
 
-    // 4. Enviar email personalizado via Resend (sem enviar email padrão do Firebase)
-    try {
-      const emailHtml = `
+    // 4. Função helper para gerar template de email (mesmo template do frontend)
+    const getPasswordResetEmailTemplate = (userName: string, resetLink: string): string => {
+      const LOGO_URL = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
+      const EMAIL_TEXT_LOGO_URL = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Black%20Brown%20Modern%20Creative%20Portfolio%20Presentation%20(3).png';
+      const COLORS = {
+        primary: '#ea580c',
+        primaryDark: '#c2410c',
+        secondary: '#f97316',
+        danger: '#ef4444',
+        success: '#10b981',
+      };
+
+      const content = `
+        <!-- Header -->
+        <div class="header" style="background: #ffffff; padding-bottom: 15px;">
+          <!-- Logo -->
+          <div style="text-align: center; margin-bottom: 0px;">
+            <img src="${LOGO_URL}" alt="Veredicta Logo" style="max-width: 80px; height: auto; display: block; margin: 0 auto;" />
+          </div>
+          <!-- Nome da empresa -->
+          <div style="text-align: center; margin-bottom: 20px; margin-top: -30px;">
+            <img src="${EMAIL_TEXT_LOGO_URL}" alt="Veredicta" style="display: inline-block; height: 100px; width: auto; vertical-align: middle; margin: 0; padding: 0; border: 0;" />
+          </div>
+          <h1 class="header-title" style="color: #1f2937; font-size: 22px; margin-bottom: 0;">Redefinir Senha</h1>
+        </div>
+        
+        <!-- Content -->
+        <div class="content" style="padding-top: 20px;">
+          <p style="font-size: 16px; margin-top: 0;">
+            Olá <strong style="color: ${COLORS.primary}">${userName}</strong>,
+          </p>
+          
+          <p>
+            Recebemos uma solicitação para redefinir a senha da sua conta na <strong>Veredicta - Plataforma de Petições Jurídicas</strong>.
+          </p>
+          
+          <p>
+            Clique no botão abaixo para criar uma nova senha:
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" class="button" style="display: inline-block; background: ${COLORS.primary}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">
+              Redefinir Minha Senha
+            </a>
+          </div>
+          
+          <div class="alert-box" style="background: #fef2f2; border-left: 4px solid ${COLORS.danger}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <strong>⚠️ Importante:</strong>
+            <ul style="margin: 10px 0 0; padding-left: 20px;">
+              <li>Este link expira em <strong>1 hora</strong></li>
+              <li>Só funciona uma única vez</li>
+              <li>Se você não solicitou esta redefinição, ignore este email</li>
+            </ul>
+          </div>
+          
+          <div class="info-box" style="background: #fef3c7; border-left: 4px solid ${COLORS.secondary}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <strong>🔒 Segurança:</strong>
+            <p style="margin: 10px 0 0;">
+              Nunca compartilhe este link com outras pessoas. 
+              Nossa equipe nunca pedirá sua senha por email.
+            </p>
+          </div>
+          
+          <p style="margin-top: 30px;">
+            Se tiver dúvidas, entre em contato:
+            <a href="mailto:contato@veredictajus.com" style="color: ${COLORS.primary};">contato@veredictajus.com</a>
+          </p>
+          
+          <p style="margin-top: 30px;">
+            Atenciosamente,<br>
+            <strong style="color: ${COLORS.primary};">Equipe Veredicta</strong>
+          </p>
+        </div>
+      `;
+
+      return `
         <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Redefinição de Senha</h1>
-          </div>
-          <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <p style="font-size: 16px;">Olá,</p>
-            <p>Recebemos uma solicitação para redefinir a senha da sua conta na <strong>Veredicta</strong>.</p>
-            <p>Clique no botão abaixo para criar uma nova senha:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${customResetLink}" style="display: inline-block; background: #ea580c; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Redefinir Senha</a>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Veredicta</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Helvetica Neue', Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                background-color: #f3f4f6;
+              }
+              .email-wrapper {
+                width: 100%;
+                background-color: #f3f4f6;
+                padding: 40px 20px;
+              }
+              .email-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              }
+              .header {
+                background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%);
+                padding: 40px 30px;
+                text-align: center;
+              }
+              .header-title {
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                margin: 0;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+              }
+              .content {
+                padding: 40px 30px;
+              }
+              .footer {
+                background-color: #1f2937;
+                color: #9ca3af;
+                padding: 30px;
+                text-align: center;
+                font-size: 14px;
+              }
+              .button {
+                display: inline-block;
+                background: ${COLORS.primary};
+                color: white;
+                padding: 14px 32px;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 600;
+                margin: 20px 0;
+                box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
+              }
+              @media only screen and (max-width: 600px) {
+                .email-wrapper {
+                  padding: 20px 10px;
+                }
+                .content {
+                  padding: 30px 20px;
+                }
+                .header {
+                  padding: 30px 20px;
+                }
+                .header-title {
+                  font-size: 24px;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="email-wrapper">
+              <div class="email-container">
+                ${content}
+                
+                <!-- Footer -->
+                <div class="footer">
+                  <p style="margin: 20px 0 10px; font-size: 12px;">
+                    © ${new Date().getFullYear()} Veredicta. Todos os direitos reservados.
+                  </p>
+                  
+                  <p style="margin: 10px 0; font-size: 12px; color: #6b7280;">
+                    Você está recebendo este email porque tem uma conta na Veredicta.
+                  </p>
+                </div>
+              </div>
             </div>
-            <p style="font-size: 14px; color: #666;">Ou copie e cole este link no seu navegador:</p>
-            <p style="font-size: 12px; color: #999; word-break: break-all;">${customResetLink}</p>
-            <div style="background: #fef3c7; border-left: 4px solid #f97316; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <strong>⚠️ Importante:</strong>
-              <ul style="margin: 10px 0 0; padding-left: 20px;">
-                <li>Este link expira em 1 hora</li>
-                <li>Se você não solicitou esta redefinição, ignore este email</li>
-                <li>Nunca compartilhe este link com outras pessoas</li>
-              </ul>
-            </div>
-            <p style="margin-top: 30px; font-size: 14px; color: #666;">
-              Se você não solicitou esta redefinição, pode ignorar este email com segurança.
-            </p>
-            <p style="margin-top: 30px;">
-              Atenciosamente,<br>
-              <strong style="color: #ea580c;">Equipe Veredicta</strong>
-            </p>
-          </div>
-        </body>
+          </body>
         </html>
       `;
+    };
+
+    // 5. Enviar email personalizado via Resend (sem enviar email padrão do Firebase)
+    try {
+      const userName = email.split('@')[0]; // Extrair nome do email
+      const emailHtml = getPasswordResetEmailTemplate(userName, customResetLink);
 
       const emailResponse = await fetch(RESEND_API_URL, {
         method: 'POST',

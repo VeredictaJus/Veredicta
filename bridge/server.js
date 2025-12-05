@@ -217,6 +217,153 @@ app.post('/session', async (req, res) => {
 // ======================
 // 📧 EMAIL TEMPLATE HELPER
 // ======================
+function getBaseTemplate(content, COLORS) {
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Veredicta</title>
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f3f4f6;
+          }
+          .email-wrapper {
+            width: 100%;
+            background-color: #f3f4f6;
+            padding: 40px 20px;
+          }
+          .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%);
+            padding: 40px 30px;
+            text-align: center;
+          }
+          .logo {
+            max-width: 180px;
+            height: auto;
+            margin-bottom: 20px;
+          }
+          .header-title {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          }
+          .content {
+            padding: 40px 30px;
+          }
+          .footer {
+            background-color: #1f2937;
+            color: #9ca3af;
+            padding: 30px;
+            text-align: center;
+            font-size: 14px;
+          }
+          .footer-logo {
+            max-width: 120px;
+            height: auto;
+            margin-bottom: 15px;
+            opacity: 0.8;
+          }
+          .button {
+            display: inline-block;
+            background: ${COLORS.primary};
+            color: white;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
+            transition: all 0.3s ease;
+          }
+          .button:hover {
+            background: ${COLORS.primaryDark};
+            box-shadow: 0 4px 8px rgba(234, 88, 12, 0.4);
+          }
+          .alert-box {
+            background: #fef2f2;
+            border-left: 4px solid ${COLORS.danger};
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .success-box {
+            background: #d1fae5;
+            border-left: 4px solid ${COLORS.success};
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .info-box {
+            background: #fef3c7;
+            border-left: 4px solid ${COLORS.secondary};
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .social-links {
+            margin: 20px 0;
+          }
+          .social-link {
+            display: inline-block;
+            margin: 0 10px;
+            color: #9ca3af;
+            text-decoration: none;
+          }
+          @media only screen and (max-width: 600px) {
+            .email-wrapper {
+              padding: 20px 10px;
+            }
+            .content {
+              padding: 30px 20px;
+            }
+            .header {
+              padding: 30px 20px;
+            }
+            .header-title {
+              font-size: 24px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          <div class="email-container">
+            ${content}
+            
+            <!-- Footer -->
+            <div class="footer">
+              <p style="margin: 20px 0 10px; font-size: 12px;">
+                © ${new Date().getFullYear()} Veredicta. Todos os direitos reservados.
+              </p>
+              
+              <p style="margin: 10px 0; font-size: 12px; color: #6b7280;">
+                Você está recebendo este email porque tem uma conta na Veredicta.
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 function getPasswordResetEmailTemplate(userName, resetLink) {
   const LOGO_URL = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
   const EMAIL_TEXT_LOGO_URL = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Black%20Brown%20Modern%20Creative%20Portfolio%20Presentation%20(3).png';
@@ -257,12 +404,12 @@ function getPasswordResetEmailTemplate(userName, resetLink) {
       </p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${resetLink}" class="button" style="display: inline-block; background: ${COLORS.primary}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">
+        <a href="${resetLink}" class="button" style="background: ${COLORS.primary}; color: white;">
           Redefinir Minha Senha
         </a>
       </div>
       
-      <div class="alert-box" style="background: #fef2f2; border-left: 4px solid ${COLORS.danger}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <div class="alert-box">
         <strong>⚠️ Importante:</strong>
         <ul style="margin: 10px 0 0; padding-left: 20px;">
           <li>Este link expira em <strong>1 hora</strong></li>
@@ -271,7 +418,7 @@ function getPasswordResetEmailTemplate(userName, resetLink) {
         </ul>
       </div>
       
-      <div class="info-box" style="background: #fef3c7; border-left: 4px solid ${COLORS.secondary}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+      <div class="info-box">
         <strong>🔒 Segurança:</strong>
         <p style="margin: 10px 0 0;">
           Nunca compartilhe este link com outras pessoas. 
@@ -290,105 +437,8 @@ function getPasswordResetEmailTemplate(userName, resetLink) {
       </p>
     </div>
   `;
-
-  return `
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Veredicta</title>
-        <style>
-          body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333333;
-            background-color: #f3f4f6;
-          }
-          .email-wrapper {
-            width: 100%;
-            background-color: #f3f4f6;
-            padding: 40px 20px;
-          }
-          .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%);
-            padding: 40px 30px;
-            text-align: center;
-          }
-          .header-title {
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            margin: 0;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          }
-          .content {
-            padding: 40px 30px;
-          }
-          .footer {
-            background-color: #1f2937;
-            color: #9ca3af;
-            padding: 30px;
-            text-align: center;
-            font-size: 14px;
-          }
-          .button {
-            display: inline-block;
-            background: ${COLORS.primary};
-            color: white;
-            padding: 14px 32px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            margin: 20px 0;
-            box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
-          }
-          @media only screen and (max-width: 600px) {
-            .email-wrapper {
-              padding: 20px 10px;
-            }
-            .content {
-              padding: 30px 20px;
-            }
-            .header {
-              padding: 30px 20px;
-            }
-            .header-title {
-              font-size: 24px;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="email-wrapper">
-          <div class="email-container">
-            ${content}
-            
-            <!-- Footer -->
-            <div class="footer">
-              <p style="margin: 20px 0 10px; font-size: 12px;">
-                © ${new Date().getFullYear()} Veredicta. Todos os direitos reservados.
-              </p>
-              
-              <p style="margin: 10px 0; font-size: 12px; color: #6b7280;">
-                Você está recebendo este email porque tem uma conta na Veredicta.
-              </p>
-            </div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  
+  return getBaseTemplate(content, COLORS);
 }
 
 // ======================

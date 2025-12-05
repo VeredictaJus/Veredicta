@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Users, FileText, DollarSign, AlertTriangle, CheckCircle, Clock,
+  Users, FileText, DollarSign, AlertTriangle, CheckCircle, Clock, Trash2,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -62,6 +62,11 @@ export default function AdminDashboard() {
   const [availableWriters, setAvailableWriters] = useState<Writer[]>([]);
   const [selectedWriterId, setSelectedWriterId] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
+  
+  // Estados para diálogo de exclusão
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [petitionToDelete, setPetitionToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const addAlert = useCallback((a) => setAlerts(prev => [a, ...prev]), []);
   const dismissAlert = useCallback((id) => setAlerts(prev => prev.filter(a => a.id !== id)), []);
@@ -127,6 +132,41 @@ export default function AdminDashboard() {
       toast.error(`Erro ao atribuir petição: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleDeletePetition = (petitionId: string, petitionTitle: string) => {
+    setPetitionToDelete({ id: petitionId, title: petitionTitle });
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!petitionToDelete) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('petitions')
+        .delete()
+        .eq('id', petitionToDelete.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`Petição "${petitionToDelete.title}" excluída com sucesso`);
+      setShowDeleteDialog(false);
+      setPetitionToDelete(null);
+      
+      // Recarregar dados após um pequeno delay
+      setTimeout(() => {
+        loadDashboardData();
+      }, 500);
+    } catch (error: any) {
+      console.error('Erro ao excluir petição:', error);
+      toast.error(`Erro ao excluir petição: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -866,6 +906,13 @@ export default function AdminDashboard() {
                       <Button size="sm" onClick={() => handleAssignPetition(p.id)}>
                         Atribuir
                       </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleDeletePetition(p.id, p.title)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -945,6 +992,41 @@ export default function AdminDashboard() {
             </Button>
             <Button onClick={handleConfirmAssign} disabled={!selectedWriterId || assigning}>
               {assigning ? 'Atribuindo...' : 'Atribuir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para confirmar exclusão de petição */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir a petição "{petitionToDelete?.title}"?
+              <br />
+              <span className="text-destructive font-medium mt-2 block">
+                Esta ação não pode ser desfeita.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false);
+                setPetitionToDelete(null);
+              }}
+              disabled={deleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Excluindo...' : 'Excluir Petição'}
             </Button>
           </DialogFooter>
         </DialogContent>

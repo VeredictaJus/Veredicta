@@ -115,37 +115,37 @@ class ProductionAuthService {
         }
       }
 
-      // Enviar email de confirmação
-      try {
-        const baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
-        const endpoint = `${baseApiUrl}/api/auth/email-confirmation-link`
+      // Enviar email de confirmação (opcional - Firebase já envia automaticamente)
+      // Apenas tentar em desenvolvimento onde a API route está disponível
+      if (!import.meta.env.PROD && import.meta.env.VITE_API_URL) {
+        try {
+          const baseApiUrl = import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') : ''
+          const endpoint = `${baseApiUrl}/api/auth/email-confirmation-link`
 
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email,
-            redirectTo: `${window.location.origin}/#/auth/email-confirmed`
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email,
+              redirectTo: `${window.location.origin}/#/auth/email-confirmed`
+            })
           })
-        })
 
-        if (response.ok) {
-          const { confirmationLink } = await response.json()
-          if (confirmationLink) {
-            // TODO: Implementar método sendEmailConfirmation no EmailService se necessário
-            // Por enquanto, o Firebase envia o email de confirmação automaticamente
-            console.log('📧 Link de confirmação gerado:', confirmationLink)
-          } else {
-            console.warn('⚠️ API de confirmação não retornou link válido')
+          if (response.ok) {
+            const { confirmationLink } = await response.json()
+            if (confirmationLink) {
+              console.log('📧 Link de confirmação gerado:', confirmationLink)
+            }
           }
-        } else {
-          const result = await response.json().catch(() => ({}))
-          console.warn('⚠️ Falha ao gerar link de confirmação personalizado:', result)
+        } catch (confirmationError) {
+          // Silenciosamente ignorar erro - Firebase já envia email automaticamente
+          console.debug('⚠️ API de confirmação não disponível (normal em produção):', confirmationError)
         }
-      } catch (confirmationError) {
-        console.error('⚠️ Erro ao enviar email de confirmação:', confirmationError)
+      } else {
+        // Em produção, o Firebase já envia o email de confirmação automaticamente
+        console.log('📧 Firebase enviará email de confirmação automaticamente')
       }
       
       return authUser

@@ -55,27 +55,60 @@ export default function MyPetitions() {
     return name;
   };
 
-  // ✅ Função para abrir arquivo da petição (bucket agora é público)
-  const handleOpenPetitionFile = (fileUrl: string | undefined | null) => {
+  // ✅ Função para abrir arquivo da petição - SOLUÇÃO DEFINITIVA
+  const handleOpenPetitionFile = async (fileUrl: string | undefined | null) => {
     if (!fileUrl) {
       toast.error('URL do arquivo não encontrada.');
       return;
     }
     
-    // Se é uma URL completa, usar diretamente
-    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-      window.open(fileUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    
-    // Se é apenas um caminho, gerar URL pública
-    const { data } = supabase.storage
-      .from('petition_files')
-      .getPublicUrl(fileUrl);
-    
-    if (data?.publicUrl) {
-      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
-    } else {
+    try {
+      // Obter URL completa
+      let finalUrl = fileUrl;
+      
+      if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+        // Se é apenas um caminho, gerar URL pública
+        const { data } = supabase.storage
+          .from('petition_files')
+          .getPublicUrl(fileUrl);
+        
+        if (!data?.publicUrl) {
+          toast.error('Erro ao gerar URL do arquivo.');
+          return;
+        }
+        
+        finalUrl = data.publicUrl;
+      }
+      
+      // SOLUÇÃO: Fazer fetch do arquivo, criar blob e abrir
+      // Isso garante que o navegador reconheça o Content-Type corretamente
+      const response = await fetch(finalUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao carregar arquivo: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      
+      // Criar blob URL com tipo correto
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Abrir em nova aba
+      const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      
+      if (!newWindow) {
+        toast.error('Por favor, permita pop-ups para abrir o arquivo.');
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+      
+      // Limpar blob URL após um tempo (para liberar memória)
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 60000); // 1 minuto
+      
+    } catch (error) {
+      console.error('❌ Erro ao abrir arquivo:', error);
       toast.error('Erro ao abrir arquivo. Tente novamente.');
     }
   };

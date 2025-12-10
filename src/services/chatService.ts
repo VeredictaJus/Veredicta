@@ -532,10 +532,11 @@ export class ChatService {
       } = options;
 
 
-      // Primeira tentativa: Query completa (incluindo attachments)
+      // Primeira tentativa: Query completa (incluindo attachments se existir)
+      // ✅ CORREÇÃO: Usar select('*') para incluir todos os campos disponíveis, incluindo attachments se existir
       let query = supabase
         .from('messages')
-        .select('id, conversation_id, sender_id, content, message_type, file_url, file_name, file_size, file_type, reply_to_id, status, created_at, updated_at, sent_at, attachments')
+        .select('*')
         .eq('conversation_id', conversationId);
 
       if (before) {
@@ -563,10 +564,16 @@ export class ChatService {
           limit
         });
         
-        // Segunda tentativa: Query mínima (mas incluindo campos de anexos)
+        // ✅ CORREÇÃO: Se o erro for 400 (Bad Request), pode ser que attachments não exista
+        // Tentar novamente sem especificar campos, apenas com select('*')
+        if (error.code === 'PGRST116' || error.message?.includes('column') || error.code === '42883') {
+          console.log('⚠️ [getConversationMessages] Tentando query alternativa sem especificar campos...');
+        }
+        
+        // Segunda tentativa: Query mínima (usando select('*') para incluir todos os campos disponíveis)
         let simpleQuery = supabase
           .from('messages')
-          .select('id, conversation_id, sender_id, content, message_type, created_at, updated_at, sent_at, file_url, file_name, file_size, file_type, reply_to_id, status, attachments')
+          .select('*')
           .eq('conversation_id', conversationId);
 
         if (before) {
@@ -611,17 +618,22 @@ export class ChatService {
           sender_id: msg.sender_id,
           content: msg.content || '',
           message_type: msg.message_type || 'text',
-          file_url: msg.file_url || null,
-          file_name: msg.file_name || null,
-          file_size: msg.file_size || null,
-          file_type: msg.file_type || null,
-          reply_to_id: msg.reply_to_id || null,
-          status: msg.status || 'delivered',
+          file_url: (msg as any).file_url || null,
+          file_name: (msg as any).file_name || null,
+          file_size: (msg as any).file_size || null,
+          file_type: (msg as any).file_type || null,
+          reply_to_id: (msg as any).reply_to_id || null,
+          status: (msg as any).status || 'delivered',
           created_at: msg.created_at,
-          updated_at: msg.updated_at || msg.created_at,
-          sent_at: msg.sent_at || msg.created_at,
+          updated_at: (msg as any).updated_at || msg.created_at,
+          sent_at: (msg as any).sent_at || msg.created_at,
           // ✅ CORREÇÃO: Preservar attachments quando mensagens são recarregadas do banco
-          attachments: Array.isArray(msg.attachments) ? msg.attachments : (msg.attachments ? [msg.attachments] : undefined),
+          // Verificar se attachments existe no objeto antes de acessar
+          attachments: (msg as any).attachments 
+            ? (Array.isArray((msg as any).attachments) 
+                ? (msg as any).attachments 
+                : [(msg as any).attachments])
+            : undefined,
           sender: {
             id: msg.sender_id,
             name: msg.sender_id === 'system'
@@ -697,7 +709,12 @@ export class ChatService {
         updated_at: msg.updated_at || msg.created_at,
         sent_at: msg.sent_at || msg.created_at,
         // ✅ CORREÇÃO: Preservar attachments quando mensagens são recarregadas do banco
-        attachments: Array.isArray(msg.attachments) ? msg.attachments : (msg.attachments ? [msg.attachments] : undefined),
+        // Verificar se attachments existe no objeto antes de acessar
+        attachments: (msg as any).attachments 
+          ? (Array.isArray((msg as any).attachments) 
+              ? (msg as any).attachments 
+              : [(msg as any).attachments])
+          : undefined,
         sender: {
           id: msg.sender_id,
           name: msg.sender_id === 'system'

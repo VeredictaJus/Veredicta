@@ -50,13 +50,13 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         try {
           // Verificar se getClient está disponível
           if (!getClient) {
-            console.log(`⏳ [AVATAR] Aguardando getClient... (tentativa ${attempts + 1}/${maxAttempts})`)
+            console.warn(`⏳ [AVATAR] Aguardando getClient... (tentativa ${attempts + 1}/${maxAttempts})`)
             await new Promise(resolve => setTimeout(resolve, 500))
             attempts++
             continue
           }
           
-          console.log('🔄 [AVATAR] Carregando avatar para usuário:', user.uid)
+          console.warn('🔄 [AVATAR] Carregando avatar para usuário:', user.uid)
           await loadUserAvatar()
           return
         } catch (e) {
@@ -83,7 +83,7 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
     try {
       const { supabase } = await getClient()
       
-      console.log('🔍 [AVATAR] Buscando avatar em profiles_v2 para:', user.uid)
+      console.warn('🔍 [AVATAR] Buscando avatar em profiles_v2 para:', user.uid)
       // Primeiro tenta ler de profiles_v2 (tabela principal usada pelo chat)
       // Usar .eq() ao invés de .ilike() para evitar erro 406
       let { data, error } = await supabase
@@ -92,11 +92,11 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         .eq('firebase_uid', user.uid)
         .maybeSingle()
 
-      console.log('🔍 [AVATAR] Resultado profiles_v2:', { hasData: !!data, hasAvatar: !!data?.avatar_url, error: error?.code })
+      console.warn('🔍 [AVATAR] Resultado profiles_v2:', { hasData: !!data, hasAvatar: !!data?.avatar_url, error: error?.code })
 
       // Se não encontrar em profiles_v2, tenta em user_profiles (fallback)
       if ((!data?.avatar_url || error) && error?.code === 'PGRST116') {
-        console.log('🔍 [AVATAR] Buscando avatar em user_profiles (fallback)')
+        console.warn('🔍 [AVATAR] Buscando avatar em user_profiles (fallback)')
         const result = await supabase
           .from('user_profiles')
           .select('avatar_url')
@@ -105,7 +105,7 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         
         data = result.data
         error = result.error
-        console.log('🔍 [AVATAR] Resultado user_profiles:', { hasData: !!data, hasAvatar: !!data?.avatar_url, error: error?.code })
+        console.warn('🔍 [AVATAR] Resultado user_profiles:', { hasData: !!data, hasAvatar: !!data?.avatar_url, error: error?.code })
       }
 
       if (error && error.code !== 'PGRST116') {
@@ -114,7 +114,7 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       }
 
       let finalUrl = data?.avatar_url ?? null
-      console.log('📸 [AVATAR] Avatar encontrado:', finalUrl ? 'Sim' : 'Não', finalUrl ? `(${finalUrl.substring(0, 50)}...)` : '')
+      console.warn('📸 [AVATAR] Avatar encontrado:', finalUrl ? 'Sim' : 'Não', finalUrl ? `(${finalUrl.substring(0, 50)}...)` : '')
       
       // Se temos uma URL, verificar o tipo
       if (finalUrl) {
@@ -168,7 +168,7 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       }
       
       setAvatarUrl(finalUrl)
-      console.log('✅ [AVATAR] Avatar carregado com sucesso:', finalUrl ? 'Sim' : 'Não (usando fallback)')
+      console.warn('✅ [AVATAR] Avatar carregado com sucesso:', finalUrl ? 'Sim' : 'Não (usando fallback)')
     } catch (error) {
       console.error('❌ [AVATAR] Erro ao carregar avatar:', error)
       setAvatarUrl(null)

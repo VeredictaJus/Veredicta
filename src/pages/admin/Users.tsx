@@ -490,134 +490,70 @@ export default function Users() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ NOVA IMPLEMENTAÇÃO: Buscar usuários apenas do Firebase
-      // Isso elimina duplicações e garante que só apareçam usuários reais
-      const baseApiUrl = import.meta.env.VITE_API_URL 
-        ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') 
-        : '';
-      
-      // Determinar URL da API
-      let apiUrl = '/api/users/list-firebase';
-      if (baseApiUrl && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        apiUrl = `${baseApiUrl}/api/users/list-firebase`;
-      }
+      // ✅ CORREÇÃO: Buscar diretamente do Supabase usando apenas user_profiles
+      // Isso elimina duplicações porque user_profiles só tem usuários com firebase_uid
+      // (ou seja, usuários reais do Firebase)
+      console.log('🔄 Buscando usuários do Supabase (user_profiles apenas)...');
 
-      console.log('🔄 Buscando usuários do Firebase via API:', apiUrl);
+      const { data: profiles, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .not('firebase_uid', 'is', null) // Apenas usuários com firebase_uid (usuários reais)
+        .order('created_at', { ascending: false })
+        .limit(2000);
 
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(`Erro ao buscar usuários: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const firebaseUsers = data.users || [];
-
-      console.log(`✅ ${firebaseUsers.length} usuários carregados do Firebase`);
-
-      // Mapear para o formato UiUser
       const now = new Date();
-      const mapped: UiUser[] = firebaseUsers.map((u: any): UiUser => {
-        // Calcular dias restantes de suspensão se aplicável
-        const suspendedUntil = u.suspendedUntil;
+      const mapped: UiUser[] = (profiles || []).map((p: any): UiUser => {
+        const roleRaw = String(p.role ?? '').toUpperCase();
+        const role: UiUser['role'] =
+          roleRaw === 'CLIENT' ? 'CLIENT' :
+          roleRaw === 'WRITER' ? 'WRITER' :
+          roleRaw === 'ADMIN' ? 'ADMIN' : 'UNKNOWN';
+
+        const isBlocked = p.is_blocked || false;
+        const suspendedUntil = p.suspended_until;
         const suspendedUntilDate = suspendedUntil ? new Date(suspendedUntil) : null;
         const isSuspended = suspendedUntilDate ? now < suspendedUntilDate : false;
-        const daysRemaining = suspendedUntilDate && isSuspended
-          ? Math.ceil((suspendedUntilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          : null;
+
+        let calculatedStatus: StatusUI;
+        if (isBlocked) {
+          calculatedStatus = 'blocked';
+        } else if (isSuspended) {
+          calculatedStatus = 'suspended';
+        } else {
+          calculatedStatus = toStatusUI(p.status || 'active');
+        }
 
         return {
-          id: String(u.id || u.firebase_uid || ''),
-          name: u.name || '—',
-          email: u.email,
-          role: u.role || 'UNKNOWN',
-          created_at: u.created_at || null,
-          _raw: u._raw || {},
-          statusUI: u.statusUI || 'active',
-          verifUI: u.verifUI || 'unknown',
+          id: String(p.id ?? ''),
+          name: p.full_name || '—',
+          email: p.email || null,
+          role,
+          created_at: p.created_at || null,
+          _raw: { ...p, _sourceTable: 'user_profiles', firebase_uid: p.firebase_uid },
+          statusUI: calculatedStatus,
+          verifUI: toVerifUI(p.verification_status),
           activity: undefined,
-          // Dados de suspensão
-          suspendedUntil: u.suspendedUntil || null,
-          isBlocked: u.isBlocked || false,
-          suspensionReason: u.suspensionReason || null,
-          totalLateDeliveries: u.totalLateDeliveries || 0,
-          daysRemaining,
-          suspensionType: u.suspensionType || null,
-          averageRating: u.averageRating || null,
-          totalRatings: u.totalRatings || 0,
+          suspendedUntil: p.suspended_until || null,
+          isBlocked,
+          suspensionReason: p.suspension_reason || null,
+          totalLateDeliveries: p.total_late_deliveries || 0,
+          daysRemaining: suspendedUntilDate && isSuspended
+            ? Math.ceil((suspendedUntilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+            : null,
+          suspensionType: p.suspension_type || null,
+          averageRating: p.average_rating ? parseFloat(p.average_rating) : null,
+          totalRatings: p.total_ratings || 0,
         };
       });
 
+      console.log(`✅ ${mapped.length} usuários carregados do Supabase (user_profiles)`);
       setUsers(mapped);
     } catch (err: any) {
       console.error('❌ Erro ao carregar usuários:', err);
       setError(err.message || 'Erro ao carregar usuários');
-      
-      // Fallback: tentar buscar do Supabase se a API falhar
-      console.warn('⚠️ Tentando fallback para Supabase...');
-      try {
-        const { data: profiles, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .limit(2000);
-
-        if (error) throw error;
-
-        const now = new Date();
-        const mapped: UiUser[] = (profiles || []).map((p: any): UiUser => {
-          const roleRaw = String(p.role ?? '').toUpperCase();
-          const role: UiUser['role'] =
-            roleRaw === 'CLIENT' ? 'CLIENT' :
-            roleRaw === 'WRITER' ? 'WRITER' :
-            roleRaw === 'ADMIN' ? 'ADMIN' : 'UNKNOWN';
-
-          const isBlocked = p.is_blocked || false;
-          const suspendedUntil = p.suspended_until;
-          const suspendedUntilDate = suspendedUntil ? new Date(suspendedUntil) : null;
-          const isSuspended = suspendedUntilDate ? now < suspendedUntilDate : false;
-
-          let calculatedStatus: StatusUI;
-          if (isBlocked) {
-            calculatedStatus = 'blocked';
-          } else if (isSuspended) {
-            calculatedStatus = 'suspended';
-          } else {
-            calculatedStatus = toStatusUI(p.status || 'active');
-          }
-
-          return {
-            id: String(p.id ?? ''),
-            name: p.full_name || '—',
-            email: p.email || null,
-            role,
-            created_at: p.created_at || null,
-            _raw: { ...p, _sourceTable: 'user_profiles' },
-            statusUI: calculatedStatus,
-            verifUI: toVerifUI(p.verification_status),
-            activity: undefined,
-            suspendedUntil: p.suspended_until || null,
-            isBlocked,
-            suspensionReason: p.suspension_reason || null,
-            totalLateDeliveries: p.total_late_deliveries || 0,
-            daysRemaining: suspendedUntilDate && isSuspended
-              ? Math.ceil((suspendedUntilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-              : null,
-            suspensionType: p.suspension_type || null,
-            averageRating: p.average_rating ? parseFloat(p.average_rating) : null,
-            totalRatings: p.total_ratings || 0,
-          };
-        });
-
-        setUsers(mapped);
-        console.log(`✅ Fallback: ${mapped.length} usuários carregados do Supabase`);
-      } catch (fallbackError: any) {
-        console.error('❌ Erro no fallback:', fallbackError);
-      }
     } finally {
       setLoading(false);
     }

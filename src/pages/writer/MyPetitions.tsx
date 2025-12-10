@@ -55,78 +55,27 @@ export default function MyPetitions() {
     return name;
   };
 
-  // ✅ Função para gerar URL assinada - SEMPRE usar para buckets privados
-  const getSignedUrlForFile = async (fileUrl: string | undefined | null): Promise<string | null> => {
-    if (!fileUrl) return null;
-    
-    // Se já é uma URL assinada, usar diretamente
-    if (fileUrl.includes('/sign/')) {
-      return fileUrl;
-    }
-    
-    // Extrair bucket e caminho da URL
-    let bucket = 'petition_files';
-    let filePath = '';
-    
-    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-      // Tentar extrair de URL pública do Supabase
-      const publicMatch = fileUrl.match(/\/storage\/v1\/object\/public\/([^\/]+)\/(.+)$/);
-      if (publicMatch) {
-        bucket = publicMatch[1];
-        filePath = decodeURIComponent(publicMatch[2]);
-      } else {
-        // Se não conseguir extrair, tentar usar a URL diretamente (pode ser de outro serviço)
-        console.warn('⚠️ Não foi possível extrair bucket e caminho da URL:', fileUrl);
-        return fileUrl;
-      }
-    } else {
-      // Se é apenas um caminho, assumir bucket 'petition_files'
-      filePath = fileUrl;
-    }
-    
-    // SEMPRE gerar URL assinada para buckets privados
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(filePath, 3600); // 1 hora
-      
-      if (error) {
-        console.error('❌ Erro ao gerar URL assinada:', error);
-        toast.error('Erro ao abrir arquivo. Tente novamente.');
-        return null;
-      }
-      
-      if (data?.signedUrl) {
-        return data.signedUrl;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('❌ Erro ao gerar URL assinada:', error);
-      toast.error('Erro ao abrir arquivo. Tente novamente.');
-      return null;
-    }
-  };
-
-  // ✅ Função para abrir arquivo da petição
-  const handleOpenPetitionFile = async (fileUrl: string | undefined | null) => {
+  // ✅ Função para abrir arquivo da petição (bucket agora é público)
+  const handleOpenPetitionFile = (fileUrl: string | undefined | null) => {
     if (!fileUrl) {
       toast.error('URL do arquivo não encontrada.');
       return;
     }
     
-    try {
-      const signedUrl = await getSignedUrlForFile(fileUrl);
-      if (!signedUrl) {
-        toast.error('Não foi possível gerar URL para o arquivo.');
-        return;
-      }
-      
-      // Abrir diretamente em nova aba - o navegador deve renderizar o PDF corretamente
-      // A URL assinada do Supabase já inclui os headers corretos
-      window.open(signedUrl, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error('❌ Erro ao abrir arquivo:', error);
+    // Se é uma URL completa, usar diretamente
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    
+    // Se é apenas um caminho, gerar URL pública
+    const { data } = supabase.storage
+      .from('petition_files')
+      .getPublicUrl(fileUrl);
+    
+    if (data?.publicUrl) {
+      window.open(data.publicUrl, '_blank', 'noopener,noreferrer');
+    } else {
       toast.error('Erro ao abrir arquivo. Tente novamente.');
     }
   };

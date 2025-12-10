@@ -352,10 +352,30 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
           const allMessages = [...filteredMessages, ...remainingOptimistic];
           
           // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas (mais eficiente)
+          // ✅ CORREÇÃO: Priorizar mensagens com anexos quando houver duplicatas
           const uniqueMessagesMap = new Map<string, Message>();
           allMessages.forEach(msg => {
-            if (!uniqueMessagesMap.has(msg.id) || (!msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'))) {
+            const existing = uniqueMessagesMap.get(msg.id);
+            if (!existing) {
               uniqueMessagesMap.set(msg.id, msg);
+            } else {
+              // Se a mensagem existente não tem anexos mas a nova tem, substituir
+              // Se ambas têm anexos, priorizar a que tem mais anexos ou a mais recente
+              const existingHasAttachments = Array.isArray(existing.attachments) && existing.attachments.length > 0;
+              const existingHasFileUrl = !!existing.file_url;
+              const newHasAttachments = Array.isArray(msg.attachments) && msg.attachments.length > 0;
+              const newHasFileUrl = !!msg.file_url;
+              
+              // Priorizar mensagem com anexos sobre mensagem sem anexos
+              if ((newHasAttachments || newHasFileUrl) && !existingHasAttachments && !existingHasFileUrl) {
+                uniqueMessagesMap.set(msg.id, msg);
+              } else if ((existingHasAttachments || existingHasFileUrl) && !newHasAttachments && !newHasFileUrl) {
+                // Manter a existente se ela tem anexos e a nova não tem
+                // Não fazer nada, manter existing
+              } else if (!msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-')) {
+                // Se nenhuma tem anexos ou ambas têm, priorizar mensagem não-temporária
+                uniqueMessagesMap.set(msg.id, msg);
+              }
             }
           });
           
@@ -2502,6 +2522,156 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
                                 </div>
                               );
                             })()}
+                          </div>
+                        )}
+                        
+                        {/* ✅ CORREÇÃO: Adicionar suporte para attachments (array) - quando mensagens são recarregadas do banco */}
+                        {Array.isArray(message.attachments) && message.attachments.length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            {message.attachments.map((att, idx) => {
+                              if (!att?.url || typeof att.url !== 'string') return null;
+                              
+                              // Função para detectar se é áudio
+                              const isAudioFile = (fileName?: string, fileType?: string, fileUrl?: string) => {
+                                if (fileType === 'audio' || fileUrl?.includes('data:audio/')) return true;
+                                if (!fileName) return false;
+                                const audioExtensions = ['webm', 'm4a', 'mp3', 'ogg', 'wav', 'audio', 'opus', 'aac', 'flac'];
+                                const lowerFileName = fileName.toLowerCase();
+                                return audioExtensions.some(ext => lowerFileName.includes(ext)) ||
+                                       /\.(webm|m4a|mp3|ogg|wav|opus|aac|flac)$/i.test(fileName) ||
+                                       lowerFileName.includes('audio') || 
+                                       lowerFileName.includes('gravacao') || 
+                                       lowerFileName.includes('gravação') ||
+                                       lowerFileName.includes('voice') ||
+                                       lowerFileName.includes('voz');
+                              };
+                              
+                              const isAudio = isAudioFile(att.name, att.type, att.url);
+                              const isImage = att.type?.startsWith('image/') || 
+                                           att.url.startsWith('data:image/') || 
+                                           /\.(jpg|jpeg|png|gif|webp)$/i.test(att.name || '');
+                              
+                              if (isImage) {
+                                return (
+                                  <div key={att.id || idx} className="mt-3">
+                                    <div className="relative group">
+                                      <div 
+                                        className="cursor-pointer" 
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          openImageModal(att.url, att.name);
+                                        }}
+                                      >
+                                        <img 
+                                          src={att.url} 
+                                          alt={att.name || 'Imagem'}
+                                          className="max-w-full h-auto rounded-xl border-2 border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-200 pointer-events-none"
+                                          style={{ maxHeight: '300px' }}
+                                        />
+                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-xl transition-all duration-200 flex items-center justify-center pointer-events-none">
+                                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <Eye className="h-6 w-6 text-white" />
+                                          </div>
+                                        </div>
+                                      </div>
+                                      
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          downloadFile(att.url, att.name || 'imagem.jpg');
+                                        }}
+                                        className={`absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-50 text-white hover:bg-opacity-70 transition-all duration-200 opacity-0 group-hover:opacity-100 ${
+                                          isOwnMessage ? 'hover:bg-white hover:bg-opacity-20' : 'hover:bg-gray-600'
+                                        }`}
+                                        title="Baixar imagem"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-2">
+                                      <p className={`text-xs font-medium ${
+                                        isOwnMessage ? 'text-blue-100' : 'text-gray-600'
+                                      }`}>
+                                        {att.name}
+                                      </p>
+                                      {att.size && (
+                                        <p className={`text-xs ${
+                                          isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                                        }`}>
+                                          {Math.round(att.size / 1024)} KB
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              if (isAudio) {
+                                return (
+                                  <AudioPlayer 
+                                    key={att.id || idx}
+                                    audioUrl={att.url} 
+                                    fileName={att.name}
+                                    fileSize={att.size}
+                                    isOwnMessage={isOwnMessage}
+                                  />
+                                );
+                              }
+                              
+                              // Outros tipos de arquivo
+                              return (
+                                <div key={att.id || idx} className="mt-3">
+                                  <div className={`inline-flex items-center space-x-3 p-3 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${
+                                    isOwnMessage 
+                                      ? 'bg-white bg-opacity-20 border-white border-opacity-30 hover:bg-opacity-30' 
+                                      : 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-200 dark:border-indigo-800/50 hover:border-indigo-300 dark:hover:border-indigo-700/50 shadow-sm'
+                                  }`}>
+                                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                                      isOwnMessage 
+                                        ? 'bg-white bg-opacity-20' 
+                                        : 'bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40'
+                                    } ${getFileIconColor(att.name || '', att.url)}`}>
+                                      {getFileIcon(att.name || '', att.url)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={`text-sm font-medium truncate ${
+                                        isOwnMessage 
+                                          ? 'text-white' 
+                                          : 'text-indigo-900 dark:text-indigo-100'
+                                      }`}>
+                                        {att.name || 'Arquivo'}
+                                      </p>
+                                      {att.size && (
+                                        <p className={`text-xs ${
+                                          isOwnMessage 
+                                            ? 'text-blue-100' 
+                                            : 'text-indigo-600 dark:text-indigo-400'
+                                        }`}>
+                                          {Math.round(att.size / 1024)} KB
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          downloadFile(att.url, att.name || 'arquivo');
+                                        }}
+                                        className={`p-2 rounded-full transition-colors duration-200 ${
+                                          isOwnMessage 
+                                            ? 'text-white hover:bg-white hover:bg-opacity-20' 
+                                            : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
+                                        }`}
+                                        title="Baixar arquivo"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

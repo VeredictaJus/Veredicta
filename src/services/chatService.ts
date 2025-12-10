@@ -532,10 +532,10 @@ export class ChatService {
       } = options;
 
 
-      // Primeira tentativa: Query completa
+      // Primeira tentativa: Query completa (incluindo attachments)
       let query = supabase
         .from('messages')
-        .select('id, conversation_id, sender_id, content, message_type, file_url, file_name, file_size, file_type, reply_to_id, status, created_at, updated_at, sent_at')
+        .select('id, conversation_id, sender_id, content, message_type, file_url, file_name, file_size, file_type, reply_to_id, status, created_at, updated_at, sent_at, attachments')
         .eq('conversation_id', conversationId);
 
       if (before) {
@@ -563,10 +563,10 @@ export class ChatService {
           limit
         });
         
-        // Segunda tentativa: Query mínima
+        // Segunda tentativa: Query mínima (mas incluindo campos de anexos)
         let simpleQuery = supabase
           .from('messages')
-          .select('id, conversation_id, sender_id, content, message_type, created_at')
+          .select('id, conversation_id, sender_id, content, message_type, created_at, updated_at, sent_at, file_url, file_name, file_size, file_type, reply_to_id, status, attachments')
           .eq('conversation_id', conversationId);
 
         if (before) {
@@ -611,15 +611,17 @@ export class ChatService {
           sender_id: msg.sender_id,
           content: msg.content || '',
           message_type: msg.message_type || 'text',
-          file_url: null,
-          file_name: null,
-          file_size: null,
-          file_type: null,
-          reply_to_id: null,
-          status: 'delivered',
+          file_url: msg.file_url || null,
+          file_name: msg.file_name || null,
+          file_size: msg.file_size || null,
+          file_type: msg.file_type || null,
+          reply_to_id: msg.reply_to_id || null,
+          status: msg.status || 'delivered',
           created_at: msg.created_at,
-          updated_at: msg.created_at,
-          sent_at: msg.created_at,
+          updated_at: msg.updated_at || msg.created_at,
+          sent_at: msg.sent_at || msg.created_at,
+          // ✅ CORREÇÃO: Preservar attachments quando mensagens são recarregadas do banco
+          attachments: Array.isArray(msg.attachments) ? msg.attachments : (msg.attachments ? [msg.attachments] : undefined),
           sender: {
             id: msg.sender_id,
             name: msg.sender_id === 'system'
@@ -694,6 +696,8 @@ export class ChatService {
         created_at: msg.created_at,
         updated_at: msg.updated_at || msg.created_at,
         sent_at: msg.sent_at || msg.created_at,
+        // ✅ CORREÇÃO: Preservar attachments quando mensagens são recarregadas do banco
+        attachments: Array.isArray(msg.attachments) ? msg.attachments : (msg.attachments ? [msg.attachments] : undefined),
         sender: {
           id: msg.sender_id,
           name: msg.sender_id === 'system'

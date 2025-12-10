@@ -24,17 +24,10 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
   const [isUploading, setIsUploading] = useState(false)
   const [skipNextLoad, setSkipNextLoad] = useState(false)
   
-  // Use the hook defensively - check if context is available
-  let user, getClient
-  try {
-    const authContext = useNewAuth()
-    user = authContext.user
-    getClient = authContext.getClient
-  } catch (error) {
-    // Context not available yet, use fallback values
-    user = null
-    getClient = null
-  }
+  // Use the hook - deve estar dentro do componente
+  const authContext = useNewAuth()
+  const user = authContext.user
+  const getClient = authContext.getClient
 
   useEffect(() => {
     if (!user?.uid) {
@@ -48,11 +41,37 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       return
     }
     
-    console.log('🔄 [AVATAR] Carregando avatar para usuário:', user.uid)
-    loadUserAvatar().catch((e) => {
-      console.error('❌ [AVATAR] Erro ao carregar avatar:', e)
-      setAvatarUrl(null)
-    })
+    // Aguardar um pouco para garantir que getClient está disponível
+    const loadWithRetry = async () => {
+      let attempts = 0
+      const maxAttempts = 5
+      
+      while (attempts < maxAttempts) {
+        try {
+          // Verificar se getClient está disponível
+          if (!getClient) {
+            console.log(`⏳ [AVATAR] Aguardando getClient... (tentativa ${attempts + 1}/${maxAttempts})`)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            attempts++
+            continue
+          }
+          
+          console.log('🔄 [AVATAR] Carregando avatar para usuário:', user.uid)
+          await loadUserAvatar()
+          return
+        } catch (e) {
+          console.error(`❌ [AVATAR] Erro ao carregar avatar (tentativa ${attempts + 1}/${maxAttempts}):`, e)
+          attempts++
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 500))
+          } else {
+            setAvatarUrl(null)
+          }
+        }
+      }
+    }
+    
+    loadWithRetry()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid])
 

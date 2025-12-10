@@ -558,20 +558,66 @@ export default function MyPetitions() {
     if (!petitionToDelete) return;
 
     try {
+      const petitionId = petitionToDelete;
+
+      // ✅ CORREÇÃO: Excluir registros relacionados ANTES de excluir a petição
+      // Isso resolve o erro de foreign key constraint
+      
+      // 1. Excluir multas (writer_penalties)
+      const { error: penaltiesError } = await supabase
+        .from('writer_penalties')
+        .delete()
+        .eq('petition_id', petitionId);
+      
+      if (penaltiesError) {
+        console.warn('⚠️ Erro ao excluir multas (pode não existir):', penaltiesError.message);
+      }
+
+      // 2. Excluir arquivos da petição (petition_files)
+      const { error: filesError } = await supabase
+        .from('petition_files')
+        .delete()
+        .eq('petition_id', petitionId);
+      
+      if (filesError) {
+        console.warn('⚠️ Erro ao excluir arquivos (pode não existir):', filesError.message);
+      }
+
+      // 3. Excluir correções (corrections)
+      const { error: correctionsError } = await supabase
+        .from('corrections')
+        .delete()
+        .eq('petition_id', petitionId);
+      
+      if (correctionsError) {
+        console.warn('⚠️ Erro ao excluir correções (pode não existir):', correctionsError.message);
+      }
+
+      // 4. Excluir conversas relacionadas (conversations)
+      const { error: conversationsError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('petition_id', petitionId);
+      
+      if (conversationsError) {
+        console.warn('⚠️ Erro ao excluir conversas (pode não existir):', conversationsError.message);
+      }
+
+      // 5. Por fim, excluir a petição (com verificação de ownership)
       const { error } = await supabase
         .from('petitions')
         .delete()
-        .eq('id', petitionToDelete)
+        .eq('id', petitionId)
         .eq('client_id', user?.uid); // Garantir que só exclui suas próprias
 
       if (error) throw error;
 
       toast.success('Petição excluída com sucesso!');
-      setPetitions(prev => prev.filter(p => p.id !== petitionToDelete));
+      setPetitions(prev => prev.filter(p => p.id !== petitionId));
       setPetitionToDelete(null);
-    } catch (error) {
-      console.error('Erro ao excluir petição:', error);
-      toast.error('Erro ao excluir petição. Tente novamente.');
+    } catch (error: any) {
+      console.error('❌ Erro ao excluir petição:', error);
+      toast.error(`Erro ao excluir petição: ${error.message || 'Erro desconhecido'}`);
     }
   };
 

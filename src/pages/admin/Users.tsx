@@ -351,26 +351,38 @@ export default function Users() {
         throw new Error(`Campo desconhecido: ${field}`);
       }
 
-      // Detectar de qual tabela o usuário veio
-      const sourceTable = user._raw._sourceTable || 'profiles_v2';
+      // ✅ NOVA IMPLEMENTAÇÃO: Todos os usuários agora vêm do Firebase
+      // Usar firebase_uid para encontrar o perfil correto em user_profiles
+      const firebaseUid = user._raw?.firebase_uid || user._raw?.firebase_user?.uid;
 
       // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
       if (import.meta.env.DEV) {
-        console.log('🔄 Atualizando no banco:', { userId: user.id, table: sourceTable, column: columnName, value });
+        console.log('🔄 Atualizando no banco:', { userId: user.id, firebaseUid, column: columnName, value });
       }
 
-      // Atualizar na tabela correta
-      const { error } = await supabase
-        .from(sourceTable)
-        .update({ [columnName]: value })
-        .eq('id', user.id);
+      // Atualizar usando firebase_uid (mais confiável)
+      let error: any = null;
+      if (firebaseUid) {
+        const result = await supabase
+          .from('user_profiles')
+          .update({ [columnName]: value })
+          .eq('firebase_uid', firebaseUid);
+        error = result.error;
+      } else {
+        // Fallback: tentar usar o ID diretamente
+        const result = await supabase
+          .from('user_profiles')
+          .update({ [columnName]: value })
+          .eq('id', user.id);
+        error = result.error;
+      }
 
       if (error) {
         console.error('❌ Erro ao atualizar:', error);
         
         // Se a coluna não existe, não é erro fatal
         if (error.message.includes('Could not find')) {
-          toast.warning(`Coluna '${columnName}' não existe na tabela ${sourceTable}. Este usuário não pode ter este campo atualizado.`);
+          toast.warning(`Coluna '${columnName}' não existe na tabela user_profiles. Este usuário não pode ter este campo atualizado.`);
           return; // Retorna sem erro, mas não atualiza
         }
         
@@ -428,23 +440,34 @@ export default function Users() {
     }
     
     try {
-      // Detectar de qual tabela o usuário veio
-      const sourceTable = user._raw._sourceTable || 'profiles_v2';
+      // ✅ NOVA IMPLEMENTAÇÃO: Todos os usuários agora vêm do Firebase
+      // Usar firebase_uid para encontrar o perfil correto em user_profiles
+      const firebaseUid = user._raw?.firebase_uid || user._raw?.firebase_user?.uid;
       
-      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-        console.log('🗑️ Excluindo usuário:', { userId: user.id, table: sourceTable });
-      }
-      
-      // Excluir da tabela correta
-      const { error } = await supabase
-        .from(sourceTable)
-        .delete()
-        .eq('id', user.id);
-      
-      if (error) {
-        console.error('❌ Erro ao excluir:', error);
-        throw error;
+      if (!firebaseUid) {
+        // Fallback: tentar usar o ID diretamente
+        const { error } = await supabase
+          .from('user_profiles')
+          .delete()
+          .eq('id', user.id);
+        
+        if (error) throw error;
+      } else {
+        // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
+        if (import.meta.env.DEV) {
+          console.log('🗑️ Excluindo usuário:', { userId: user.id, firebaseUid });
+        }
+        
+        // Excluir usando firebase_uid (mais confiável)
+        const { error } = await supabase
+          .from('user_profiles')
+          .delete()
+          .eq('firebase_uid', firebaseUid);
+        
+        if (error) {
+          console.error('❌ Erro ao excluir:', error);
+          throw error;
+        }
       }
       
       // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
@@ -467,185 +490,134 @@ export default function Users() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ CORREÇÃO: Query com campos básicos primeiro, depois tentar campos opcionais
-      // Campos básicos para user_profiles (inclui is_active)
-      const baseColumnsUserProfiles = 'id, firebase_uid, email, full_name, role, is_active, created_at, updated_at';
-      // Campos básicos para profiles_v2 (NÃO inclui is_active, pois não existe nessa tabela)
-      const baseColumnsProfilesV2 = 'id, firebase_uid, email, full_name, role, created_at, updated_at';
+      // ✅ NOVA IMPLEMENTAÇÃO: Buscar usuários apenas do Firebase
+      // Isso elimina duplicações e garante que só apareçam usuários reais
+      const baseApiUrl = import.meta.env.VITE_API_URL 
+        ? String(import.meta.env.VITE_API_URL).replace(/\/$/, '') 
+        : '';
       
-      // Campos opcionais de suspensão (podem não existir em todas as tabelas)
-      const optionalColumns = 'suspended_until, is_blocked, suspension_reason, suspension_type';
-      
-      let rowsUserProfiles: any[] = [];
-      let rowsProfilesV2: any[] = [];
-      let errorUserProfiles: any = null;
-      let errorProfilesV2: any = null;
-
-      // ✅ CORREÇÃO: Tentar query completa para user_profiles, mas usar campos básicos para profiles_v2
-      // profiles_v2 pode não ter os campos opcionais, então começamos com campos básicos
-      try {
-        const [
-          resultUserProfiles,
-          resultProfilesV2Basic
-        ] = await Promise.all([
-          supabase
-            .from('user_profiles')
-            .select(`${baseColumnsUserProfiles}, ${optionalColumns}`)
-            .limit(2000),
-          supabase
-            .from('profiles_v2')
-            .select(baseColumnsProfilesV2)
-            .limit(2000)
-        ]);
-
-        rowsUserProfiles = resultUserProfiles.data || [];
-        rowsProfilesV2 = resultProfilesV2Basic.data || [];
-        errorUserProfiles = resultUserProfiles.error;
-        errorProfilesV2 = resultProfilesV2Basic.error;
-
-        // Adicionar campos opcionais com valores padrão para profiles_v2
-        if (rowsProfilesV2.length > 0) {
-          rowsProfilesV2 = rowsProfilesV2.map(row => ({
-            ...row,
-            is_active: true,
-            suspended_until: null,
-            is_blocked: false,
-            suspension_reason: null,
-            suspension_type: null
-          }));
-        }
-
-        // ✅ CORREÇÃO: Se houver erro em profiles_v2 (mesmo que seja PGRST116 - nenhuma linha), apenas registrar
-        // Não precisamos fazer fallback pois já começamos com campos básicos
-        if (errorProfilesV2 && errorProfilesV2.code !== 'PGRST116') {
-          console.warn('⚠️ Erro ao buscar profiles_v2:', errorProfilesV2?.message);
-        }
-
-        // Verificar se é erro de Bad Request (campo não existe) através do código ou mensagem
-        const isUserProfilesBadRequest = errorUserProfiles && (
-          errorUserProfiles.code === '42703' || // Column does not exist
-          errorUserProfiles.code === 'PGRST116' || // No rows returned (mas também pode ser Bad Request)
-          (errorUserProfiles.message?.includes('column') && errorUserProfiles.message?.includes('does not exist')) ||
-          errorUserProfiles.message?.includes('Bad Request') ||
-          errorUserProfiles.message?.includes('400') ||
-          (errorUserProfiles.status && errorUserProfiles.status === 400)
-        );
-        
-        if (isUserProfilesBadRequest) {
-          console.warn('⚠️ Erro ao buscar campos opcionais de user_profiles, tentando apenas campos básicos:', errorUserProfiles?.message);
-          
-          const { data: basicData, error: basicError } = await supabase
-            .from('user_profiles')
-            .select(baseColumnsUserProfiles)
-            .limit(2000);
-          
-          if (!basicError && basicData) {
-            rowsUserProfiles = basicData.map(row => ({
-              ...row,
-              suspended_until: null,
-              is_blocked: false,
-              suspension_reason: null,
-              suspension_type: null
-            }));
-            errorUserProfiles = null;
-          } else if (basicError) {
-            // Se também falhar com campos básicos, manter o erro original
-            console.error('❌ Erro ao buscar campos básicos de user_profiles:', basicError);
-          }
-        }
-      } catch (err) {
-        console.error('❌ Erro ao carregar usuários:', err);
-        throw err;
+      // Determinar URL da API
+      let apiUrl = '/api/users/list-firebase';
+      if (baseApiUrl && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        apiUrl = `${baseApiUrl}/api/users/list-firebase`;
       }
 
-      // Combinar resultados de ambas as tabelas
-      const rows = [
-        ...(rowsUserProfiles || []),
-        ...(rowsProfilesV2 || [])
-      ];
+      console.log('🔄 Buscando usuários do Firebase via API:', apiUrl);
 
-      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-        console.log(`✅ Usuários carregados: ${rowsUserProfiles?.length || 0} de user_profiles + ${rowsProfilesV2?.length || 0} de profiles_v2`);
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar usuários: ${response.status} ${response.statusText}`);
       }
 
-      // Se ambas deram erro, lançar exceção
-      if ((errorUserProfiles || errorProfilesV2) && rows.length === 0) {
-        throw errorUserProfiles || errorProfilesV2;
-      }
+      const data = await response.json();
+      const firebaseUsers = data.users || [];
 
-      // ✅ OTIMIZAÇÃO: Criar Date() uma vez antes do loop (evita criação repetida)
+      console.log(`✅ ${firebaseUsers.length} usuários carregados do Firebase`);
+
+      // Mapear para o formato UiUser
       const now = new Date();
-
-      const mapped: UiUser[] = (rows || []).map((p: any): UiUser => {
-        const roleRaw = String(p.user_type ?? p.role ?? '').toUpperCase();
-        const role: UiUser['role'] =
-          roleRaw === 'CLIENT' ? 'CLIENT' :
-          roleRaw === 'WRITER' ? 'WRITER' :
-          roleRaw === 'ADMIN'  ? 'ADMIN'  : 'UNKNOWN';
-
-        const name = p.full_name ?? p.nome ?? p.name ?? p.fullname ?? '—';
-        const email =
-          (typeof p.email === 'string' && p.email) ? p.email :
-          (typeof p.user_email === 'string' && p.user_email) ? p.user_email : null;
-
-        const statusKey = ['status', 'account_status', 'situacao', 'ativo'].find(k => k in p);
-        const verifKey  = ['verification_status', 'verified', 'is_verified', 'verificado'].find(k => k in p);
-
-        // Detectar de qual tabela veio (user_profiles tem firebase_uid, profiles_v2 não)
-        const sourceTable = p.firebase_uid ? 'user_profiles' : 'profiles_v2';
-
-        // 🔒 CALCULAR STATUS BASEADO EM SUSPENSÃO
-        const isBlocked = p.is_blocked || false;
-        const suspendedUntil = p.suspended_until;
+      const mapped: UiUser[] = firebaseUsers.map((u: any): UiUser => {
+        // Calcular dias restantes de suspensão se aplicável
+        const suspendedUntil = u.suspendedUntil;
         const suspendedUntilDate = suspendedUntil ? new Date(suspendedUntil) : null;
         const isSuspended = suspendedUntilDate ? now < suspendedUntilDate : false;
         const daysRemaining = suspendedUntilDate && isSuspended
           ? Math.ceil((suspendedUntilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
           : null;
 
-        // Determinar statusUI baseado em suspensão/bloqueio
-        let calculatedStatus: StatusUI;
-        if (isBlocked) {
-          calculatedStatus = 'blocked';
-        } else if (isSuspended) {
-          calculatedStatus = 'suspended';
-        } else {
-          // Usar status da coluna status, ou 'active' por padrão
-          calculatedStatus = toStatusUI(statusKey ? p[statusKey] : 'active');
-        }
-
         return {
-          id: String(p.id ?? ''),
-          name,
-          email,
-          role,
-          created_at: p.created_at ?? p.inserted_at ?? p.createdAt ?? null,
-          _raw: { ...p, _sourceTable: sourceTable }, // Adicionar info da tabela de origem
-          statusUI: calculatedStatus,
-          verifUI:  toVerifUI (verifKey  ? p[verifKey]  : undefined),
+          id: String(u.id || u.firebase_uid || ''),
+          name: u.name || '—',
+          email: u.email,
+          role: u.role || 'UNKNOWN',
+          created_at: u.created_at || null,
+          _raw: u._raw || {},
+          statusUI: u.statusUI || 'active',
+          verifUI: u.verifUI || 'unknown',
           activity: undefined,
           // Dados de suspensão
-          suspendedUntil: p.suspended_until || null,
-          isBlocked,
-          suspensionReason: p.suspension_reason || null,
-          totalLateDeliveries: p.total_late_deliveries || 0,
+          suspendedUntil: u.suspendedUntil || null,
+          isBlocked: u.isBlocked || false,
+          suspensionReason: u.suspensionReason || null,
+          totalLateDeliveries: u.totalLateDeliveries || 0,
           daysRemaining,
-          suspensionType: p.suspension_type || null,
-          averageRating: p.average_rating ? parseFloat(p.average_rating) : null,
-          totalRatings: p.total_ratings || 0,
+          suspensionType: u.suspensionType || null,
+          averageRating: u.averageRating || null,
+          totalRatings: u.totalRatings || 0,
         };
       });
 
-      // ✅ OTIMIZAÇÃO: Console.log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-        console.log(`✅ ${mapped.length} usuários carregados do banco de dados`);
-      }
-      
       setUsers(mapped);
     } catch (err: any) {
       console.error('❌ Erro ao carregar usuários:', err);
       setError(err.message || 'Erro ao carregar usuários');
+      
+      // Fallback: tentar buscar do Supabase se a API falhar
+      console.warn('⚠️ Tentando fallback para Supabase...');
+      try {
+        const { data: profiles, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .limit(2000);
+
+        if (error) throw error;
+
+        const now = new Date();
+        const mapped: UiUser[] = (profiles || []).map((p: any): UiUser => {
+          const roleRaw = String(p.role ?? '').toUpperCase();
+          const role: UiUser['role'] =
+            roleRaw === 'CLIENT' ? 'CLIENT' :
+            roleRaw === 'WRITER' ? 'WRITER' :
+            roleRaw === 'ADMIN' ? 'ADMIN' : 'UNKNOWN';
+
+          const isBlocked = p.is_blocked || false;
+          const suspendedUntil = p.suspended_until;
+          const suspendedUntilDate = suspendedUntil ? new Date(suspendedUntil) : null;
+          const isSuspended = suspendedUntilDate ? now < suspendedUntilDate : false;
+
+          let calculatedStatus: StatusUI;
+          if (isBlocked) {
+            calculatedStatus = 'blocked';
+          } else if (isSuspended) {
+            calculatedStatus = 'suspended';
+          } else {
+            calculatedStatus = toStatusUI(p.status || 'active');
+          }
+
+          return {
+            id: String(p.id ?? ''),
+            name: p.full_name || '—',
+            email: p.email || null,
+            role,
+            created_at: p.created_at || null,
+            _raw: { ...p, _sourceTable: 'user_profiles' },
+            statusUI: calculatedStatus,
+            verifUI: toVerifUI(p.verification_status),
+            activity: undefined,
+            suspendedUntil: p.suspended_until || null,
+            isBlocked,
+            suspensionReason: p.suspension_reason || null,
+            totalLateDeliveries: p.total_late_deliveries || 0,
+            daysRemaining: suspendedUntilDate && isSuspended
+              ? Math.ceil((suspendedUntilDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+              : null,
+            suspensionType: p.suspension_type || null,
+            averageRating: p.average_rating ? parseFloat(p.average_rating) : null,
+            totalRatings: p.total_ratings || 0,
+          };
+        });
+
+        setUsers(mapped);
+        console.log(`✅ Fallback: ${mapped.length} usuários carregados do Supabase`);
+      } catch (fallbackError: any) {
+        console.error('❌ Erro no fallback:', fallbackError);
+      }
     } finally {
       setLoading(false);
     }

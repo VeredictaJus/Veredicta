@@ -56,7 +56,7 @@ export default function MyPetitions() {
   };
 
   // ✅ Função para abrir arquivo da petição - SOLUÇÃO CORRETA usando download() do Supabase
-  const handleOpenPetitionFile = async (fileUrl: string | undefined | null) => {
+  const handleOpenPetitionFile = async (fileUrl: string | undefined | null, fileType: string | undefined | null = null) => {
     if (!fileUrl) {
       toast.error('URL do arquivo não encontrada.');
       return;
@@ -90,14 +90,51 @@ export default function MyPetitions() {
         return;
       }
       
-      // Criar blob URL e abrir
-      const blobUrl = URL.createObjectURL(data);
-      const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      // ✅ CORREÇÃO: Criar blob com tipo MIME correto
+      // Se fileType não foi fornecido, tentar detectar pela extensão do arquivo
+      let mimeType = fileType || 'application/octet-stream';
       
-      if (!newWindow) {
-        toast.error('Por favor, permita pop-ups para abrir o arquivo.');
-        URL.revokeObjectURL(blobUrl);
-        return;
+      if (!fileType) {
+        // Tentar detectar tipo MIME pela URL
+        const urlLower = fileUrl.toLowerCase();
+        if (urlLower.endsWith('.pdf')) {
+          mimeType = 'application/pdf';
+        } else if (urlLower.endsWith('.doc')) {
+          mimeType = 'application/msword';
+        } else if (urlLower.endsWith('.docx')) {
+          mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        } else if (urlLower.endsWith('.jpg') || urlLower.endsWith('.jpeg')) {
+          mimeType = 'image/jpeg';
+        } else if (urlLower.endsWith('.png')) {
+          mimeType = 'image/png';
+        } else if (urlLower.endsWith('.gif')) {
+          mimeType = 'image/gif';
+        } else if (urlLower.endsWith('.webp')) {
+          mimeType = 'image/webp';
+        }
+      }
+      
+      // Criar blob com tipo MIME correto
+      const blob = new Blob([data], { type: mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Para PDFs, abrir em nova aba
+      if (mimeType === 'application/pdf') {
+        const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          toast.error('Por favor, permita pop-ups para abrir o arquivo.');
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+      } else {
+        // Para outros tipos, criar link de download
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filePath.split('/').pop() || 'arquivo';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
       
       // Limpar blob URL após um tempo (para liberar memória)
@@ -1140,7 +1177,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          onClick={() => handleOpenPetitionFile(file.file_url)}
+                                          onClick={() => handleOpenPetitionFile(file.file_url, file.file_type)}
                                         >
                                           <Download className="h-4 w-4" />
                                         </Button>
@@ -1452,7 +1489,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                                             <Button
                                               size="sm"
                                               variant="outline"
-                                              onClick={() => handleOpenPetitionFile(file.file_url)}
+                                              onClick={() => handleOpenPetitionFile(file.file_url, file.file_type)}
                                             >
                                               <Download className="h-4 w-4 mr-2" />
                                               Baixar

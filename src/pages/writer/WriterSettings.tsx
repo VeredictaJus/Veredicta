@@ -272,7 +272,7 @@ export default function WriterSettings() {
       const { data: profileData, error } = await supabase
         .from('profiles_v2')
         .select('*')
-        .ilike('firebase_uid', user.uid)
+        .eq('firebase_uid', user.uid)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -467,7 +467,7 @@ export default function WriterSettings() {
           pix_key: profile.bank_data.pix_key,
           updated_at: new Date().toISOString()
         })
-        .ilike('firebase_uid', user.uid);
+        .eq('firebase_uid', user.uid);
 
       if (error) {
         console.error('❌ Error updating bank data:', error);
@@ -532,7 +532,7 @@ export default function WriterSettings() {
           const { data: existingProfile } = await supabase
             .from('profiles_v2')
             .select('firebase_uid, email, role')
-            .ilike('firebase_uid', user.uid)
+            .eq('firebase_uid', user.uid)
             .maybeSingle();
 
           // Salvar base64 no banco
@@ -546,7 +546,7 @@ export default function WriterSettings() {
                 avatar_url: base64String, 
                 updated_at: new Date().toISOString() 
               })
-              .ilike('firebase_uid', user.uid)
+              .eq('firebase_uid', user.uid)
               .select();
             
             updateError = result.error;
@@ -587,7 +587,7 @@ export default function WriterSettings() {
           const { error: userProfilesError } = await supabase
             .from('user_profiles')
             .update({ avatar_url: base64String })
-            .ilike('firebase_uid', user.uid);
+            .eq('firebase_uid', user.uid);
 
           if (userProfilesError) {
             console.warn('⚠️ Aviso ao atualizar user_profiles:', userProfilesError);

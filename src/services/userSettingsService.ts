@@ -374,15 +374,16 @@ export class UserSettingsService {
       console.log('💾 [AVATAR SAVE] Atualizando avatar para usuário:', userId);
       console.log('📸 [AVATAR SAVE] Avatar URL:', avatarUrl);
       
-      // Salvar em AMBAS as tabelas (case-insensitive)
+      // Salvar em AMBAS as tabelas
       // 1. Salvar em profiles_v2 (tabela principal usada pelo chat)
+      // Usar .eq() ao invés de .ilike() para evitar erro 406
       const { data: data1, error: error1 } = await supabase
         .from('profiles_v2')
         .update({ 
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString() 
         })
-        .ilike('firebase_uid', userId)
+        .eq('firebase_uid', userId)
         .select();
 
       console.log('📊 [AVATAR SAVE] Resultado profiles_v2:', {
@@ -393,11 +394,12 @@ export class UserSettingsService {
 
       // 2. Salvar em user_profiles (tabela secundária)
       // Buscar email do usuário para incluir no upsert
+      // Usar .eq() ao invés de .ilike() para evitar erro 406
       const { data: profileData } = await supabase
         .from('profiles_v2')
         .select('email')
-        .ilike('firebase_uid', userId)
-        .single();
+        .eq('firebase_uid', userId)
+        .maybeSingle();
       
       const { data: data2, error: error2 } = await supabase
         .from('user_profiles')

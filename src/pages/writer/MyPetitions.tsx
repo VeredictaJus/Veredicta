@@ -151,7 +151,29 @@ export default function MyPetitions() {
     
     const signedUrl = await getSignedUrlForFile(fileUrl);
     if (signedUrl) {
-      window.open(signedUrl, '_blank');
+      // Extrair nome do arquivo
+      const fileName = fileUrl.split('/').pop() || 'documento.pdf';
+      
+      // Para PDFs, usar uma abordagem que força o navegador a renderizar corretamente
+      // Criar um iframe temporário para abrir o PDF
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = signedUrl;
+      document.body.appendChild(iframe);
+      
+      // Também abrir em nova aba para garantir
+      const newWindow = window.open(signedUrl, '_blank', 'noopener,noreferrer');
+      
+      // Se o popup foi bloqueado, usar o iframe
+      if (!newWindow) {
+        // Remover iframe após um tempo
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      } else {
+        // Se abriu em nova aba, remover iframe imediatamente
+        document.body.removeChild(iframe);
+      }
     }
   };
 

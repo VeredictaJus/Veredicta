@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNewAuth } from './NewAuthContext';
-import { ProductionAuthService } from '@/services/productionAuthService';
+import ProductionAuthService from '@/services/productionAuthService';
 import { ClientProfile, WriterProfile, AdminProfile } from '@/types';
 
 interface UserProfile {
@@ -22,7 +22,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useNewAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const authService = ProductionAuthService.getInstance();
+  const authService = ProductionAuthService;
 
   // Função para carregar perfil do banco de dados
   const loadProfile = async () => {

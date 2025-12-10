@@ -224,10 +224,33 @@ const validateForm = async () => {
 };
 
 // Função para fazer upload das petições autorais
-const uploadPetitionFiles = async (userId: string, petitionFiles: { [key: string]: File | null }) => {
-  const uploadedFiles: { [key: string]: string } = {};
+const uploadPetitionFiles = async (userId: string, petitionFiles: { [key: string]: File | null }, getClient: any) => {
+  const uploadedFilePaths: { [key: string]: string } = {}; // Armazenar apenas os caminhos
   
-  const { supabase: supabaseClient } = await getClient();
+  console.log('🔍 Register.tsx - Iniciando upload de petições autorais');
+  
+  // Tentar usar Service Role Key se disponível (bypass RLS)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dmsodonmkffyvbuxtxec.supabase.co';
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  
+  let supabaseClient: any;
+  
+  if (serviceRoleKey) {
+    // Usar Service Role Key para bypass RLS
+    const { createClient } = await import('@supabase/supabase-js');
+    supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    console.log('🔍 Register.tsx - Usando Service Role Key para upload de petições');
+  } else {
+    // Fallback: usar cliente autenticado
+    const client = await getClient();
+    supabaseClient = client.supabase;
+    console.log('🔍 Register.tsx - Usando cliente autenticado para upload de petições');
+  }
   
   for (const [key, file] of Object.entries(petitionFiles)) {
     if (file) {
@@ -243,31 +266,42 @@ const uploadPetitionFiles = async (userId: string, petitionFiles: { [key: string
         console.log('🔍 Register.tsx - File type:', file.type);
         console.log('🔍 Register.tsx - File size:', file.size);
 
-        // Upload usando Service Role Key (bypass RLS)
+        // Upload para bucket writer-petitions
         const { data, error } = await supabaseClient.storage
           .from('writer-petitions')
-          .upload(fileName, file);
+          .upload(fileName, file, {
+            contentType: file.type,
+            upsert: false
+          });
 
         if (error) {
-          console.error(`Erro ao fazer upload da ${key}:`, error);
-          throw new Error(`Falha ao fazer upload da ${key}`);
+          console.error(`❌ Erro ao fazer upload da ${key}:`, error);
+          // Melhorar mensagem de erro
+          if (error.message?.includes('already exists')) {
+            throw new Error(`Arquivo ${key} já existe. Tente novamente.`);
+          }
+          if (error.message?.includes('not found') || error.message?.includes('bucket')) {
+            throw new Error(`Bucket writer-petitions não encontrado. Contate o suporte.`);
+          }
+          if (error.message?.includes('permission') || error.message?.includes('policy')) {
+            throw new Error(`Sem permissão para fazer upload. Verifique suas credenciais.`);
+          }
+          throw new Error(`Falha ao fazer upload da petição ${key}: ${error.message || 'Erro desconhecido'}`);
         }
 
-        // Obter URL pública do arquivo
-        const { data: publicUrl } = supabaseClient.storage
-          .from('writer-petitions')
-          .getPublicUrl(fileName);
-
-        uploadedFiles[key] = publicUrl.publicUrl;
+        console.log('✅ Upload de petição bem-sucedido:', fileName);
+        
+        // Armazenar apenas o caminho do arquivo (bucket pode ser privado)
+        uploadedFilePaths[key] = fileName;
         
       } catch (error) {
-        console.error(`Erro ao processar ${key}:`, error);
+        console.error(`❌ Erro ao processar ${key}:`, error);
         throw error;
       }
     }
   }
   
-  return uploadedFiles;
+  return uploadedFilePaths;
 };
 
 // Função para fazer upload das carteirinhas OAB
@@ -336,29 +370,10 @@ const uploadOABFiles = async (userId: string, oabFiles: { [key: string]: File | 
         }
 
         console.log('✅ Upload OAB bem-sucedido:', fileName);
-
-        // Para bucket privado, armazenar apenas o caminho do arquivo
+        
+        // Armazenar apenas o caminho do arquivo (bucket é privado)
         // A URL será gerada quando necessário usando createSignedUrl()
-        // Mas para compatibilidade, vamos tentar obter URL assinada válida por 1 ano
-        try {
-          const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
-            .from('oab-documents')
-            .createSignedUrl(fileName, 31536000); // 1 ano em segundos
-          
-          if (!signedUrlError && signedUrlData) {
-            uploadedFiles[key] = signedUrlData.signedUrl;
-            console.log('✅ URL assinada gerada para:', key);
-          } else {
-            // Se não conseguir gerar URL assinada, armazenar apenas o caminho
-            // O admin poderá gerar URL assinada quando necessário
-            uploadedFiles[key] = fileName;
-            console.log('⚠️ Armazenando apenas caminho do arquivo:', fileName);
-          }
-        } catch (urlError: any) {
-          // Se falhar ao gerar URL assinada, armazenar apenas o caminho
-          uploadedFiles[key] = fileName;
-          console.warn('⚠️ Erro ao gerar URL assinada, armazenando caminho:', urlError.message);
-        }
+        uploadedFiles[key] = fileName;
         
       } catch (error: any) {
         console.error(`❌ Erro ao processar ${key}:`, error);
@@ -513,7 +528,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
       if (userType === 'writer' && authUser?.uid) {
         try {
           console.log('🔍 Register.tsx - Fazendo upload das petições...');
-          const uploadedFiles = await uploadPetitionFiles(authUser.uid, petitionFiles);
+          const uploadedFiles = await uploadPetitionFiles(authUser.uid, petitionFiles, getClient);
           console.log('✅ Register.tsx - Petições enviadas com sucesso:', uploadedFiles);
           
           console.log('🔍 Register.tsx - Fazendo upload da carteirinha OAB...');

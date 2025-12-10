@@ -800,23 +800,42 @@ export class DatabaseService {
 
   // NOTIFICATIONS
   static async getUserNotifications(userId: string): Promise<Notification[]> {
-    const { data, error } = await supabase
-      .from('app_2d8133c678_notifications')
-      .select('id, user_id, title, body, type, priority, is_read, related_entity_type, related_entity_id, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(100); // Limitar a 100 notificações mais recentes para performance
-
-    if (error) {
-      console.error('Error fetching notifications:', error);
+    // ✅ CORREÇÃO: Validar userId antes de fazer query
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.warn('⚠️ [getUserNotifications] userId inválido:', userId);
       return [];
     }
 
-    // Mapear 'body' do banco para 'message' da interface
-    return (data || []).map((n: any) => ({
-      ...n,
-      message: n.body || n.message || '', // Suporta ambos os campos
-    }));
+    try {
+      const { data, error } = await supabase
+        .from('app_2d8133c678_notifications')
+        .select('id, user_id, title, body, type, priority, is_read, related_entity_type, related_entity_id, created_at')
+        .eq('user_id', userId.trim())
+        .order('created_at', { ascending: false })
+        .limit(100); // Limitar a 100 notificações mais recentes para performance
+
+      if (error) {
+        // ✅ CORREÇÃO: Log mais detalhado do erro
+        console.error('❌ [getUserNotifications] Erro ao buscar notificações:', {
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          userId: userId
+        });
+        // Não propagar erro, retornar array vazio para não quebrar a UI
+        return [];
+      }
+
+      // Mapear 'body' do banco para 'message' da interface
+      return (data || []).map((n: any) => ({
+        ...n,
+        message: n.body || n.message || '', // Suporta ambos os campos
+      }));
+    } catch (err) {
+      console.error('❌ [getUserNotifications] Erro inesperado:', err);
+      return [];
+    }
   }
 
   /**
@@ -1045,53 +1064,72 @@ export class DatabaseService {
   }
 
   static subscribeToUserNotifications(userId: string, callback: (notifications: Notification[]) => void) {
-    console.log('📡 [subscribeToUserNotifications] Criando subscription para usuário:', userId);
-    
-    const subscription = supabase
-      .channel(`user-notifications-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Escuta INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'app_2d8133c678_notifications',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('🔔 [subscribeToUserNotifications] Mudança detectada na tabela:', {
-            eventType: payload.eventType,
-            table: payload.table,
-            userId: userId
-          });
-          
-          // ✅ CORREÇÃO: Sempre recarregar notificações quando há mudança
-          this.getUserNotifications(userId)
-            .then(notifications => {
-              console.log('✅ [subscribeToUserNotifications] Notificações recarregadas:', notifications.length);
-              callback(notifications);
-            })
-            .catch(err => {
-              console.error('❌ [subscribeToUserNotifications] Erro ao recarregar notificações:', err);
-            });
-        }
-      )
-      .subscribe((status, err) => {
-        if (err) {
-          console.error('❌ [subscribeToUserNotifications] Erro na subscription:', err);
-        } else if (status === 'SUBSCRIBED') {
-          console.log('✅ [subscribeToUserNotifications] Subscription ativa para usuário:', userId);
-          // ✅ NOVO: Recarregar imediatamente ao conectar (garantir sincronia)
-          this.getUserNotifications(userId)
-            .then(callback)
-            .catch(err => {
-              console.error('❌ Erro ao carregar notificações iniciais:', err);
-            });
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('⚠️ [subscribeToUserNotifications] Subscription com problemas. Status:', status);
-        }
-      });
+    // ✅ CORREÇÃO: Validar userId antes de criar subscription
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.warn('⚠️ [subscribeToUserNotifications] userId inválido, não criando subscription:', userId);
+      return { unsubscribe: () => {} }; // Retornar subscription vazia
+    }
 
-    return subscription;
+    const sanitizedUserId = userId.trim();
+    console.log('📡 [subscribeToUserNotifications] Criando subscription para usuário:', sanitizedUserId);
+    
+    try {
+      const subscription = supabase
+        .channel(`user-notifications-${sanitizedUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escuta INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'app_2d8133c678_notifications',
+            // ✅ CORREÇÃO: Usar sanitizedUserId e garantir que o filtro está correto
+            filter: `user_id=eq.${sanitizedUserId}`
+          },
+          (payload) => {
+            console.log('🔔 [subscribeToUserNotifications] Mudança detectada na tabela:', {
+              eventType: payload.eventType,
+              table: payload.table,
+              userId: sanitizedUserId
+            });
+            
+            // ✅ CORREÇÃO: Sempre recarregar notificações quando há mudança, com tratamento de erro
+            this.getUserNotifications(sanitizedUserId)
+              .then(notifications => {
+                console.log('✅ [subscribeToUserNotifications] Notificações recarregadas:', notifications.length);
+                callback(notifications);
+              })
+              .catch(err => {
+                console.error('❌ [subscribeToUserNotifications] Erro ao recarregar notificações:', err);
+                // Não propagar erro para não quebrar a subscription
+              });
+          }
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('❌ [subscribeToUserNotifications] Erro na subscription:', {
+              error: err.message || err,
+              userId: sanitizedUserId
+            });
+          } else if (status === 'SUBSCRIBED') {
+            console.log('✅ [subscribeToUserNotifications] Subscription ativa para usuário:', sanitizedUserId);
+            // ✅ NOVO: Recarregar imediatamente ao conectar (garantir sincronia)
+            this.getUserNotifications(sanitizedUserId)
+              .then(callback)
+              .catch(err => {
+                console.error('❌ [subscribeToUserNotifications] Erro ao carregar notificações iniciais:', err);
+                // Callback com array vazio para não quebrar a UI
+                callback([]);
+              });
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('⚠️ [subscribeToUserNotifications] Subscription com problemas. Status:', status);
+          }
+        });
+
+      return subscription;
+    } catch (err) {
+      console.error('❌ [subscribeToUserNotifications] Erro ao criar subscription:', err);
+      return { unsubscribe: () => {} }; // Retornar subscription vazia em caso de erro
+    }
   }
 
   static subscribeToWriterPetitions(writerId: string, callback: (petitions: Petition[]) => void) {

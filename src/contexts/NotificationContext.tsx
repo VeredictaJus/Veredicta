@@ -78,56 +78,80 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return;
       }
 
+      // ✅ CORREÇÃO: Validar userId antes de fazer queries
+      if (!user.uid || typeof user.uid !== 'string' || user.uid.trim() === '') {
+        console.warn('⚠️ [NotificationContext] userId inválido:', user.uid);
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      const list = await DatabaseService.getUserNotifications(user.uid);
-      setNotifications(list);
-      // registra ids carregados
-      knownIdsRef.current = new Set(list.map((n) => n.id));
-      setLoading(false);
+      try {
+        const list = await DatabaseService.getUserNotifications(user.uid);
+        setNotifications(list);
+        // registra ids carregados
+        knownIdsRef.current = new Set(list.map((n) => n.id));
+      } catch (err) {
+        console.error('❌ [NotificationContext] Erro ao carregar notificações:', err);
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
 
       // assinatura realtime
-      unsub = DatabaseService.subscribeToUserNotifications(user.uid, (next) => {
-        console.log('🔔 [NotificationContext] Notificações recebidas via subscription:', next.length);
-        
-        // detecta novos pelo id
-        const prevIds = knownIdsRef.current;
-        const nextIds = new Set(next.map((n) => n.id));
+      try {
+        unsub = DatabaseService.subscribeToUserNotifications(user.uid, (next) => {
+          console.log('🔔 [NotificationContext] Notificações recebidas via subscription:', next.length);
+          
+          // ✅ CORREÇÃO: Validar se next é um array válido
+          if (!Array.isArray(next)) {
+            console.warn('⚠️ [NotificationContext] Notificações recebidas não são um array válido:', next);
+            return;
+          }
+          
+          // detecta novos pelo id
+          const prevIds = knownIdsRef.current;
+          const nextIds = new Set(next.map((n) => n.id));
 
-        // quais são realmente novos (ex.: INSERT no banco)
-        const newlyArrived = next.filter((n) => !prevIds.has(n.id));
+          // quais são realmente novos (ex.: INSERT no banco)
+          const newlyArrived = next.filter((n) => !prevIds.has(n.id));
 
-        // ✅ CORREÇÃO: Atualizar estado ANTES de tocar som (mais rápido)
-        knownIdsRef.current = nextIds;
-        
-        // ✅ CORREÇÃO: Usar startTransition para atualização não-bloqueante
-        // Isso garante que a UI não trave e as notificações apareçam instantaneamente
-        startTransition(() => {
-          setNotifications(next);
+          // ✅ CORREÇÃO: Atualizar estado ANTES de tocar som (mais rápido)
+          knownIdsRef.current = nextIds;
+          
+          // ✅ CORREÇÃO: Usar startTransition para atualização não-bloqueante
+          // Isso garante que a UI não trave e as notificações apareçam instantaneamente
+          startTransition(() => {
+            setNotifications(next);
+          });
+
+          // toca som e dispara desktop p/ cada novo não lido
+          if (newlyArrived.length) {
+            console.log('🔔 [NotificationContext]', newlyArrived.length, 'nova(s) notificação(ões) detectada(s)');
+            try { 
+              play(); 
+            } catch (err) {
+              console.warn('⚠️ Erro ao tocar som de notificação:', err);
+            }
+            if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+              newlyArrived.forEach((n) => {
+                try {
+                  new Notification(n.title ?? 'Atualização', {
+                    body: n.body ?? '',
+                    tag: n.id, // evita duplicadas
+                    icon: '/veredicta-logo.png' // Adicionar ícone se disponível
+                  });
+                } catch (err) {
+                  console.warn('⚠️ Erro ao criar notificação desktop:', err);
+                }
+              });
+            }
+          }
         });
-
-        // toca som e dispara desktop p/ cada novo não lido
-        if (newlyArrived.length) {
-          console.log('🔔 [NotificationContext]', newlyArrived.length, 'nova(s) notificação(ões) detectada(s)');
-          try { 
-            play(); 
-          } catch (err) {
-            console.warn('⚠️ Erro ao tocar som de notificação:', err);
-          }
-          if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-            newlyArrived.forEach((n) => {
-              try {
-                new Notification(n.title ?? 'Atualização', {
-                  body: n.body ?? '',
-                  tag: n.id, // evita duplicadas
-                  icon: '/veredicta-logo.png' // Adicionar ícone se disponível
-                });
-              } catch (err) {
-                console.warn('⚠️ Erro ao criar notificação desktop:', err);
-              }
-            });
-          }
-        }
-      });
+      } catch (err) {
+        console.error('❌ [NotificationContext] Erro ao criar subscription de notificações:', err);
+      }
     };
 
     load();

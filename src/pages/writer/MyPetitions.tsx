@@ -55,88 +55,54 @@ export default function MyPetitions() {
     return name;
   };
 
-  // ✅ Função para gerar URL assinada ou usar URL existente
+  // ✅ Função para gerar URL assinada - SEMPRE usar para buckets privados
   const getSignedUrlForFile = async (fileUrl: string | undefined | null): Promise<string | null> => {
     if (!fileUrl) return null;
     
-    // Se já é uma URL completa (http/https)
-    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-      // Se contém '/sign/', já é uma URL assinada - usar diretamente
-      if (fileUrl.includes('/sign/')) {
-        return fileUrl;
-      }
-      
-      // Se é uma URL pública do Supabase (/public/), tentar usar diretamente primeiro
-      // Se não funcionar, então gerar URL assinada
-      if (fileUrl.includes('/storage/v1/object/public/')) {
-        // Tentar extrair bucket e caminho
-        const publicMatch = fileUrl.match(/\/storage\/v1\/object\/public\/([^\/]+)\/(.+)$/);
-        if (publicMatch) {
-          const bucket = publicMatch[1];
-          const filePath = decodeURIComponent(publicMatch[2]);
-          
-          // Primeiro, tentar usar a URL pública diretamente
-          // Se falhar, então gerar URL assinada
-          try {
-            // Tentar gerar URL assinada apenas se necessário (bucket privado)
-            const { data, error } = await supabase.storage
-              .from(bucket)
-              .createSignedUrl(filePath, 3600);
-            
-            if (error) {
-              // Se der erro 406 ou similar, usar a URL pública original
-              console.warn('⚠️ Erro ao gerar URL assinada, usando URL pública:', error);
-              return fileUrl;
-            }
-            
-            if (data?.signedUrl) {
-              return data.signedUrl;
-            }
-          } catch (error) {
-            // Em caso de erro, usar URL pública original
-            console.warn('⚠️ Erro ao gerar URL assinada, usando URL pública:', error);
-            return fileUrl;
-          }
-        }
-      }
-      
-      // Se não conseguiu extrair ou é outra URL, usar diretamente
+    // Se já é uma URL assinada, usar diretamente
+    if (fileUrl.includes('/sign/')) {
       return fileUrl;
     }
     
-    // Se é apenas um caminho (sem http/https), assumir que é do bucket 'petition_files'
+    // Extrair bucket e caminho da URL
+    let bucket = 'petition_files';
+    let filePath = '';
+    
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      // Tentar extrair de URL pública do Supabase
+      const publicMatch = fileUrl.match(/\/storage\/v1\/object\/public\/([^\/]+)\/(.+)$/);
+      if (publicMatch) {
+        bucket = publicMatch[1];
+        filePath = decodeURIComponent(publicMatch[2]);
+      } else {
+        // Se não conseguir extrair, tentar usar a URL diretamente (pode ser de outro serviço)
+        console.warn('⚠️ Não foi possível extrair bucket e caminho da URL:', fileUrl);
+        return fileUrl;
+      }
+    } else {
+      // Se é apenas um caminho, assumir bucket 'petition_files'
+      filePath = fileUrl;
+    }
+    
+    // SEMPRE gerar URL assinada para buckets privados
     try {
       const { data, error } = await supabase.storage
-        .from('petition_files')
-        .createSignedUrl(fileUrl, 3600);
+        .from(bucket)
+        .createSignedUrl(filePath, 3600); // 1 hora
       
       if (error) {
-        console.error('❌ Erro ao gerar URL assinada para caminho:', error);
-        // Tentar obter URL pública como fallback
-        const { data: publicUrlData } = supabase.storage
-          .from('petition_files')
-          .getPublicUrl(fileUrl);
-        
-        if (publicUrlData?.publicUrl) {
-          return publicUrlData.publicUrl;
-        }
-        
+        console.error('❌ Erro ao gerar URL assinada:', error);
         toast.error('Erro ao abrir arquivo. Tente novamente.');
         return null;
       }
       
-      return data?.signedUrl || null;
-    } catch (error) {
-      console.error('❌ Erro ao gerar URL assinada para caminho:', error);
-      // Tentar obter URL pública como fallback
-      const { data: publicUrlData } = supabase.storage
-        .from('petition_files')
-        .getPublicUrl(fileUrl);
-      
-      if (publicUrlData?.publicUrl) {
-        return publicUrlData.publicUrl;
+      if (data?.signedUrl) {
+        return data.signedUrl;
       }
       
+      return null;
+    } catch (error) {
+      console.error('❌ Erro ao gerar URL assinada:', error);
       toast.error('Erro ao abrir arquivo. Tente novamente.');
       return null;
     }

@@ -136,26 +136,18 @@ export default function AvailablePetitions() {
       // Extrair nome do arquivo
       const fileName = fileUrl.split('/').pop() || 'documento.pdf';
       
-      // Para PDFs, usar uma abordagem que força o navegador a renderizar corretamente
-      // Criar um iframe temporário para abrir o PDF
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = signedUrl;
-      document.body.appendChild(iframe);
+      // Criar um link temporário e clicar nele
+      // Isso garante que o navegador reconheça o Content-Type corretamente
+      const link = document.createElement('a');
+      link.href = signedUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.type = 'application/pdf';
       
-      // Também abrir em nova aba para garantir
-      const newWindow = window.open(signedUrl, '_blank', 'noopener,noreferrer');
-      
-      // Se o popup foi bloqueado, usar o iframe
-      if (!newWindow) {
-        // Remover iframe após um tempo
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
-      } else {
-        // Se abriu em nova aba, remover iframe imediatamente
-        document.body.removeChild(iframe);
-      }
+      // Adicionar ao DOM, clicar e remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
   

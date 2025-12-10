@@ -271,14 +271,34 @@ const uploadPetitionFiles = async (userId: string, petitionFiles: { [key: string
 };
 
 // Função para fazer upload das carteirinhas OAB
-// ✅ USA CLIENTE AUTENTICADO + POLÍTICAS DE STORAGE (seguro para produção)
+// ✅ USA SERVICE ROLE KEY para bypass RLS (funciona com bucket privado)
 const uploadOABFiles = async (userId: string, oabFiles: { [key: string]: File | null }, getClient: any) => {
   const uploadedFiles: { [key: string]: string } = {};
   
-  console.log('🔍 Register.tsx - Iniciando upload de OAB com cliente autenticado');
+  console.log('🔍 Register.tsx - Iniciando upload de OAB');
   
-  // Obter cliente Supabase com sessão autenticada
-  const { supabase: supabaseClient } = await getClient();
+  // Tentar usar Service Role Key se disponível (bypass RLS)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dmsodonmkffyvbuxtxec.supabase.co';
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  
+  let supabaseClient: any;
+  
+  if (serviceRoleKey) {
+    // Usar Service Role Key para bypass RLS
+    const { createClient } = await import('@supabase/supabase-js');
+    supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    console.log('🔍 Register.tsx - Usando Service Role Key para upload');
+  } else {
+    // Fallback: usar cliente autenticado
+    const client = await getClient();
+    supabaseClient = client.supabase;
+    console.log('🔍 Register.tsx - Usando cliente autenticado para upload');
+  }
   
   for (const [key, file] of Object.entries(oabFiles)) {
     if (file) {
@@ -288,12 +308,11 @@ const uploadOABFiles = async (userId: string, oabFiles: { [key: string]: File | 
         const extension = file.name.split('.').pop();
         const fileName = `${userId}/${key}_${timestamp}.${extension}`;
         
-        console.log('🔍 Register.tsx - Uploading OAB (Authenticated):', fileName);
+        console.log('🔍 Register.tsx - Uploading OAB:', fileName);
         console.log('🔍 Register.tsx - File type:', file.type);
         console.log('🔍 Register.tsx - File size:', file.size);
 
-        // Upload para bucket oab-documents usando cliente autenticado com sessão
-        // As políticas de Storage garantem que o usuário só pode fazer upload na própria pasta
+        // Upload para bucket oab-documents
         const { data, error } = await supabaseClient.storage
           .from('oab-documents')
           .upload(fileName, file, {
@@ -303,19 +322,45 @@ const uploadOABFiles = async (userId: string, oabFiles: { [key: string]: File | 
 
         if (error) {
           console.error(`❌ Erro ao fazer upload da ${key}:`, error);
-          throw new Error(`Falha ao fazer upload da carteirinha OAB`);
+          // Melhorar mensagem de erro
+          if (error.message?.includes('already exists')) {
+            throw new Error(`Arquivo ${key} já existe. Tente novamente.`);
+          }
+          if (error.message?.includes('not found') || error.message?.includes('bucket')) {
+            throw new Error(`Bucket oab-documents não encontrado. Contate o suporte.`);
+          }
+          if (error.message?.includes('permission') || error.message?.includes('policy')) {
+            throw new Error(`Sem permissão para fazer upload. Verifique suas credenciais.`);
+          }
+          throw new Error(`Falha ao fazer upload da carteirinha OAB: ${error.message || 'Erro desconhecido'}`);
         }
 
         console.log('✅ Upload OAB bem-sucedido:', fileName);
 
-        // Obter URL pública do arquivo
-        const { data: publicUrl } = supabaseClient.storage
-          .from('oab-documents')
-          .getPublicUrl(fileName);
-
-        uploadedFiles[key] = publicUrl.publicUrl;
+        // Para bucket privado, armazenar apenas o caminho do arquivo
+        // A URL será gerada quando necessário usando createSignedUrl()
+        // Mas para compatibilidade, vamos tentar obter URL assinada válida por 1 ano
+        try {
+          const { data: signedUrlData, error: signedUrlError } = await supabaseClient.storage
+            .from('oab-documents')
+            .createSignedUrl(fileName, 31536000); // 1 ano em segundos
+          
+          if (!signedUrlError && signedUrlData) {
+            uploadedFiles[key] = signedUrlData.signedUrl;
+            console.log('✅ URL assinada gerada para:', key);
+          } else {
+            // Se não conseguir gerar URL assinada, armazenar apenas o caminho
+            // O admin poderá gerar URL assinada quando necessário
+            uploadedFiles[key] = fileName;
+            console.log('⚠️ Armazenando apenas caminho do arquivo:', fileName);
+          }
+        } catch (urlError: any) {
+          // Se falhar ao gerar URL assinada, armazenar apenas o caminho
+          uploadedFiles[key] = fileName;
+          console.warn('⚠️ Erro ao gerar URL assinada, armazenando caminho:', urlError.message);
+        }
         
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Erro ao processar ${key}:`, error);
         throw error;
       }

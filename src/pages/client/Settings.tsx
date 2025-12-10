@@ -35,7 +35,7 @@ import {
 
 export default function Settings() {
   const { user, loading: authLoading } = useNewAuth();
-  const { profile: userProfile, updateAvatar } = useUser();
+  const { profile: userProfile, updateAvatar, refreshProfile } = useUser();
   const { updateAvatarFromBase64, reloadAvatar } = useAvatar();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -394,6 +394,9 @@ export default function Settings() {
         if (updatedSettings) {
           setUserSettings(updatedSettings);
         }
+        
+        // Atualizar perfil no UserContext para sincronizar com o Header
+        await refreshProfile();
       } else {
         throw new Error('Falha ao salvar dados');
       }

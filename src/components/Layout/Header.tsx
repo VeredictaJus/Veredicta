@@ -100,18 +100,24 @@ export default function Header() {
   };
 
   const getDisplayName = () => {
-    if (!userProfile) return user?.email?.split('@')[0] || 'Usuário';
-    
-    let displayName = '';
-    if ('company_name' in userProfile) {
-      displayName = (userProfile as ClientProfile).company_name;
-    } else if ('full_name' in userProfile) {
-      displayName = (userProfile as WriterProfile | AdminProfile).full_name;
-    } else {
-      displayName = user?.email?.split('@')[0] || 'Usuário';
+    // Usar o nome do UserContext que já está sincronizado com o banco
+    if (userProfile?.name) {
+      return truncateLongName(userProfile.name);
     }
     
-    return truncateLongName(displayName);
+    // Fallback: tentar pegar do perfil completo do NewAuthContext se disponível
+    if (user?.profile) {
+      const profile = user.profile as any;
+      if (profile.company_name) {
+        return truncateLongName(profile.company_name);
+      }
+      if (profile.full_name) {
+        return truncateLongName(profile.full_name);
+      }
+    }
+    
+    // Último fallback: email
+    return user?.email?.split('@')[0] || 'Usuário';
   };
 
   const getRoleLabel = () => {

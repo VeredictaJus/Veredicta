@@ -66,11 +66,11 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
       
       console.log('🔍 [AVATAR] Buscando avatar em profiles_v2 para:', user.uid)
       // Primeiro tenta ler de profiles_v2 (tabela principal usada pelo chat)
-      // Usar ilike para case-insensitive
+      // Usar .eq() ao invés de .ilike() para evitar erro 406
       let { data, error } = await supabase
         .from('profiles_v2')
         .select('avatar_url')
-        .ilike('firebase_uid', user.uid)
+        .eq('firebase_uid', user.uid)
         .maybeSingle()
 
       console.log('🔍 [AVATAR] Resultado profiles_v2:', { hasData: !!data, hasAvatar: !!data?.avatar_url, error: error?.code })
@@ -81,7 +81,7 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
         const result = await supabase
           .from('user_profiles')
           .select('avatar_url')
-          .ilike('firebase_uid', user.uid)
+          .eq('firebase_uid', user.uid)
           .maybeSingle()
         
         data = result.data
@@ -182,22 +182,23 @@ export const AvatarProvider: React.FC<React.PropsWithChildren> = ({ children }) 
 
       // 3) Salva no perfil em AMBAS as tabelas para compatibilidade
       // Primeiro tenta salvar em profiles_v2 (tabela principal usada pelo chat)
-      // Usar ilike para case-insensitive
+      // Usar .eq() ao invés de .ilike() para evitar erro 406
       const { error: dbErr1 } = await supabase
         .from('profiles_v2')
         .update({ 
           avatar_url: publicUrl,
           updated_at: new Date().toISOString() 
         })
-        .ilike('firebase_uid', user.uid)
+        .eq('firebase_uid', user.uid)
       
       // Depois tenta em user_profiles (se existir)
       // Buscar email para incluir no upsert (campo obrigatório)
+      // Usar .eq() ao invés de .ilike() para evitar erro 406
       const { data: emailData } = await supabase
         .from('profiles_v2')
         .select('email')
-        .ilike('firebase_uid', user.uid)
-        .single()
+        .eq('firebase_uid', user.uid)
+        .maybeSingle()
       
       const { error: dbErr2 } = await supabase
         .from('user_profiles')

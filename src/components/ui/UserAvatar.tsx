@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAvatar } from '@/contexts/AvatarContext';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useUser } from '@/contexts/UserContext';
 
 interface UserAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -24,6 +25,7 @@ const textSizeClasses = {
 export function UserAvatar({ size = 'md', className = '' }: UserAvatarProps) {
   const { avatarUrl } = useAvatar();
   const { user } = useNewAuth();
+  const { profile: userProfile } = useUser();
 
   // Verificar se é admin - se for, usar logo fixo
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin' || 
@@ -37,11 +39,24 @@ export function UserAvatar({ size = 'md', className = '' }: UserAvatarProps) {
   const getInitials = () => {
     if (!user) return 'U';
     
-    if (user.fullName) {
-      return user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    // Usar o nome do UserContext que já está sincronizado com o banco
+    if (userProfile?.name) {
+      return userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     }
     
-    return user.email.slice(0, 2).toUpperCase();
+    // Fallback: tentar pegar do perfil completo do NewAuthContext
+    if (user?.profile) {
+      const profile = user.profile as any;
+      if (profile.company_name) {
+        return profile.company_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+      }
+      if (profile.full_name) {
+        return profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+      }
+    }
+    
+    // Último fallback: usar email
+    return user.email?.slice(0, 2).toUpperCase() || 'U';
   };
 
   const sizeClass = sizeClasses[size];

@@ -55,7 +55,7 @@ export default function MyPetitions() {
     return name;
   };
 
-  // ✅ Função para abrir arquivo da petição - SOLUÇÃO DEFINITIVA
+  // ✅ Função para abrir arquivo da petição - SOLUÇÃO CORRETA usando download() do Supabase
   const handleOpenPetitionFile = async (fileUrl: string | undefined | null) => {
     if (!fileUrl) {
       toast.error('URL do arquivo não encontrada.');
@@ -63,37 +63,35 @@ export default function MyPetitions() {
     }
     
     try {
-      // Obter URL completa
-      let finalUrl = fileUrl;
+      // Extrair caminho do arquivo da URL
+      let filePath = fileUrl;
       
-      if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
-        // Se é apenas um caminho, gerar URL pública
-        const { data } = supabase.storage
-          .from('petition_files')
-          .getPublicUrl(fileUrl);
-        
-        if (!data?.publicUrl) {
-          toast.error('Erro ao gerar URL do arquivo.');
+      // Se é uma URL completa, extrair o caminho
+      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+        // Extrair caminho de URL pública do Supabase
+        const match = fileUrl.match(/\/storage\/v1\/object\/public\/petition_files\/(.+)$/);
+        if (match) {
+          filePath = decodeURIComponent(match[1]);
+        } else {
+          // Se não conseguir extrair, tentar abrir diretamente
+          window.open(fileUrl, '_blank', 'noopener,noreferrer');
           return;
         }
-        
-        finalUrl = data.publicUrl;
       }
       
-      // SOLUÇÃO: Fazer fetch do arquivo, criar blob e abrir
-      // Isso garante que o navegador reconheça o Content-Type corretamente
-      const response = await fetch(finalUrl);
+      // Usar download() do Supabase que lida com autenticação e CORS corretamente
+      const { data, error } = await supabase.storage
+        .from('petition_files')
+        .download(filePath);
       
-      if (!response.ok) {
-        throw new Error(`Erro ao carregar arquivo: ${response.status}`);
+      if (error) {
+        console.error('❌ Erro ao baixar arquivo:', error);
+        toast.error('Erro ao abrir arquivo. Tente novamente.');
+        return;
       }
       
-      const blob = await response.blob();
-      
-      // Criar blob URL com tipo correto
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Abrir em nova aba
+      // Criar blob URL e abrir
+      const blobUrl = URL.createObjectURL(data);
       const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
       
       if (!newWindow) {

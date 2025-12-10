@@ -38,6 +38,7 @@ export default function WriterApproval() {
   const [selectedWriter, setSelectedWriter] = useState<WriterProfile | null>(null)
   const [showPetitionsModal, setShowPetitionsModal] = useState(false)
   const [showOABModal, setShowOABModal] = useState(false)
+  const [oabImageUrls, setOabImageUrls] = useState<{ front?: string | null; back?: string | null }>({})
 
   // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
   const truncateLongName = (name: string | undefined | null): string => {
@@ -57,9 +58,131 @@ export default function WriterApproval() {
     return email;
   };
 
+  // ✅ Função auxiliar para gerar URL assinada ou usar URL existente
+  const getSignedUrl = async (filePathOrUrl: string | undefined | null, bucket: 'writer-petitions' | 'oab-documents'): Promise<string | null> => {
+    if (!filePathOrUrl) return null;
+    
+    // Se já é uma URL completa (http/https), retornar diretamente
+    if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
+      return filePathOrUrl;
+    }
+    
+    // Se é apenas um caminho, gerar URL assinada
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(filePathOrUrl, 3600); // 1 hora
+      
+      if (error || !data?.signedUrl) {
+        console.error('❌ Erro ao gerar URL assinada:', error);
+        toast.error('Erro ao abrir arquivo. Tente novamente.');
+        return null;
+      }
+      
+      return data.signedUrl;
+    } catch (error) {
+      console.error('❌ Erro ao gerar URL assinada:', error);
+      toast.error('Erro ao abrir arquivo. Tente novamente.');
+      return null;
+    }
+  };
+
+  // ✅ Função para abrir petição
+  const handleOpenPetition = async (filePathOrUrl: string | undefined | null) => {
+    if (!filePathOrUrl) return;
+    
+    const url = await getSignedUrl(filePathOrUrl, 'writer-petitions');
+    if (url) {
+      window.open(url, '_blank');
+    }
+  };
+
+  // ✅ Função para baixar petição
+  const handleDownloadPetition = async (filePathOrUrl: string | undefined | null, fileName: string) => {
+    if (!filePathOrUrl) return;
+    
+    const url = await getSignedUrl(filePathOrUrl, 'writer-petitions');
+    if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+    }
+  };
+
+  // ✅ Função para abrir OAB
+  const handleOpenOAB = async (filePathOrUrl: string | undefined | null) => {
+    if (!filePathOrUrl) return;
+    
+    const url = await getSignedUrl(filePathOrUrl, 'oab-documents');
+    if (url) {
+      window.open(url, '_blank');
+    }
+  };
+
+  // ✅ Função para baixar OAB
+  const handleDownloadOAB = async (filePathOrUrl: string | undefined | null, fileName: string) => {
+    if (!filePathOrUrl) return;
+    
+    const url = await getSignedUrl(filePathOrUrl, 'oab-documents');
+    if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+    }
+  };
+
+  // ✅ Função para obter URL da imagem OAB (para preview)
+  const getOABImageUrl = async (filePathOrUrl: string | undefined | null): Promise<string | null> => {
+    if (!filePathOrUrl) return null;
+    
+    // Se já é uma URL completa, retornar diretamente
+    if (filePathOrUrl.startsWith('http://') || filePathOrUrl.startsWith('https://')) {
+      return filePathOrUrl;
+    }
+    
+    // Se é apenas um caminho, gerar URL assinada
+    try {
+      const { data, error } = await supabase.storage
+        .from('oab-documents')
+        .createSignedUrl(filePathOrUrl, 3600); // 1 hora
+      
+      if (error || !data?.signedUrl) {
+        console.error('❌ Erro ao gerar URL assinada para imagem:', error);
+        return null;
+      }
+      
+      return data.signedUrl;
+    } catch (error) {
+      console.error('❌ Erro ao gerar URL assinada para imagem:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     loadWriters()
   }, [])
+
+  // ✅ Carregar URLs das imagens OAB quando o modal for aberto
+  useEffect(() => {
+    if (showOABModal && selectedWriter?.oab_documents) {
+      const loadOABUrls = async () => {
+        const frontUrl = selectedWriter.oab_documents.oab_front
+          ? await getOABImageUrl(selectedWriter.oab_documents.oab_front)
+          : null
+        const backUrl = selectedWriter.oab_documents.oab_back
+          ? await getOABImageUrl(selectedWriter.oab_documents.oab_back)
+          : null
+        
+        setOabImageUrls({ front: frontUrl, back: backUrl })
+      }
+      
+      loadOABUrls()
+    } else {
+      setOabImageUrls({})
+    }
+  }, [showOABModal, selectedWriter?.oab_documents])
 
   const loadWriters = async () => {
     try {
@@ -388,7 +511,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(selectedWriter.petition_files?.petition1, '_blank')}
+                            onClick={() => handleOpenPetition(selectedWriter.petition_files?.petition1)}
                             className="hover:bg-blue-50"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
@@ -397,12 +520,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedWriter.petition_files?.petition1 || ''
-                              link.download = 'peticao_1.pdf'
-                              link.click()
-                            }}
+                            onClick={() => handleDownloadPetition(selectedWriter.petition_files?.petition1, 'peticao_1.pdf')}
                             className="hover:bg-green-50"
                           >
                             <Download className="h-4 w-4 mr-1" />
@@ -430,7 +548,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(selectedWriter.petition_files?.petition2, '_blank')}
+                            onClick={() => handleOpenPetition(selectedWriter.petition_files?.petition2)}
                             className="hover:bg-blue-50"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
@@ -439,12 +557,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedWriter.petition_files?.petition2 || ''
-                              link.download = 'peticao_2.pdf'
-                              link.click()
-                            }}
+                            onClick={() => handleDownloadPetition(selectedWriter.petition_files?.petition2, 'peticao_2.pdf')}
                             className="hover:bg-green-50"
                           >
                             <Download className="h-4 w-4 mr-1" />
@@ -472,7 +585,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(selectedWriter.petition_files?.petition3, '_blank')}
+                            onClick={() => handleOpenPetition(selectedWriter.petition_files?.petition3)}
                             className="hover:bg-blue-50"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
@@ -481,12 +594,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedWriter.petition_files?.petition3 || ''
-                              link.download = 'peticao_3.pdf'
-                              link.click()
-                            }}
+                            onClick={() => handleDownloadPetition(selectedWriter.petition_files?.petition3, 'peticao_3.pdf')}
                             className="hover:bg-green-50"
                           >
                             <Download className="h-4 w-4 mr-1" />
@@ -536,13 +644,13 @@ export default function WriterApproval() {
                       <div className="space-y-4">
                         {/* Preview da imagem/PDF */}
                         <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
-                          {selectedWriter.oab_documents.oab_front.toLowerCase().endsWith('.pdf') ? (
+                          {(selectedWriter.oab_documents.oab_front?.toLowerCase().endsWith('.pdf') || selectedWriter.oab_documents.oab_front?.toLowerCase().includes('.pdf')) ? (
                             <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800">
                               <div className="text-center">
                                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                                 <p className="text-gray-600 dark:text-gray-400 mb-4">Arquivo PDF</p>
                                 <Button
-                                  onClick={() => window.open(selectedWriter.oab_documents?.oab_front, '_blank')}
+                                  onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_front)}
                                   className="bg-purple-600 hover:bg-purple-700"
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -552,11 +660,15 @@ export default function WriterApproval() {
                             </div>
                           ) : (
                             <img 
-                              src={selectedWriter.oab_documents.oab_front} 
+                              src={oabImageUrls.front || ''} 
                               alt="Carteirinha OAB - Frente"
                               className="w-full h-auto"
-                              onClick={() => window.open(selectedWriter.oab_documents?.oab_front, '_blank')}
+                              onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_front)}
                               style={{ cursor: 'pointer' }}
+                              onError={(e) => {
+                                console.error('Erro ao carregar imagem OAB frente');
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
                             />
                           )}
                         </div>
@@ -566,7 +678,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(selectedWriter.oab_documents?.oab_front, '_blank')}
+                            onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_front)}
                             className="hover:bg-blue-50"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
@@ -575,12 +687,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedWriter.oab_documents?.oab_front || ''
-                              link.download = 'oab_frente'
-                              link.click()
-                            }}
+                            onClick={() => handleDownloadOAB(selectedWriter.oab_documents?.oab_front, 'oab_frente')}
                             className="hover:bg-green-50"
                           >
                             <Download className="h-4 w-4 mr-1" />
@@ -602,13 +709,13 @@ export default function WriterApproval() {
                       <div className="space-y-4">
                         {/* Preview da imagem/PDF */}
                         <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
-                          {selectedWriter.oab_documents.oab_back.toLowerCase().endsWith('.pdf') ? (
+                          {(selectedWriter.oab_documents.oab_back?.toLowerCase().endsWith('.pdf') || selectedWriter.oab_documents.oab_back?.toLowerCase().includes('.pdf')) ? (
                             <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800">
                               <div className="text-center">
                                 <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                                 <p className="text-gray-600 dark:text-gray-400 mb-4">Arquivo PDF</p>
                                 <Button
-                                  onClick={() => window.open(selectedWriter.oab_documents?.oab_back, '_blank')}
+                                  onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_back)}
                                   className="bg-purple-600 hover:bg-purple-700"
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -618,11 +725,15 @@ export default function WriterApproval() {
                             </div>
                           ) : (
                             <img 
-                              src={selectedWriter.oab_documents.oab_back} 
+                              src={oabImageUrls.back || ''} 
                               alt="Carteirinha OAB - Verso"
                               className="w-full h-auto"
-                              onClick={() => window.open(selectedWriter.oab_documents?.oab_back, '_blank')}
+                              onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_back)}
                               style={{ cursor: 'pointer' }}
+                              onError={(e) => {
+                                console.error('Erro ao carregar imagem OAB verso');
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
                             />
                           )}
                         </div>
@@ -632,7 +743,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => window.open(selectedWriter.oab_documents?.oab_back, '_blank')}
+                            onClick={() => handleOpenOAB(selectedWriter.oab_documents?.oab_back)}
                             className="hover:bg-blue-50"
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
@@ -641,12 +752,7 @@ export default function WriterApproval() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.href = selectedWriter.oab_documents?.oab_back || ''
-                              link.download = 'oab_verso'
-                              link.click()
-                            }}
+                            onClick={() => handleDownloadOAB(selectedWriter.oab_documents?.oab_back, 'oab_verso')}
                             className="hover:bg-green-50"
                           >
                             <Download className="h-4 w-4 mr-1" />

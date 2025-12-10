@@ -19,11 +19,29 @@ import {
   Line, PieChart, Pie, Cell, ComposedChart,
 } from 'recharts';
 import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 import { AlertBanner } from '@/components/analytics/AlertBanner';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import { toast } from 'sonner';
 import { WriterService, Writer } from '@/services/writerService';
 import { DatabaseService } from '@/services/databaseService';
+
+// Função para obter cliente admin com Service Role (bypass RLS)
+const getAdminClient = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dmsodonmkffyvbuxtxec.supabase.co';
+  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  }
+  
+  return supabase; // Fallback para cliente normal
+};
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
@@ -146,64 +164,79 @@ export default function AdminDashboard() {
     setDeleting(true);
     try {
       const petitionId = petitionToDelete.id;
+      const adminClient = getAdminClient(); // Usar Service Role para bypass RLS
+
+      console.log('🗑️ Iniciando exclusão de petição:', petitionId);
 
       // ✅ CORREÇÃO: Excluir registros relacionados ANTES de excluir a petição
       // Isso resolve o erro de foreign key constraint
       
       // 1. Excluir multas (writer_penalties)
-      const { error: penaltiesError } = await supabase
+      console.log('📝 Excluindo multas relacionadas...');
+      const { error: penaltiesError, count: penaltiesCount } = await adminClient
         .from('writer_penalties')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('petition_id', petitionId);
       
       if (penaltiesError) {
-        console.warn('⚠️ Erro ao excluir multas (pode não existir):', penaltiesError.message);
+        console.warn('⚠️ Erro ao excluir multas:', penaltiesError.message);
         // Não falhar se não existir registros
+      } else {
+        console.log(`✅ ${penaltiesCount || 0} multa(s) excluída(s)`);
       }
 
       // 2. Excluir arquivos da petição (petition_files)
-      const { error: filesError } = await supabase
+      console.log('📝 Excluindo arquivos relacionados...');
+      const { error: filesError, count: filesCount } = await adminClient
         .from('petition_files')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('petition_id', petitionId);
       
       if (filesError) {
-        console.warn('⚠️ Erro ao excluir arquivos (pode não existir):', filesError.message);
-        // Não falhar se não existir registros
+        console.warn('⚠️ Erro ao excluir arquivos:', filesError.message);
+      } else {
+        console.log(`✅ ${filesCount || 0} arquivo(s) excluído(s)`);
       }
 
       // 3. Excluir correções (corrections)
-      const { error: correctionsError } = await supabase
+      console.log('📝 Excluindo correções relacionadas...');
+      const { error: correctionsError, count: correctionsCount } = await adminClient
         .from('corrections')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('petition_id', petitionId);
       
       if (correctionsError) {
-        console.warn('⚠️ Erro ao excluir correções (pode não existir):', correctionsError.message);
-        // Não falhar se não existir registros
+        console.warn('⚠️ Erro ao excluir correções:', correctionsError.message);
+      } else {
+        console.log(`✅ ${correctionsCount || 0} correção(ões) excluída(s)`);
       }
 
       // 4. Excluir conversas relacionadas (conversations)
-      const { error: conversationsError } = await supabase
+      console.log('📝 Excluindo conversas relacionadas...');
+      const { error: conversationsError, count: conversationsCount } = await adminClient
         .from('conversations')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('petition_id', petitionId);
       
       if (conversationsError) {
-        console.warn('⚠️ Erro ao excluir conversas (pode não existir):', conversationsError.message);
-        // Não falhar se não existir registros
+        console.warn('⚠️ Erro ao excluir conversas:', conversationsError.message);
+      } else {
+        console.log(`✅ ${conversationsCount || 0} conversa(s) excluída(s)`);
       }
 
       // 5. Por fim, excluir a petição
-      const { error } = await supabase
+      console.log('📝 Excluindo petição...');
+      const { error } = await adminClient
         .from('petitions')
         .delete()
         .eq('id', petitionId);
 
       if (error) {
+        console.error('❌ Erro ao excluir petição:', error);
         throw error;
       }
 
+      console.log('✅ Petição excluída com sucesso!');
       toast.success(`Petição "${petitionToDelete.title}" excluída com sucesso`);
       setShowDeleteDialog(false);
       setPetitionToDelete(null);

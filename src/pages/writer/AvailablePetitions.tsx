@@ -36,6 +36,79 @@ export default function AvailablePetitions() {
     }
     return name;
   };
+
+  // ✅ Função para gerar URL assinada ou usar URL existente
+  const getSignedUrlForFile = async (fileUrl: string | undefined | null): Promise<string | null> => {
+    if (!fileUrl) return null;
+    
+    // Se já é uma URL completa (http/https)
+    if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+      // Se contém '/sign/', já é uma URL assinada - usar diretamente
+      if (fileUrl.includes('/sign/')) {
+        return fileUrl;
+      }
+      
+      // Tentar extrair bucket e caminho de URLs públicas do Supabase
+      // Exemplo: https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/petition_files/...
+      const publicMatch = fileUrl.match(/\/storage\/v1\/object\/public\/([^\/]+)\/(.+)$/);
+      if (publicMatch) {
+        const bucket = publicMatch[1];
+        const filePath = decodeURIComponent(publicMatch[2]); // Decodificar URL encoding
+        
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucket)
+            .createSignedUrl(filePath, 3600); // 1 hora
+          
+          if (error || !data?.signedUrl) {
+            console.warn('⚠️ Erro ao gerar URL assinada, tentando URL original:', error);
+            // Se falhar, tentar usar a URL original (pode ser que o bucket seja público)
+            return fileUrl;
+          }
+          
+          return data.signedUrl;
+        } catch (error) {
+          console.warn('⚠️ Erro ao gerar URL assinada, tentando URL original:', error);
+          return fileUrl;
+        }
+      }
+      
+      // Se não conseguiu extrair, pode ser uma URL de outro serviço - usar diretamente
+      return fileUrl;
+    }
+    
+    // Se é apenas um caminho (sem http/https), assumir que é do bucket 'petition_files'
+    try {
+      const { data, error } = await supabase.storage
+        .from('petition_files')
+        .createSignedUrl(fileUrl, 3600); // 1 hora
+      
+      if (error || !data?.signedUrl) {
+        console.error('❌ Erro ao gerar URL assinada para caminho:', error);
+        toast.error('Erro ao abrir arquivo. Tente novamente.');
+        return null;
+      }
+      
+      return data.signedUrl;
+    } catch (error) {
+      console.error('❌ Erro ao gerar URL assinada para caminho:', error);
+      toast.error('Erro ao abrir arquivo. Tente novamente.');
+      return null;
+    }
+  };
+
+  // ✅ Função para abrir arquivo da petição
+  const handleOpenPetitionFile = async (fileUrl: string | undefined | null) => {
+    if (!fileUrl) {
+      toast.error('URL do arquivo não encontrada.');
+      return;
+    }
+    
+    const signedUrl = await getSignedUrlForFile(fileUrl);
+    if (signedUrl) {
+      window.open(signedUrl, '_blank');
+    }
+  };
   
   // Declare state variables
   const [petitions, setPetitions] = useState<Petition[]>([]);
@@ -560,7 +633,7 @@ export default function AvailablePetitions() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => window.open(file.file_url, '_blank')}
+                                    onClick={() => handleOpenPetitionFile(file.file_url)}
                                   >
                                     <Download className="h-4 w-4 mr-1" />
                                     Abrir

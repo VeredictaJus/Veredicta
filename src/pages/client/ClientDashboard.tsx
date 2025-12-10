@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient'
 import { DatabaseService } from '@/services/databaseService'
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { Petition } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ const getPriorityColor = (priority: string) => {
 
 export default function ClientDashboard() {
   const { user, getClient } = useNewAuth();
+  const { profile: userProfile } = useUser();
   const [petitions, setPetitions] = useState<Petition[]>([]);
   const [selected, setSelected] = useState<Petition | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -414,7 +416,9 @@ export default function ClientDashboard() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Bem-vindo de volta, {user?.email}</p>
+        <p className="text-muted-foreground">
+          Bem-vindo de volta, {userProfile?.name || user?.email || 'Usuário'}
+        </p>
       </div>
 
       {/* Estatísticas */}

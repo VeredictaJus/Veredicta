@@ -540,6 +540,7 @@ export default function WriterSettings() {
           let updateError;
 
           if (existingProfile) {
+            // ✅ CORREÇÃO: Especificar campos explícitos no select para evitar erro "record new has no field name"
             const result = await supabase
               .from('profiles_v2')
               .update({ 
@@ -547,11 +548,12 @@ export default function WriterSettings() {
                 updated_at: new Date().toISOString() 
               })
               .eq('firebase_uid', user.uid)
-              .select();
+              .select('id, firebase_uid, email, role, avatar_url, updated_at');
             
             updateError = result.error;
             updateData = result.data;
           } else {
+            // ✅ CORREÇÃO: Especificar campos explícitos no select para evitar erro "record new has no field name"
             const result = await supabase
               .from('profiles_v2')
               .upsert({
@@ -563,7 +565,7 @@ export default function WriterSettings() {
               }, {
                 onConflict: 'firebase_uid'
               })
-              .select();
+              .select('id, firebase_uid, email, role, avatar_url, updated_at');
             
             updateError = result.error;
             updateData = result.data;

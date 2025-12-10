@@ -97,23 +97,19 @@ export default function AvailablePetitions() {
       return;
     }
     
-    const signedUrl = await getSignedUrlForFile(fileUrl);
-    if (signedUrl) {
-      // Extrair nome do arquivo
-      const fileName = fileUrl.split('/').pop() || 'documento.pdf';
+    try {
+      const signedUrl = await getSignedUrlForFile(fileUrl);
+      if (!signedUrl) {
+        toast.error('Não foi possível gerar URL para o arquivo.');
+        return;
+      }
       
-      // Criar um link temporário e clicar nele
-      // Isso garante que o navegador reconheça o Content-Type corretamente
-      const link = document.createElement('a');
-      link.href = signedUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.type = 'application/pdf';
-      
-      // Adicionar ao DOM, clicar e remover
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Abrir diretamente em nova aba - o navegador deve renderizar o PDF corretamente
+      // A URL assinada do Supabase já inclui os headers corretos
+      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('❌ Erro ao abrir arquivo:', error);
+      toast.error('Erro ao abrir arquivo. Tente novamente.');
     }
   };
   

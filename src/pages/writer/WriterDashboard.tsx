@@ -12,6 +12,7 @@ SelectTrigger,
 SelectValue,
 } from "@/components/ui/select";
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { calculateProgress } from '@/utils/progress';
 import { WriterProfile } from '@/types';
 import { FileText, DollarSign, Clock, Star, CheckCircle, PartyPopper, MessageSquare, Calculator, AlertTriangle, X } from 'lucide-react';
@@ -78,6 +79,7 @@ const getPriorityColor = (priority: string) => {
 
 export default function WriterDashboard() {
   const { user } = useNewAuth();
+  const { profile: userProfile } = useUser();
   const navigate = useNavigate();
 
   // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
@@ -421,7 +423,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard do Redator</h1>
           <p className="text-muted-foreground">
-            Acompanhe suas petições, ganhos e avaliações em tempo real
+            Bem-vindo de volta, {userProfile?.name || user?.email || 'Redator'}. Acompanhe suas petições, ganhos e avaliações em tempo real
           </p>
         </div>
         <div className="flex items-center gap-3">

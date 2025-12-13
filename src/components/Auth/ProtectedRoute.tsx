@@ -15,6 +15,7 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   const { user, loading } = useNewAuth()
   const location = useLocation()
   const [writerStatus, setWriterStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading')
+  const [roleValidating, setRoleValidating] = useState(false)
 
   // Verificar status de aprovação do redator
   useEffect(() => {
@@ -81,6 +82,51 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   // Não autenticado: manda pro login e preserva rota de origem
   if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />
+  }
+
+  // ✅ CORREÇÃO: Verificar se o role está válido - se não estiver, aguardar mais um pouco
+  // Isso evita redirecionamento para "unauthorized" durante a sincronização inicial
+  useEffect(() => {
+    if (!user) return
+    
+    const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+    
+    if (!isValidRole && !roleValidating) {
+      setRoleValidating(true)
+      // Aguardar até 2 segundos para o role ser sincronizado
+      const timeout = setTimeout(() => {
+        setRoleValidating(false)
+      }, 2000)
+      
+      return () => clearTimeout(timeout)
+    } else if (isValidRole) {
+      setRoleValidating(false)
+    }
+  }, [user, roleValidating])
+
+  // Mostrar loading enquanto o role está sendo validado
+  if (roleValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Sincronizando perfil...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Se o role não está válido após aguardar, não redirecionar ainda - deixar o useEffect resolver
+  const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+  if (!isValidRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Carregando perfil...</p>
+        </div>
+      </div>
+    )
   }
 
   // Verificar se redator está aprovado ANTES da verificação de autorização

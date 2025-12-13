@@ -218,6 +218,10 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
       })
       setUser(authUser)
       
+      // ✅ CORREÇÃO: Aguardar um pouco para garantir que o estado seja sincronizado
+      // antes de navegar, evitando race condition com ProtectedRoute
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
       // Para redatores, não redirecionar automaticamente - deixar o componente decidir
       if (data.role !== 'writer') {
         navigate(routeForRole(authUser.role), { replace: true })

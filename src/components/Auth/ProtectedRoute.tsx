@@ -17,6 +17,7 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   const [writerStatus, setWriterStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading')
   const [roleValidating, setRoleValidating] = useState(false)
 
+  // ✅ CORREÇÃO CRÍTICA: Todos os hooks devem ser chamados ANTES de qualquer return condicional
   // Verificar status de aprovação do redator
   useEffect(() => {
     const checkWriterStatus = async () => {
@@ -67,6 +68,29 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     checkWriterStatus()
   }, [user])
 
+  // ✅ CORREÇÃO: Verificar se o role está válido - se não estiver, aguardar mais um pouco
+  // Isso evita redirecionamento para "unauthorized" durante a sincronização inicial
+  useEffect(() => {
+    if (!user) {
+      setRoleValidating(false)
+      return
+    }
+    
+    const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+    
+    if (!isValidRole && !roleValidating) {
+      setRoleValidating(true)
+      // Aguardar até 2 segundos para o role ser sincronizado
+      const timeout = setTimeout(() => {
+        setRoleValidating(false)
+      }, 2000)
+      
+      return () => clearTimeout(timeout)
+    } else if (isValidRole) {
+      setRoleValidating(false)
+    }
+  }, [user, roleValidating])
+
   // Enquanto verifica sessão Firebase -> ponte -> Supabase
   if (loading || writerStatus === 'loading') {
     return (
@@ -83,26 +107,6 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />
   }
-
-  // ✅ CORREÇÃO: Verificar se o role está válido - se não estiver, aguardar mais um pouco
-  // Isso evita redirecionamento para "unauthorized" durante a sincronização inicial
-  useEffect(() => {
-    if (!user) return
-    
-    const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
-    
-    if (!isValidRole && !roleValidating) {
-      setRoleValidating(true)
-      // Aguardar até 2 segundos para o role ser sincronizado
-      const timeout = setTimeout(() => {
-        setRoleValidating(false)
-      }, 2000)
-      
-      return () => clearTimeout(timeout)
-    } else if (isValidRole) {
-      setRoleValidating(false)
-    }
-  }, [user, roleValidating])
 
   // Mostrar loading enquanto o role está sendo validado
   if (roleValidating) {

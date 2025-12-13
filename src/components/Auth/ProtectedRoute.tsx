@@ -93,7 +93,8 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   }
 
   // Se houver restrição de papéis, checa autorização
-  const role = (user.role as string).toLowerCase() as UserRole
+  // ✅ CORREÇÃO: Verificar se user.role existe antes de chamar toLowerCase
+  const role = (user?.role ? String(user.role).toLowerCase() : 'client') as UserRole
   const isAuthorized =
     !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)
 

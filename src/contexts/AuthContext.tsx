@@ -153,12 +153,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { supabase, uid } = await fbRegister(email, password)
 
+      // ✅ CORREÇÃO: Verificar se role existe antes de chamar toLowerCase/toUpperCase
+      if (!role) {
+        throw new Error('Role não fornecido')
+      }
+
       // Cria/atualiza perfil principal (tabela public.profiles) — usa firebase_uid
       await supabase.from('profiles_v2').upsert(
         {
           firebase_uid: uid,
           email,
-          role: role.toLowerCase(), // guardo em minúsculo; sua UI usa upper
+          role: String(role).toLowerCase(), // guardo em minúsculo; sua UI usa upper
           ...profileData,
         },
         { onConflict: 'firebase_uid' }
@@ -166,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          const appUser: User = {
         id: uid,
         email,
-        role: role.toUpperCase() as UserRole,
+        role: String(role).toUpperCase() as UserRole,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_active: true,
@@ -174,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(appUser)
       localStorage.setItem('veredicta_user', JSON.stringify(appUser))
-      navigate(routeFor(role.toLowerCase() as any), { replace: true })
+      navigate(routeFor(String(role).toLowerCase() as any), { replace: true })
       return true
     } catch (err: any) {
       console.error('❌ Registration error:', err?.message || err)

@@ -1084,6 +1084,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="username"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="seu@email.com"

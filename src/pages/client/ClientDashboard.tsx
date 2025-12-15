@@ -270,27 +270,50 @@ export default function ClientDashboard() {
         }
 
         // Verificar se o cliente tem plano FREE ativo (plano gratuito para novos clientes)
-        const { supabase: supabaseClient } = await getClient();
-        const { data: subscription, error: subError } = await supabaseClient
-          .from('user_subscriptions')
-          .select('plan_code, status, created_at')
-          .eq('user_id', user.uid)
-          .eq('status', 'active')
-          .eq('plan_code', 'free')
-          .maybeSingle();
+        try {
+          const { supabase: supabaseClient } = await getClient();
+          const { data: subscription, error: subError } = await supabaseClient
+            .from('user_subscriptions')
+            .select('plan_code, status, created_at')
+            .eq('user_id', user.uid)
+            .eq('status', 'active')
+            .eq('plan_code', 'free')
+            .maybeSingle();
 
-        if (subError) {
-          console.error('Erro ao verificar plano:', subError);
-          return;
-        }
+          // ✅ CORREÇÃO: Tratar erros 406/400 especificamente
+          if (subError) {
+            // Se for erro de rede/CORS (406/400), ainda tentar mostrar o modal para novos clientes
+            if (subError.status === 406 || subError.status === 400 || subError.code === 'PGRST116') {
+              console.warn('⚠️ Erro de rede ao verificar plano. Mostrando modal de boas-vindas mesmo assim para novos clientes.');
+              // Verificar se é um cliente novo (primeira vez acessando) baseado em localStorage
+              const isNewClient = !localStorage.getItem(`client_created_${user.uid}`);
+              if (isNewClient) {
+                setShowNewClientWelcomeModal(true);
+              }
+              return;
+            }
+            console.error('Erro ao verificar plano:', subError);
+            return;
+          }
 
-        // Se tem plano FREE e não viu o modal, mostrar
-        // Mostrar para qualquer cliente novo com plano FREE que ainda não viu o modal
-        if (subscription) {
-          setShowNewClientWelcomeModal(true);
+          // Se tem plano FREE e não viu o modal, mostrar
+          if (subscription) {
+            setShowNewClientWelcomeModal(true);
+          }
+        } catch (dbError: any) {
+          // ✅ CORREÇÃO: Tratar erros de conexão com banco de dados
+          if (dbError?.status === 406 || dbError?.status === 400) {
+            console.warn('⚠️ Erro de conexão ao verificar plano. Mostrando modal de boas-vindas para novos clientes.');
+            const isNewClient = !localStorage.getItem(`client_created_${user.uid}`);
+            if (isNewClient) {
+              setShowNewClientWelcomeModal(true);
+            }
+          } else {
+            console.error('Erro ao verificar modal de boas-vindas:', dbError);
+          }
         }
       } catch (error) {
-        console.error('Erro ao verificar modal de boas-vindas:', error);
+        console.error('Erro geral ao verificar modal de boas-vindas:', error);
       }
     }
 

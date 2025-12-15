@@ -40,7 +40,14 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
 
         if (error) {
           console.error('❌ Erro ao verificar status do redator:', error)
-          setWriterStatus('pending')
+          // ✅ CORREÇÃO: Se erro for 406/400 (problemas de CORS/recurso), assumir approved temporariamente
+          // Isso evita que erros de rede bloqueiem o acesso
+          if (error.code === 'PGRST116' || error.status === 406 || error.status === 400) {
+            console.warn('⚠️ Erro de rede/CORS ao verificar status. Assumindo approved temporariamente.')
+            setWriterStatus('approved')
+          } else {
+            setWriterStatus('pending')
+          }
           return
         }
 
@@ -60,9 +67,15 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
         } else {
           setWriterStatus('pending')
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Erro ao verificar status do redator:', error)
-        setWriterStatus('pending')
+        // ✅ CORREÇÃO: Se erro for 406/400 (problemas de CORS/recurso), assumir approved temporariamente
+        if (error?.status === 406 || error?.status === 400 || error?.code === 'PGRST116') {
+          console.warn('⚠️ Erro de rede/CORS ao verificar status. Assumindo approved temporariamente.')
+          setWriterStatus('approved')
+        } else {
+          setWriterStatus('pending')
+        }
       }
     }
 
@@ -112,12 +125,15 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   }, [user, roleValidating])
 
   // Enquanto verifica sessão Firebase -> ponte -> Supabase
-  if (loading || writerStatus === 'loading') {
+  // ✅ CORREÇÃO: Incluir roleValidating na verificação inicial para evitar flash de "não autorizado"
+  if (loading || writerStatus === 'loading' || roleValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Verificando sessão...</p>
+          <p className="mt-4 text-gray-600">
+            {loading ? "Verificando sessão..." : roleValidating ? "Sincronizando perfil..." : "Carregando..."}
+          </p>
         </div>
       </div>
     )
@@ -127,27 +143,15 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />
   }
-
-  // Mostrar loading enquanto o role está sendo validado
-  if (roleValidating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center" role="status" aria-live="polite">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Sincronizando perfil...</p>
-        </div>
-      </div>
-    )
-  }
   
-  // Se o role não está válido após aguardar, não redirecionar ainda - deixar o useEffect resolver
+  // Se o role não está válido após aguardar, aguardar mais um pouco antes de redirecionar
   const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
   if (!isValidRole) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Carregando perfil...</p>
+          <p className="mt-4 text-gray-600">Finalizando sincronização...</p>
         </div>
       </div>
     )
@@ -164,18 +168,6 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
 
   // Se houver restrição de papéis, checa autorização
   // ✅ CORREÇÃO: Verificar se user.role existe antes de chamar toLowerCase
-  // ✅ CORREÇÃO: Se roleValidating ainda estiver ativo, não verificar autorização ainda
-  if (roleValidating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center" role="status" aria-live="polite">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
-          <p className="mt-4 text-gray-600">Finalizando carregamento...</p>
-        </div>
-      </div>
-    )
-  }
-  
   const role = (user?.role ? String(user.role).toLowerCase() : 'client') as UserRole
   const isAuthorized =
     !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)

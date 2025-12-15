@@ -1,0 +1,225 @@
+import { useState } from 'react';
+import { Bell, BellOff, Filter, Search, FileText, MessageSquare, CreditCard, CheckCircle, Users, TrendingUp, Flag } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNotifications } from '@/contexts/NotificationContext';
+
+const iconMap = {
+  FileText,
+  MessageSquare,
+  CreditCard,
+  CheckCircle,
+  Users,
+  TrendingUp,
+  Flag
+};
+
+const formatTimestamp = (timestamp: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - timestamp.getTime();
+  
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  
+  if (minutes < 1) return 'Agora';
+  if (minutes < 60) return `Há ${minutes} min`;
+  if (hours < 24) return `Há ${hours}h`;
+  if (days === 1) return 'Ontem';
+  return `Há ${days} dias`;
+};
+
+const getTypeColor = (type: string) => {
+  switch (type) {
+    case 'user': return 'bg-blue-500 text-white dark:bg-blue-600';
+    case 'system': return 'bg-green-500 text-white dark:bg-green-600';
+    case 'payment': return 'bg-orange-500 text-white dark:bg-orange-600';
+    case 'report': return 'bg-purple-500 text-white dark:bg-purple-600';
+    case 'approval': return 'bg-red-500 text-white dark:bg-red-600';
+    case 'chat_report': return 'bg-red-500 text-white dark:bg-red-600';
+    default: return 'bg-gray-500 text-white dark:bg-gray-600';
+  }
+};
+
+// Mapear tipo de notificação para ícone
+const getIconForType = (type: string): keyof typeof iconMap => {
+  switch (type) {
+    case 'user':
+    case 'approval':
+      return 'Users';
+    case 'payment':
+      return 'CreditCard';
+    case 'report':
+    case 'system':
+      return 'TrendingUp';
+    case 'chat':
+    case 'chat_report':
+      return 'MessageSquare';
+    case 'petition':
+      return 'FileText';
+    default:
+      return 'FileText';
+  }
+};
+
+export default function AdminNotifications() {
+  const { notifications, markAsRead, markAllAsRead, unreadCount, loading } = useNotifications();
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+
+  // Mapear notificações reais para o formato esperado
+  const adminNotifications = notifications.map(notification => ({
+    id: notification.id,
+    type: notification.type || 'system',
+    title: notification.title,
+    message: notification.message || '',
+    timestamp: new Date(notification.created_at),
+    read: notification.is_read,
+    icon: getIconForType(notification.type || 'system')
+  }));
+
+  const filteredNotifications = adminNotifications.filter(notification => {
+    const matchesSearch = notification.title.toLowerCase().includes(search.toLowerCase()) ||
+                         notification.message.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === 'all' || 
+                         (filter === 'unread' && !notification.read) ||
+                         (filter === 'read' && notification.read) ||
+                         (filter === notification.type);
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead(id);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Bell className="h-7 w-7" />
+            Notificações Administrativas
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {unreadCount}
+              </Badge>
+            )}
+          </h1>
+          <p className="text-muted-foreground mt-1">Monitore atividades do sistema e aprovações pendentes</p>
+        </div>
+        {unreadCount > 0 && (
+          <Button onClick={markAllAsRead} variant="outline">
+            Marcar todas como lidas
+          </Button>
+        )}
+      </div>
+
+        {/* Filtros */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar notificações..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filtrar por..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="unread">Não lidas</SelectItem>
+              <SelectItem value="read">Lidas</SelectItem>
+              <SelectItem value="user">Usuários</SelectItem>
+              <SelectItem value="system">Sistema</SelectItem>
+              <SelectItem value="payment">Pagamentos</SelectItem>
+              <SelectItem value="report">Relatórios</SelectItem>
+              <SelectItem value="chat_report">Denúncias de Chat</SelectItem>
+              <SelectItem value="approval">Aprovações</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Lista de notificações */}
+        <div className="space-y-4">
+          {loading ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-muted-foreground">Carregando notificações...</p>
+              </CardContent>
+            </Card>
+          ) : filteredNotifications.length > 0 ? (
+            filteredNotifications.map((notification) => {
+              const IconComponent = iconMap[notification.icon as keyof typeof iconMap] || FileText;
+              
+              return (
+                <Card 
+                  key={notification.id}
+                  className={`cursor-pointer transition-colors hover:bg-accent ${
+                    !notification.read ? 'border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/30 dark:border-l-orange-400' : ''
+                  }`}
+                  onClick={() => handleMarkAsRead(notification.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-4">
+                      <Avatar className={`w-12 h-12 ${getTypeColor(notification.type)}`}>
+                        <AvatarFallback className={getTypeColor(notification.type)}>
+                          <IconComponent className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className={`text-sm font-medium ${!notification.read ? 'font-semibold' : ''}`}>
+                            {notification.title}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            {!notification.read && (
+                              <Badge variant="destructive" className="w-2 h-2 p-0 rounded-full">
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimestamp(notification.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground">
+                          {notification.message}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <BellOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  {search || filter !== 'all' ? 'Nenhuma notificação encontrada' : 'Nenhuma notificação no momento'}
+                </h3>
+                <p className="text-muted-foreground">
+                  {search || filter !== 'all' 
+                    ? 'Tente ajustar os filtros ou termos de busca'
+                    : 'Sistema funcionando normalmente - sem alertas pendentes'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+    </div>
+  );
+}

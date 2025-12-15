@@ -1,0 +1,2460 @@
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, startTransition } from 'react';
+import { ChatService, Conversation, Message, ConversationParticipant } from '@/services/chatService';
+import { ConversationPermissionService } from '@/services/conversationPermissionService';
+import { SupportBotService } from '@/services/supportBotService';
+import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useNotificationSound } from '@/contexts/NotificationSoundContext';
+import { supabase } from '@/lib/supabaseClient';
+import { containsExplicitLanguage } from '@/utils/messageFilter';
+
+// ✅ OTIMIZAÇÃO: Reduzir para carregar mais rápido (usuário pode carregar mais depois)
+const MESSAGE_PAGE_SIZE = 25;
+
+interface ChatContextType {
+  // Estado
+  conversations: Conversation[];
+  currentConversation: Conversation | null;
+  messages: Message[];
+  participants: ConversationParticipant[];
+  isLoading: boolean;
+  isLoadingMessages: boolean;
+  isLoadingOlderMessages: boolean;
+  error: string | null;
+  hasMoreOlderMessages: boolean;
+  
+  // Ações
+  loadConversations: () => Promise<void>;
+  loadConversationMessages: (conversationId: string) => Promise<Message[]>;
+  loadOlderMessages: () => Promise<number>;
+  selectConversation: (conversationId: string) => Promise<void>;
+  sendMessage: (
+    content: string,
+    messageType?: 'text' | 'file' | 'image' | 'system' | 'audio',
+    fileData?: { url: string; name: string; size: number },
+    replyToId?: string,
+    files?: File[]
+  ) => Promise<void>;
+  markAsRead: (messageId: string) => Promise<void>;
+  createConversation: (title: string, type: 'support' | 'petition' | 'general', participants: { userId: string; role: 'client' | 'writer' | 'admin' | 'support' }[], metadata?: { petitionId?: string; [key: string]: any }) => Promise<string>;
+  updateConversationStatus: (status: 'active' | 'closed' | 'archived', priority?: 'low' | 'normal' | 'high' | 'urgent', assignedTo?: string) => Promise<void>;
+  
+  // Utilitários
+  getUnreadCount: () => number;
+  getConversationUnreadCount: (conversationId: string) => number;
+  
+  // Exclusão
+  deleteConversation: (conversationId: string) => Promise<void>;
+  archiveConversation: (conversationId: string) => Promise<void>;
+  
+  // Sistema de Permissões - NOVA FUNCIONALIDADE
+  getAvailableUsers: () => Promise<Array<{
+    userId: string;
+    userName: string;
+    userRole: string;
+    conversationType: 'support' | 'petition' | 'general';
+    reason: string;
+  }>>;
+  createConversationWithUser: (targetUserId: string, title: string, message?: string) => Promise<string>;
+}
+
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (!context) {
+    // 🚀 CORREÇÃO: Não mostrar warning repetitivo, apenas retornar contexto padrão
+    // O warning será mostrado apenas uma vez por sessão
+    if (!(window as any).chatContextWarningShown) {
+      console.warn('useChat deve ser usado dentro de ChatProvider');
+      (window as any).chatContextWarningShown = true;
+    }
+    
+    // Retornar um contexto padrão ao invés de lançar erro
+    return {
+      conversations: [],
+      currentConversation: null,
+      messages: [],
+      participants: [],
+      isLoading: false,
+      isLoadingMessages: false,
+      isLoadingOlderMessages: false,
+      error: null,
+      hasMoreOlderMessages: true,
+      loadConversations: async () => {},
+      loadConversationMessages: async () => [],
+      loadOlderMessages: async () => 0,
+      selectConversation: async () => {},
+      sendMessage: async () => {},
+      markAsRead: async () => {},
+      createConversation: async () => '',
+      updateConversationStatus: async () => {},
+      getUnreadCount: () => 0,
+      getConversationUnreadCount: () => 0,
+      deleteConversation: async () => {},
+      archiveConversation: async () => {},
+      
+      // Sistema de Permissões - NOVA FUNCIONALIDADE
+      getAvailableUsers: async () => [],
+      createConversationWithUser: async () => ''
+    } as ChatContextType;
+  }
+  return context;
+};
+
+interface ChatProviderProps {
+  children: React.ReactNode;
+}
+
+export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
+  // CORREÇÃO CRÍTICA: Verificar se o contexto está disponível antes de usar
+  let user = null;
+  let loading = true;
+  
+  try {
+    const authContext = useNewAuth();
+    user = authContext.user;
+    loading = authContext.loading;
+  } catch (error) {
+    console.warn('ChatProvider: NewAuthContext não disponível ainda');
+  }
+  
+  const { play: playNotificationSound } = useNotificationSound();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [participants, setParticipants] = useState<ConversationParticipant[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [hasMoreOlderMessages, setHasMoreOlderMessages] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isProviderReady, setIsProviderReady] = useState(false);
+  const messagePollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const conversationPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
+  const pollingConversationIdRef = useRef<string | null>(null);
+  const isPollingRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+  const isPollingConversationsRef = useRef<boolean>(false); // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas no polling de conversas
+  const messagesSubscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null); // ✅ NOVO: Subscription real-time de mensagens
+  
+  // 🚀 CORREÇÃO: Usar refs ao invés de estados para controles internos (evita re-renders e loops)
+  const isLoadingConversationsRef = useRef<boolean>(false);
+  const isLoadingRef = useRef<boolean>(false);
+  const isLoadingOlderMessagesRef = useRef<boolean>(false);
+  const oldestMessageRef = useRef<string | null>(null);
+  
+  // 🚀 CACHE: Para reduzir chamadas ao banco e Disk IO (usando useRef para evitar re-renders)
+  const lastConversationsLoadRef = useRef<number>(0);
+  const CACHE_DURATION = useRef(3000); // 3 segundos de cache (otimizado para melhor performance)
+  const conversationsCacheRef = useRef<Conversation[] | null>(null);
+  
+  // ✅ NOVO: Cache de mensagens por conversa para carregamento instantâneo
+  const messagesCacheRef = useRef<Map<string, { messages: Message[]; timestamp: number }>>(new Map());
+  // ✅ OTIMIZAÇÃO: Aumentar duração do cache para 5 minutos (mensagens aparecem instantaneamente ao trocar de conversa)
+  const MESSAGES_CACHE_DURATION = 300000; // 5 minutos de cache (300000ms) - permite carregamento instantâneo ao voltar em conversas recentes
+
+  const CHAT_BUCKET = 'chat_attachments';
+  const localPreviewOverridesRef = useRef<Map<string, { preview: string; createdAt: string }>>(new Map());
+  
+  // ✅ CORREÇÃO: Sistema de deduplicação global de mensagens
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+  const processedMessageIdsTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  // ✅ CORREÇÃO: Rastreamento de real-time para desabilitar polling quando funciona
+  const realtimeWorkingRef = useRef<boolean>(false);
+  const lastRealtimeMessageRef = useRef<number>(0);
+  
+  // ✅ CORREÇÃO: Monitoramento do status da subscription para detectar falhas
+  const subscriptionStatusRef = useRef<'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED' | null>(null);
+  const subscriptionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // ✅ CORREÇÃO: Debounce para envio de mensagens
+  const lastMessageSentRef = useRef<string>('');
+  const messageSendTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ CORREÇÃO: Limpar IDs processados após 1 minuto para evitar memory leak
+  const cleanupProcessedIds = useCallback((messageId: string) => {
+    const existingTimeout = processedMessageIdsTimeoutRef.current.get(messageId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      processedMessageIdsRef.current.delete(messageId);
+      processedMessageIdsTimeoutRef.current.delete(messageId);
+    }, 60000); // 1 minuto
+    
+    processedMessageIdsTimeoutRef.current.set(messageId, timeout);
+  }, []);
+
+  // ✅ CORREÇÃO: Verificar se mensagem já foi processada
+  const isMessageAlreadyProcessed = useCallback((messageId: string): boolean => {
+    if (processedMessageIdsRef.current.has(messageId)) {
+      return true;
+    }
+    processedMessageIdsRef.current.add(messageId);
+    cleanupProcessedIds(messageId);
+    return false;
+  }, [cleanupProcessedIds]);
+
+  const applyLastMessageOverride = useCallback(
+    (
+      conversationId: string,
+      serverPreview: string | undefined | null,
+      serverCreatedAt: string | null | undefined
+    ) => {
+      const override = localPreviewOverridesRef.current.get(conversationId);
+      const serverTimestamp = serverCreatedAt ? new Date(serverCreatedAt).getTime() : -Infinity;
+
+      if (!override) {
+        return {
+          preview: serverPreview ?? '',
+          createdAt: serverCreatedAt ?? null,
+        };
+      }
+
+      const overrideTimestamp = new Date(override.createdAt).getTime();
+
+      if (overrideTimestamp > serverTimestamp) {
+        return {
+          preview: override.preview,
+          createdAt: override.createdAt,
+        };
+      }
+
+      localPreviewOverridesRef.current.delete(conversationId);
+      return {
+        preview: serverPreview ?? '',
+        createdAt: serverCreatedAt ?? null,
+      };
+    },
+    []
+  );
+
+  const getPreviewFromMessage = useCallback((message?: Message | null) => {
+    if (!message) return '';
+    const content = (message.content || '').trim();
+    if (content) return content;
+    if (message.message_type && message.message_type !== 'text') {
+      switch (message.message_type) {
+        case 'image':
+          return '🖼️ Imagem';
+        case 'audio':
+          return '🎵 Áudio';
+        case 'file':
+          return '📎 Arquivo anexado';
+        default:
+          return '📎 Anexo';
+      }
+    }
+    if (message.file_url) return '📎 Arquivo anexado';
+    return '';
+  }, []);
+
+  const sanitizeFileName = useCallback((original: string) => {
+    const fallback = 'arquivo';
+    const normalized = (original || fallback)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const safe = normalized.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+
+    if (!safe) {
+      return fallback;
+    }
+
+    if (containsExplicitLanguage(safe)) {
+      const dotIndex = safe.lastIndexOf('.');
+      const extension = dotIndex !== -1 ? safe.slice(dotIndex) : '';
+      const blockedName = `conteudo_bloqueado${extension}`;
+      return blockedName.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+    }
+
+    return safe;
+  }, []);
+
+  const detectMessageTypeFromFile = useCallback((file: File): 'image' | 'audio' | 'file' => {
+    if (file.type?.startsWith('image/')) return 'image';
+    if (file.type?.startsWith('audio/')) return 'audio';
+    if (file.type?.startsWith('video/')) return 'file';
+
+    const lowerName = (file.name || '').toLowerCase();
+    if (/\.(png|jpe?g|gif|bmp|webp|svg)$/.test(lowerName)) return 'image';
+    if (/\.(mp3|wav|ogg|m4a|opus|aac|flac)$/.test(lowerName)) return 'audio';
+    return 'file';
+  }, []);
+
+  const uploadAttachmentToStorage = useCallback(
+    async (conversationId: string, file: File) => {
+      const sanitizedName = sanitizeFileName(file.name || 'arquivo');
+      const filePath = `${conversationId}/${Date.now()}-${sanitizedName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(CHAT_BUCKET)
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type || undefined,
+        });
+
+      if (uploadError) {
+        console.error('❌ Erro ao enviar anexo para o Storage:', uploadError);
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from(CHAT_BUCKET).getPublicUrl(filePath);
+      if (!publicUrlData?.publicUrl) {
+        throw new Error('Não foi possível obter URL pública do arquivo');
+      }
+
+      return {
+        fileData: {
+          url: publicUrlData.publicUrl,
+          name: file.name || sanitizedName,
+          size: file.size || 0,
+        },
+        messageType: detectMessageTypeFromFile(file),
+      };
+    },
+    [CHAT_BUCKET, detectMessageTypeFromFile, sanitizeFileName]
+  );
+
+  // 🚀 CORREÇÃO: Garantir que o provider só seja considerado pronto após inicialização
+  useEffect(() => {
+    if (!loading && user) {
+      setIsProviderReady(true);
+    } else {
+      setIsProviderReady(false);
+    }
+  }, [loading, user]);
+
+  // Criar valor padrão do contexto
+  const defaultContextValue: ChatContextType = {
+    conversations: [],
+    currentConversation: null,
+    messages: [],
+    participants: [],
+    isLoading: loading,
+    isLoadingMessages: false,
+    isLoadingOlderMessages: false,
+    error: null,
+    hasMoreOlderMessages: true,
+    loadConversations: async () => {},
+    loadConversationMessages: async () => [],
+    loadOlderMessages: async () => 0,
+    selectConversation: async () => {},
+    sendMessage: async () => {},
+    markAsRead: async () => {},
+    createConversation: async () => '',
+    updateConversationStatus: async () => {},
+    getUnreadCount: () => 0,
+    getConversationUnreadCount: () => 0,
+    deleteConversation: async () => {},
+    archiveConversation: async () => {},
+    
+    // Sistema de Permissões - NOVA FUNCIONALIDADE
+    getAvailableUsers: async () => [],
+    createConversationWithUser: async () => ''
+  };
+
+  const fetchConversations = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!user) {
+      return;
+    }
+
+    if (isLoadingConversationsRef.current) {
+      return;
+    }
+
+    // 🚀 OTIMIZAÇÃO: Verificar cache antes de fazer query
+    const now = Date.now();
+    const cacheAge = now - lastConversationsLoadRef.current;
+    if (conversationsCacheRef.current && cacheAge < CACHE_DURATION.current) {
+      // Usar cache se ainda estiver válido
+      startTransition(() => {
+        setConversations(conversationsCacheRef.current!);
+      });
+      return;
+    }
+
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
+
+    isLoadingConversationsRef.current = true;
+
+    try {
+      const data = await ChatService.getUserConversations();
+      
+      // 🚀 OTIMIZAÇÃO: Atualizar cache
+      conversationsCacheRef.current = data;
+      lastConversationsLoadRef.current = now;
+
+      // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+      startTransition(() => {
+        setConversations(prev => {
+          const prevMap = new Map(prev.map(conv => [conv.id, conv]));
+
+          const merged = data.map(conv => {
+            const previous = prevMap.get(conv.id);
+            const existingPreview = previous?.last_message_content ?? '';
+            const existingTime = previous?.last_message_at ?? null;
+
+          const { preview, createdAt } = applyLastMessageOverride(
+            conv.id,
+            conv.last_message_content ?? existingPreview,
+            conv.last_message_at ?? existingTime
+          );
+
+          const previousUnread = previous?.unread_count ?? 0;
+          let unreadCount = conv.unread_count ?? previousUnread;
+          const hasNewMessage =
+            previous &&
+            conv.last_message_at &&
+            previous.last_message_at &&
+            conv.last_message_at !== previous.last_message_at;
+
+          if (!previous) {
+            unreadCount = conv.unread_count ?? 0;
+          } else if (hasNewMessage) {
+            if (conv.last_message_sender_id && conv.last_message_sender_id !== user.uid) {
+              unreadCount = previousUnread + 1;
+            }
+          }
+
+          if (currentConversation?.id === conv.id) {
+            unreadCount = 0;
+          }
+
+          return {
+            ...conv,
+            last_message_content: preview,
+            last_message_at: createdAt,
+            unread_count: unreadCount,
+          };
+        });
+
+        return merged;
+      });
+      });
+    } catch (err) {
+      console.error('❌ Erro ao carregar conversas:', err);
+
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations([]);
+      });
+      if (!silent) {
+        setError('Erro ao carregar conversas');
+      }
+    } finally {
+      if (!silent) {
+        setIsLoading(false);
+      }
+      isLoadingConversationsRef.current = false;
+    }
+  }, [currentConversation?.id, user]);
+
+  // Carregar conversas - VERSÃO SIMPLIFICADA E ESTÁVEL
+  const loadConversations = useCallback(async () => {
+    await fetchConversations({ silent: false });
+  }, [fetchConversations]);
+
+  // ✅ CORREÇÃO: Nova função que aceita conversationId explicitamente para evitar condição de corrida
+  const handleIncomingMessagesForConversation = useCallback(
+    (messagesList: Message[], targetConversationId: string, options: { skipSound?: boolean } = {}) => {
+      if (!targetConversationId) {
+        console.warn('⚠️ [handleIncomingMessagesForConversation] Nenhum conversationId fornecido');
+        return;
+      }
+      // ✅ CORREÇÃO: Usar conversationId passado explicitamente ao invés de depender de currentConversation
+      if (targetConversationId) {
+        const filteredMessages = messagesList.filter(
+          (msg) => msg.conversation_id === targetConversationId
+        );
+        
+        // ✅ CORREÇÃO CRÍTICA: Verificar se as mensagens recebidas são realmente da conversa alvo
+        if (filteredMessages.length === 0 && messagesList.length > 0) {
+          console.warn('⚠️ [handleIncomingMessagesForConversation] Mensagens recebidas não são da conversa alvo:', {
+            totalReceived: messagesList.length,
+            targetConversationId,
+            receivedConversationIds: [...new Set(messagesList.map(m => m.conversation_id))]
+          });
+          return; // Não processar mensagens de outras conversas
+        }
+        
+        // ✅ OTIMIZAÇÃO CRÍTICA: Processar em chunks para evitar bloqueio de 1000ms+
+        // Usar requestIdleCallback para processar quando o browser estiver idle
+        const processMessagesAsync = (prev: Message[]) => {
+          // Filtrar apenas mensagens da conversa alvo do estado anterior
+          const prevFiltered = prev.filter(msg => msg.conversation_id === targetConversationId);
+          
+          // Manter mensagens otimistas que ainda não foram confirmadas
+          const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
+          
+          // ✅ OTIMIZAÇÃO: Criar Map para lookup O(1) ao invés de O(n) com .some()
+          const confirmedMessagesMap = new Map<string, Message>();
+          // ✅ OTIMIZAÇÃO: Cachear timestamps durante o processamento para evitar múltiplas conversões
+          const timeCache = new Map<string, number>();
+          
+          filteredMessages.forEach(msg => {
+            // Criar chave única baseada em conteúdo, sender e timestamp aproximado
+            if (!timeCache.has(msg.created_at)) {
+              timeCache.set(msg.created_at, new Date(msg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(msg.created_at)! / 5000) * 5000;
+            const key = `${msg.content}|${msg.sender_id}|${timeWindow}`;
+            confirmedMessagesMap.set(key, msg);
+          });
+          
+          // ✅ OTIMIZAÇÃO: Verificar confirmação usando Map (O(1) lookup)
+          const remainingOptimistic = optimisticMessages.filter(optMsg => {
+            if (!timeCache.has(optMsg.created_at)) {
+              timeCache.set(optMsg.created_at, new Date(optMsg.created_at).getTime());
+            }
+            const timeWindow = Math.floor(timeCache.get(optMsg.created_at)! / 5000) * 5000;
+            const key = `${optMsg.content}|${optMsg.sender_id}|${timeWindow}`;
+            return !confirmedMessagesMap.has(key);
+          });
+          
+          // ✅ CORREÇÃO CRÍTICA: Preservar TODAS as mensagens anteriores (confirmadas) e adicionar/atualizar com as novas
+          const uniqueMessagesMap = new Map<string, Message>();
+          
+          // ✅ PASSO 1: Primeiro, adicionar TODAS as mensagens confirmadas anteriores (preservar tudo que já existe)
+          const previousConfirmed = prevFiltered.filter(msg => !msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-'));
+          previousConfirmed.forEach(msg => {
+            uniqueMessagesMap.set(msg.id, msg);
+          });
+          
+          // ✅ PASSO 2: Adicionar/atualizar com as novas mensagens confirmadas recebidas
+          filteredMessages.forEach(msg => {
+            // Sempre usar a versão confirmada mais recente
+            uniqueMessagesMap.set(msg.id, msg);
+          });
+          
+          // ✅ PASSO 3: Adicionar mensagens otimistas restantes que ainda não foram confirmadas
+          remainingOptimistic.forEach(msg => {
+            if (!uniqueMessagesMap.has(msg.id)) {
+              uniqueMessagesMap.set(msg.id, msg);
+            }
+          });
+          
+          // ✅ OTIMIZAÇÃO: Sort usando cache de timestamps (evita múltiplas conversões)
+          const sortedMessages = Array.from(uniqueMessagesMap.values()).sort((a, b) => {
+            const timeA = timeCache.get(a.created_at) ?? new Date(a.created_at).getTime();
+            const timeB = timeCache.get(b.created_at) ?? new Date(b.created_at).getTime();
+            return timeA - timeB;
+          });
+          
+          return sortedMessages;
+        };
+        
+      // ✅ OTIMIZAÇÃO: Executar processamento dentro do startTransition mas otimizado
+      startTransition(() => {
+        setMessages(prev => {
+          const updated = processMessagesAsync(prev);
+          // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens processadas
+          if (targetConversationId) {
+            const conversationMessages = updated.filter(msg => msg.conversation_id === targetConversationId);
+            messagesCacheRef.current.set(targetConversationId, {
+              messages: conversationMessages,
+              timestamp: Date.now()
+            });
+          }
+          return updated;
+        });
+      });
+      } else if (messagesList.length > 0) {
+        // Se não há conversa alvo mas há mensagens, usar todas (pode ser inicialização)
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages(messagesList);
+        });
+      }
+      // Não limpar mensagens se não há conversa selecionada - pode estar em transição
+
+      if (!messagesList.length) {
+        return;
+      }
+
+      const latest = messagesList[messagesList.length - 1];
+      const latestId = latest.id;
+      const isNewMessage = latestId !== lastMessageIdRef.current;
+      const isFromCurrentUser = user?.uid && latest.sender_id === user.uid;
+      const isConversationActive =
+        targetConversationId && latest.conversation_id === targetConversationId;
+      const isWindowFocused =
+        typeof document === 'undefined' ? true : document.hasFocus();
+      const shouldIncrementUnread =
+        isNewMessage && !isFromCurrentUser && !isConversationActive;
+
+      if (
+        !options.skipSound &&
+        isNewMessage &&
+        !isFromCurrentUser &&
+        (!isConversationActive || !isWindowFocused)
+      ) {
+        playNotificationSound();
+      }
+
+      if (shouldIncrementUnread || options.skipSound || isConversationActive) {
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv => {
+              if (conv.id !== latest.conversation_id) {
+                return conv;
+              }
+
+              const currentUnread = conv.unread_count || 0;
+              let nextUnread = currentUnread;
+
+              if (options.skipSound || isConversationActive) {
+                nextUnread = 0;
+              } else if (shouldIncrementUnread) {
+                nextUnread = currentUnread + 1;
+              }
+
+              return {
+                ...conv,
+                unread_count: nextUnread,
+              };
+            })
+          );
+        });
+      }
+
+      lastMessageIdRef.current = latestId;
+    },
+    [playNotificationSound, user?.uid] // ✅ CORREÇÃO: Não depender de currentConversation.id pois recebemos targetConversationId como parâmetro
+  );
+
+  const handleIncomingMessages = useCallback(
+    (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
+      // ✅ CORREÇÃO: Usar currentConversation.id se disponível, senão usar a primeira mensagem
+      const targetConversationId = currentConversation?.id || messagesList[0]?.conversation_id;
+      
+      if (!targetConversationId) {
+        console.warn('⚠️ [handleIncomingMessages] Nenhuma conversa identificada');
+        return;
+      }
+      
+      
+      // Delegar para a função que aceita conversationId explicitamente
+      handleIncomingMessagesForConversation(messagesList, targetConversationId, options);
+    },
+    [currentConversation?.id, handleIncomingMessagesForConversation]
+  );
+  
+  // ✅ CORREÇÃO: Manter função original para compatibilidade, mas agora usa a nova função
+  const handleIncomingMessagesOld = useCallback(
+    (messagesList: Message[], options: { skipSound?: boolean } = {}) => {
+      // ✅ CORREÇÃO: Filtrar mensagens apenas da conversa atual para evitar mostrar mensagens de outras conversas
+      if (currentConversation?.id) {
+        // ✅ CORREÇÃO CRÍTICA: Verificar se as mensagens recebidas são realmente da conversa atual
+        // Se não forem, pode ser que a conversa mudou durante o processamento
+        const messagesForCurrentConversation = messagesList.filter(
+          (msg) => msg.conversation_id === currentConversation.id
+        );
+        
+        // Se nenhuma mensagem é da conversa atual, não processar
+        if (messagesForCurrentConversation.length === 0 && messagesList.length > 0) {
+          console.warn('⚠️ [handleIncomingMessages] Mensagens recebidas não são da conversa atual:', {
+            totalReceived: messagesList.length,
+            currentConversationId: currentConversation.id,
+            receivedConversationIds: [...new Set(messagesList.map(m => m.conversation_id))]
+          });
+          return; // Não processar mensagens de outras conversas
+        }
+        
+        const filteredMessages = messagesForCurrentConversation;
+        
+        // ✅ OTIMIZAÇÃO: Usar startTransition e otimizar lógica
+        startTransition(() => {
+          setMessages(prev => {
+            // Filtrar apenas mensagens da conversa atual do estado anterior
+            const prevFiltered = prev.filter(msg => msg.conversation_id === currentConversation.id);
+            
+            // Manter mensagens otimistas que ainda não foram confirmadas
+            const optimisticMessages = prevFiltered.filter(msg => msg.id.startsWith('temp-') || msg.id.startsWith('tmp-'));
+            
+            // ✅ OTIMIZAÇÃO: Criar Map para lookup O(1) ao invés de O(n) com .some()
+            const confirmedMessagesMap = new Map<string, Message>();
+            filteredMessages.forEach(msg => {
+              const timeWindow = Math.floor(new Date(msg.created_at).getTime() / 5000) * 5000;
+              const key = `${msg.content}|${msg.sender_id}|${timeWindow}`;
+              confirmedMessagesMap.set(key, msg);
+            });
+            
+            // ✅ OTIMIZAÇÃO: Verificar confirmação usando Map (O(1) lookup)
+            const remainingOptimistic = optimisticMessages.filter(optMsg => {
+              const timeWindow = Math.floor(new Date(optMsg.created_at).getTime() / 5000) * 5000;
+              const key = `${optMsg.content}|${optMsg.sender_id}|${timeWindow}`;
+              return !confirmedMessagesMap.has(key);
+            });
+            
+            // Combinar mensagens confirmadas com otimistas restantes
+            const allMessages = [...filteredMessages, ...remainingOptimistic];
+            
+            // ✅ OTIMIZAÇÃO: Usar Map para remover duplicatas e cachear timestamps
+            const uniqueMessagesMap = new Map<string, Message>();
+            const timestampCache = new Map<Message, number>();
+            
+            allMessages.forEach(msg => {
+              if (!uniqueMessagesMap.has(msg.id) || !msg.id.startsWith('temp-') && !msg.id.startsWith('tmp-')) {
+                uniqueMessagesMap.set(msg.id, msg);
+                // Cachear timestamp para evitar múltiplas conversões
+                if (!timestampCache.has(msg)) {
+                  timestampCache.set(msg, new Date(msg.created_at).getTime());
+                }
+              }
+            });
+            
+            // Converter para array e ordenar usando cache de timestamps
+            const uniqueMessages = Array.from(uniqueMessagesMap.values()).sort((a, b) => {
+              const timeA = timestampCache.get(a) ?? new Date(a.created_at).getTime();
+              const timeB = timestampCache.get(b) ?? new Date(b.created_at).getTime();
+              return timeA - timeB;
+            });
+            
+            return uniqueMessages;
+          });
+        });
+      } else if (messagesList.length > 0) {
+        // Se não há conversa selecionada mas há mensagens, usar todas (pode ser inicialização)
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages(messagesList);
+        });
+      }
+      // Não limpar mensagens se não há conversa selecionada - pode estar em transição
+
+      if (!messagesList.length) {
+        return;
+      }
+
+      const latest = messagesList[messagesList.length - 1];
+      const latestId = latest.id;
+      const isNewMessage = latestId !== lastMessageIdRef.current;
+      const isFromCurrentUser = user?.uid && latest.sender_id === user.uid;
+      const isConversationActive =
+        currentConversation?.id && latest.conversation_id === currentConversation.id;
+      const isWindowFocused =
+        typeof document === 'undefined' ? true : document.hasFocus();
+      const shouldIncrementUnread =
+        isNewMessage && !isFromCurrentUser && !isConversationActive;
+
+      if (
+        !options.skipSound &&
+        isNewMessage &&
+        !isFromCurrentUser &&
+        (!isConversationActive || !isWindowFocused)
+      ) {
+        playNotificationSound();
+      }
+
+      if (shouldIncrementUnread || options.skipSound || isConversationActive) {
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv => {
+              if (conv.id !== latest.conversation_id) {
+                return conv;
+              }
+
+              const currentUnread = conv.unread_count || 0;
+              let nextUnread = currentUnread;
+
+              if (options.skipSound || isConversationActive) {
+                nextUnread = 0;
+              } else if (shouldIncrementUnread) {
+                nextUnread = currentUnread + 1;
+              }
+
+              return {
+                ...conv,
+                unread_count: nextUnread,
+              };
+            })
+          );
+        });
+        
+        // 🚀 OTIMIZAÇÃO: Invalidar cache de conversas quando nova mensagem chega
+        conversationsCacheRef.current = null;
+        lastConversationsLoadRef.current = 0;
+      }
+
+      lastMessageIdRef.current = latestId;
+    },
+    [currentConversation?.id, playNotificationSound, user?.uid]
+  );
+
+  // 🚀 NOVA FUNÇÃO: Carregar mensagens de uma conversa específica
+  const loadConversationMessages = useCallback(async (conversationId: string): Promise<Message[]> => {
+    try {
+      const messagesData = await ChatService.getConversationMessages(conversationId, {
+        limit: MESSAGE_PAGE_SIZE,
+      });
+
+      const latestMessage = messagesData.at(-1);
+
+      const serverPreview = getPreviewFromMessage(latestMessage);
+      const serverCreatedAt = latestMessage?.created_at ?? null;
+      const overrideResult = applyLastMessageOverride(
+        conversationId,
+        serverPreview,
+        serverCreatedAt
+      );
+
+      // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+      startTransition(() => {
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  last_message_content: overrideResult.preview,
+                  last_message_at: overrideResult.createdAt ?? conv.updated_at ?? conv.last_message_at ?? null,
+                }
+              : conv
+          )
+        );
+      });
+
+      if (currentConversation?.id === conversationId) {
+        handleIncomingMessagesForConversation(messagesData, conversationId, { skipSound: true });
+        oldestMessageRef.current = messagesData[0]?.created_at ?? null;
+        setHasMoreOlderMessages(messagesData.length === MESSAGE_PAGE_SIZE);
+        if (messagesData.length === 0) {
+          setHasMoreOlderMessages(false);
+        }
+        setIsLoadingOlderMessages(false);
+        isLoadingOlderMessagesRef.current = false;
+      }
+
+      return messagesData;
+    } catch (err) {
+      console.error(`❌ Erro ao carregar mensagens da conversa ${conversationId}:`, err);
+      return [];
+    }
+  }, [currentConversation?.id, handleIncomingMessages]);
+
+  const loadOlderMessages = useCallback(async (): Promise<number> => {
+    if (!currentConversation) {
+      return 0;
+    }
+
+    if (isLoadingOlderMessagesRef.current) {
+      return 0;
+    }
+
+    if (!hasMoreOlderMessages) {
+      return 0;
+    }
+
+    const cursor =
+      oldestMessageRef.current ??
+      messages.filter((msg) => msg.conversation_id === currentConversation.id)[0]?.created_at ??
+      null;
+
+    if (!cursor) {
+      return 0;
+    }
+
+    isLoadingOlderMessagesRef.current = true;
+    setIsLoadingOlderMessages(true);
+
+    try {
+      console.log(`📜 [loadOlderMessages] Carregando mensagens antigas para conversa ${currentConversation.id}, antes de ${cursor}`);
+      
+      const olderMessages = await ChatService.getConversationMessages(currentConversation.id, {
+        limit: MESSAGE_PAGE_SIZE,
+        before: cursor,
+      });
+
+      console.log(`📜 [loadOlderMessages] ${olderMessages.length} mensagens antigas carregadas para conversa ${currentConversation.id}`);
+
+      if (!olderMessages.length) {
+        console.log(`⚠️ [loadOlderMessages] Nenhuma mensagem antiga encontrada para conversa ${currentConversation.id}. Marcando como sem mais mensagens.`);
+        setHasMoreOlderMessages(false);
+        return 0;
+      }
+
+      oldestMessageRef.current = olderMessages[0]?.created_at ?? cursor;
+
+      // ✅ OTIMIZAÇÃO: Usar startTransition e cache de timestamps
+      startTransition(() => {
+        setMessages((prev) => {
+          // ✅ CORREÇÃO: Filtrar apenas mensagens da conversa atual
+          const currentConversationId = currentConversation.id;
+          const filteredPrev = prev.filter((msg) => msg.conversation_id === currentConversationId);
+          const filteredOlder = olderMessages.filter((msg) => msg.conversation_id === currentConversationId);
+          
+          const existingIds = new Set(filteredPrev.map((msg) => msg.id));
+          const merged = [
+            ...filteredOlder.filter((msg) => !existingIds.has(msg.id)),
+            ...filteredPrev,
+          ];
+
+          // ✅ OTIMIZAÇÃO: Cachear timestamps para evitar múltiplas conversões
+          const timestampCache = new Map<Message, number>();
+          merged.sort((a, b) => {
+            if (!timestampCache.has(a)) {
+              timestampCache.set(a, new Date(a.created_at).getTime());
+            }
+            if (!timestampCache.has(b)) {
+              timestampCache.set(b, new Date(b.created_at).getTime());
+            }
+            return timestampCache.get(a)! - timestampCache.get(b)!;
+          });
+
+          lastMessageIdRef.current = merged.length ? merged[merged.length - 1].id : lastMessageIdRef.current;
+
+          return merged;
+        });
+      });
+
+      if (olderMessages.length < MESSAGE_PAGE_SIZE) {
+        setHasMoreOlderMessages(false);
+      }
+
+      return olderMessages.length;
+    } catch (err) {
+      console.error('❌ Erro ao carregar mensagens antigas:', err);
+      return 0;
+    } finally {
+      isLoadingOlderMessagesRef.current = false;
+      setIsLoadingOlderMessages(false);
+    }
+  }, [currentConversation, hasMoreOlderMessages, messages]);
+
+  // Selecionar conversa - VERSÃO SIMPLIFICADA E ESTÁVEL
+  const selectConversation = useCallback(async (conversationId: string) => {
+    // 🚀 CORREÇÃO: Usar ref para evitar loop
+    if (isLoadingRef.current) {
+      return;
+    }
+    
+    setIsLoadingMessages(true);
+    isLoadingRef.current = true;
+    setError(null);
+    
+    try {
+      // Buscar conversa na lista local
+      let conversation = conversations.find(c => c.id === conversationId);
+      
+      // Se não encontrou na lista local, tentar buscar diretamente primeiro (mais rápido)
+      if (!conversation) {
+        try {
+          // ✅ OTIMIZAÇÃO: Buscar diretamente do banco primeiro (mais rápido que recarregar tudo)
+          const directConversation = await ChatService.getConversationById(conversationId);
+          
+          if (directConversation) {
+            conversation = directConversation;
+            // Adicionar à lista de conversas
+            // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+            startTransition(() => {
+              setConversations(prev => {
+                const exists = prev.find(c => c.id === conversationId);
+                if (!exists) {
+                  return [...prev, conversation!];
+                }
+                return prev.map(c => c.id === conversationId ? conversation! : c);
+              });
+            });
+          } else {
+            // Se não encontrou diretamente, tentar recarregar todas as conversas
+            await loadConversations();
+            const updatedConversations = await ChatService.getUserConversations();
+            conversation = updatedConversations.find(c => c.id === conversationId);
+            
+            if (conversation) {
+              // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+              startTransition(() => {
+                setConversations(prev => {
+                  const exists = prev.find(c => c.id === conversationId);
+                  if (!exists) {
+                    return [...prev, conversation!];
+                  }
+                  return prev.map(c => c.id === conversationId ? conversation! : c);
+                });
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao buscar conversa:', error);
+        }
+        
+        // Se ainda não encontrou, definir erro
+        if (!conversation) {
+          setError('Conversa não encontrada');
+          setIsLoadingMessages(false);
+          isLoadingRef.current = false;
+          return;
+        }
+      }
+      
+      // ✅ CORREÇÃO CRÍTICA: Atualizar currentConversation ANTES de buscar mensagens para evitar condição de corrida
+      setCurrentConversation(conversation);
+      
+      // ✅ OTIMIZAÇÃO: Verificar cache de mensagens primeiro para carregamento instantâneo
+      const cachedData = messagesCacheRef.current.get(conversationId);
+      const isCacheValid = cachedData && (Date.now() - cachedData.timestamp) < MESSAGES_CACHE_DURATION;
+      
+      if (isCacheValid && cachedData.messages.length > 0) {
+        // ✅ Mostrar mensagens do cache imediatamente (carregamento instantâneo!)
+        startTransition(() => {
+          setMessages(cachedData.messages);
+        });
+        oldestMessageRef.current = cachedData.messages[0]?.created_at ?? null;
+        setHasMoreOlderMessages(cachedData.messages.length === MESSAGE_PAGE_SIZE);
+        setIsLoadingOlderMessages(false);
+        isLoadingOlderMessagesRef.current = false;
+      } else {
+        // ✅ CORREÇÃO: Limpar apenas mensagens da conversa anterior, preservando otimistas da nova conversa
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation (operacao pode ser pesada com muitas mensagens)
+        startTransition(() => {
+          setMessages(prev => prev.filter(msg => {
+            // Manter mensagens da nova conversa
+            if (msg.conversation_id === conversationId) return true;
+            // Manter apenas mensagens otimistas da nova conversa (não de outras conversas)
+            if ((msg.id.startsWith('temp-') || msg.id.startsWith('tmp-')) && msg.conversation_id === conversationId) return true;
+            return false;
+          }));
+        });
+        
+        oldestMessageRef.current = null;
+        setHasMoreOlderMessages(true);
+        setIsLoadingOlderMessages(false);
+        isLoadingOlderMessagesRef.current = false;
+      }
+      
+      // ✅ OTIMIZAÇÃO CRÍTICA: Se tem cache válido, carregar mensagens primeiro (rápido)
+      // Participantes podem carregar depois em background sem bloquear UI
+      let messagesData: Message[];
+      let participantsData: ConversationParticipant[];
+      
+      if (isCacheValid && cachedData?.messages.length > 0) {
+        // ✅ OTIMIZAÇÃO: Tem cache - mensagens já estão visíveis, então podemos:
+        // 1. Carregar mensagens atualizadas em background (sem bloquear UI)
+        // 2. Carregar participantes em background também
+        // Isso torna a troca de conversas instantânea!
+        
+        // Carregar mensagens atualizadas em background (não bloqueia UI)
+        ChatService.getConversationMessages(conversationId, {
+          limit: MESSAGE_PAGE_SIZE,
+        }).then(updatedMessages => {
+          const filtered = updatedMessages.filter((msg) => msg.conversation_id === conversationId);
+          // Atualizar cache silenciosamente
+          messagesCacheRef.current.set(conversationId, {
+            messages: filtered,
+            timestamp: Date.now()
+          });
+          // Atualizar mensagens apenas se houver mudanças significativas
+          if (filtered.length !== cachedData.messages.length || 
+              filtered[filtered.length - 1]?.id !== cachedData.messages[cachedData.messages.length - 1]?.id) {
+            handleIncomingMessagesForConversation(filtered, conversationId, { skipSound: true });
+          }
+        }).catch(err => {
+          console.warn('⚠️ Erro ao atualizar mensagens em background:', err);
+        });
+        
+        messagesData = cachedData.messages; // Usar cache imediatamente
+        
+        // Carregar participantes em background (não bloqueia UI)
+        ChatService.getConversationParticipants(conversationId)
+          .then(participants => {
+            setParticipants(participants);
+          })
+          .catch(err => {
+            console.warn('⚠️ Erro ao carregar participantes:', err);
+            setParticipants([]);
+          });
+        
+        // Usar participantes vazios por enquanto (carregarão em background)
+        participantsData = [];
+      } else {
+        // ✅ OTIMIZAÇÃO: Sem cache válido - carregar mensagens e participantes em paralelo
+        // Isso garante que quando não há cache, ainda carrega rápido
+        const results = await Promise.all([
+          ChatService.getConversationMessages(conversationId, {
+            limit: MESSAGE_PAGE_SIZE,
+          }),
+          ChatService.getConversationParticipants(conversationId)
+        ]);
+        
+        messagesData = results[0];
+        participantsData = results[1];
+        setParticipants(participantsData);
+      }
+      
+      // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens carregadas
+      const filteredMessages = messagesData.filter(
+        (msg) => msg.conversation_id === conversationId
+      );
+      
+      // Atualizar cache apenas se não tiver usado cache válido
+      if (!isCacheValid || !cachedData?.messages.length) {
+        messagesCacheRef.current.set(conversationId, {
+          messages: filteredMessages,
+          timestamp: Date.now()
+        });
+      }
+      
+      if (messagesData.length === 0 && !isCacheValid) {
+        console.warn('⚠️ [selectConversation] NENHUMA MENSAGEM RETORNADA! Verificar permissões do usuário.');
+      }
+      
+      // ✅ CORREÇÃO CRÍTICA: Verificar se currentConversation foi atualizado corretamente
+      if (conversation.id !== conversationId) {
+        console.error('❌ [selectConversation] ERRO: conversation.id não corresponde ao conversationId!', {
+          conversationId,
+          conversationIdFromObject: conversation.id
+        });
+      }
+      
+      if (!isCacheValid || cachedData?.messages.length === 0) {
+        // ✅ Se não tinha cache válido, atualizar mensagens agora
+        // ✅ CORREÇÃO: Passar conversationId explicitamente para evitar dependência de currentConversation
+        handleIncomingMessagesForConversation(filteredMessages, conversationId, { skipSound: true });
+        oldestMessageRef.current = filteredMessages[0]?.created_at ?? null;
+        setHasMoreOlderMessages(filteredMessages.length === MESSAGE_PAGE_SIZE);
+        if (filteredMessages.length === 0) {
+          setHasMoreOlderMessages(false);
+        }
+        
+        const latestMessage = filteredMessages.at(-1);
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations(prev =>
+            prev.map(conv =>
+              conv.id === conversationId
+                ? {
+                    ...conv,
+                    last_message_content: getPreviewFromMessage(latestMessage),
+                    last_message_at: latestMessage?.created_at ?? conv.updated_at,
+                  }
+                : conv
+            )
+          );
+        });
+      } else {
+        // ✅ Se tinha cache, apenas atualizar silenciosamente em background (sem recarregar UI)
+        // Verificar se há novas mensagens e atualizar se necessário (sem recarregar tudo)
+        const currentMessages = messages.filter(msg => msg.conversation_id === conversationId);
+        const newMessages = filteredMessages.filter(
+          newMsg => !currentMessages.some(curr => curr.id === newMsg.id)
+        );
+        
+        if (newMessages.length > 0) {
+          startTransition(() => {
+            handleIncomingMessagesForConversation(newMessages, conversationId, { skipSound: true });
+          });
+        }
+        
+        // Atualizar preview da última mensagem se necessário
+        const latestMessage = filteredMessages.at(-1);
+        if (latestMessage) {
+          startTransition(() => {
+            setConversations(prev =>
+              prev.map(conv =>
+                conv.id === conversationId
+                  ? {
+                      ...conv,
+                      last_message_content: getPreviewFromMessage(latestMessage),
+                      last_message_at: latestMessage?.created_at ?? conv.updated_at,
+                    }
+                  : conv
+              )
+            );
+          });
+        }
+      }
+      
+      // Iniciar polling periódico como fallback para garantir atualização rápida
+      if (messagePollingRef.current) {
+        clearInterval(messagePollingRef.current);
+        messagePollingRef.current = null;
+        isPollingRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
+      }
+
+      // ✅ CORREÇÃO CRÍTICA: Atualizar ref com conversationId atual
+      pollingConversationIdRef.current = conversationId;
+
+      // ✅ CORREÇÃO: Polling apenas como fallback quando real-time não funciona
+      // ✅ OTIMIZAÇÃO: Aumentar intervalo para 10000ms (10 segundos) para reduzir carga significativamente
+      messagePollingRef.current = setInterval(async () => {
+        // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+        if (isPollingRef.current) {
+          return;
+        }
+
+        try {
+          isPollingRef.current = true;
+
+          // ✅ CORREÇÃO: Usar o conversationId atual do ref, não do closure
+          const currentPollingId = pollingConversationIdRef.current;
+          
+          // ✅ CORREÇÃO: Verificar se ainda é a conversa atual antes de fazer polling
+          if (!currentPollingId) {
+            isPollingRef.current = false;
+            return;
+          }
+          
+          // ✅ CORREÇÃO: Verificar se currentConversation ainda é a mesma
+          const isStillCurrentConversation = currentConversation?.id === currentPollingId;
+          
+          if (!isStillCurrentConversation) {
+            isPollingRef.current = false;
+            return; // Parar polling se a conversa mudou
+          }
+          
+          // ✅ CORREÇÃO CRÍTICA: Sempre fazer polling quando há conversa ativa
+          // O polling funciona como backup garantido, independente do status do real-time
+          // Isso garante que mensagens do admin apareçam mesmo se o real-time falhar silenciosamente
+          const timeSinceLastRealtime = Date.now() - lastRealtimeMessageRef.current;
+          const isRealtimeHealthy = subscriptionStatusRef.current === 'SUBSCRIBED' && 
+                                    timeSinceLastRealtime < 10000 && // 10 segundos de tolerância
+                                    lastRealtimeMessageRef.current > 0;
+          
+          // ✅ CORREÇÃO CRÍTICA: SEMPRE fazer polling quando há conversa ativa
+          // O polling serve como garantia de que mensagens do admin aparecerão mesmo se o real-time falhar
+          // Não pular polling mesmo quando real-time está funcionando - ele funciona como backup duplo
+          
+          // Log apenas quando real-time não está funcionando
+          if (!isRealtimeHealthy) {
+            console.log('🔄 [ChatContext] Polling ativo - Real-time não está funcionando (usando polling como principal):', {
+              status: subscriptionStatusRef.current,
+              timeSinceLastMessage: timeSinceLastRealtime,
+              lastMessageTime: lastRealtimeMessageRef.current
+            });
+          }
+          
+          // ✅ SEMPRE continuar com polling - não retornar aqui
+          
+          // ✅ OTIMIZAÇÃO: Buscar mensagens apenas se real-time não está funcionando
+          const latestMessages = await ChatService.getConversationMessages(currentPollingId, {
+            limit: MESSAGE_PAGE_SIZE,
+          });
+
+          // ✅ OTIMIZAÇÃO: Processar mensagens apenas se houver novas
+          // ✅ CORREÇÃO: Verificar se há mensagens novas antes de processar
+          if (latestMessages.length > 0) {
+            // ✅ CORREÇÃO: Verificar quais mensagens são realmente novas
+            const currentMessages = messages.filter(msg => msg.conversation_id === currentPollingId);
+            const existingIds = new Set(currentMessages.map(m => m.id));
+            const newMessages = latestMessages.filter(msg => !existingIds.has(msg.id));
+            
+            // ✅ CORREÇÃO MELHORADA: Processar todas as novas mensagens, mas usar deduplicação para evitar duplicatas
+            // Não filtrar mensagens já processadas aqui, deixar o handleIncomingMessagesForConversation lidar com duplicatas
+            if (newMessages.length > 0) {
+              console.log(`📥 [ChatContext] Polling encontrou ${newMessages.length} nova(s) mensagem(ns) para a conversa ${currentPollingId}`);
+              handleIncomingMessagesForConversation(newMessages, currentPollingId, { skipSound: false });
+            }
+            oldestMessageRef.current = latestMessages[0]?.created_at ?? oldestMessageRef.current ?? null;
+            
+            if (latestMessages.length < MESSAGE_PAGE_SIZE) {
+              setHasMoreOlderMessages(false);
+            }
+
+            // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para atualização não crítica da lista de conversas
+            const updateConversations = () => {
+              const lastMessage = latestMessages.at(-1);
+              const serverPreview = getPreviewFromMessage(lastMessage);
+              const serverCreatedAt = lastMessage?.created_at ?? null;
+              const overrideResult = applyLastMessageOverride(
+                currentPollingId,
+                serverPreview,
+                serverCreatedAt
+              );
+
+              // ✅ OTIMIZAÇÃO: Usar startTransition dentro do requestIdleCallback
+              startTransition(() => {
+                setConversations(prev =>
+                  prev.map(conv => {
+                    if (conv.id !== currentPollingId) return conv;
+
+                    return {
+                      ...conv,
+                      last_message_content: overrideResult.preview,
+                      last_message_at: overrideResult.createdAt,
+                    };
+                  })
+                );
+              });
+            };
+
+            // ✅ OTIMIZAÇÃO: Usar requestIdleCallback se disponível, senão executar normalmente
+            if (typeof requestIdleCallback !== 'undefined') {
+              requestIdleCallback(updateConversations, { timeout: 1000 });
+            } else {
+              // Fallback: usar setTimeout para não bloquear a thread principal
+              setTimeout(updateConversations, 0);
+            }
+          }
+        } catch (pollError) {
+          console.warn('⚠️ ChatContext: Falha no polling de mensagens:', pollError);
+        } finally {
+          // ✅ OTIMIZAÇÃO: Sempre liberar o flag, mesmo em caso de erro
+          isPollingRef.current = false;
+        }
+      }, 3000); // ✅ CORREÇÃO CRÍTICA: Reduzido para 3000ms (3 segundos) para garantir que mensagens do admin apareçam rapidamente
+
+      // ✅ NOVO: Adicionar subscription real-time para mensagens
+      // Limpar subscription anterior se existir
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription anterior removida');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription anterior:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
+
+      // ✅ CORREÇÃO CRÍTICA: Capturar valores no momento da criação para evitar problemas de closure
+      const currentUser = user;
+      const notificationSound = playNotificationSound;
+      const capturedConversationId = conversationId; // Capturar conversationId para usar nos callbacks
+      const capturedIsMessageAlreadyProcessed = isMessageAlreadyProcessed; // Capturar função para usar nos callbacks
+      
+      // Criar nova subscription para a conversa atual
+      console.log('🔌 [ChatContext] Criando subscription real-time para conversa:', capturedConversationId);
+      const messagesChannel = supabase
+        .channel(`messages-${capturedConversationId}-${Date.now()}`) // Nome único para evitar conflitos
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${capturedConversationId}`
+          },
+          (payload) => {
+            try {
+              console.log('🔔 [ChatContext] Nova mensagem recebida via real-time:', payload.new);
+              
+              // ✅ CORREÇÃO: Validar payload antes de processar
+              if (!payload || !payload.new) {
+                console.warn('⚠️ [ChatContext] Payload inválido recebido:', payload);
+                return;
+              }
+              
+              const newMessage = payload.new as Message;
+              
+              // ✅ CORREÇÃO: Validar mensagem antes de processar
+              if (!newMessage || !newMessage.id) {
+                console.warn('⚠️ [ChatContext] Mensagem inválida recebida:', newMessage);
+                return;
+              }
+              
+              // ✅ CORREÇÃO: Verificar se mensagem já foi processada (evita duplicação)
+              if (capturedIsMessageAlreadyProcessed(newMessage.id)) {
+                console.log('⚠️ [ChatContext] Mensagem já processada, ignorando duplicação:', newMessage.id);
+                return;
+              }
+              
+              // ✅ CORREÇÃO: Marcar que real-time está funcionando
+              lastRealtimeMessageRef.current = Date.now();
+              realtimeWorkingRef.current = true;
+              
+              // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
+              const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
+              if (newMessage.conversation_id !== currentConvId) {
+                console.log('ℹ️ [ChatContext] Mensagem recebida de conversa diferente (esperado):', {
+                  receivedConversationId: newMessage.conversation_id,
+                  currentConversationId: currentConvId,
+                  messageId: newMessage.id,
+                  senderId: newMessage.sender_id
+                });
+                return;
+              }
+              
+              console.log('✅ [ChatContext] Mensagem recebida via real-time para conversa correta:', {
+                messageId: newMessage.id,
+                conversationId: newMessage.conversation_id,
+                senderId: newMessage.sender_id,
+                content: newMessage.content?.substring(0, 50)
+              });
+              
+              // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem diretamente ao estado, preservando todas as anteriores
+              startTransition(() => {
+                setMessages((prev) => {
+                  // Filtrar apenas mensagens da conversa atual
+                  const prevFiltered = prev.filter(msg => msg.conversation_id === capturedConversationId);
+                
+                // ✅ CORREÇÃO MELHORADA: Verificar duplicação de forma mais robusta
+                const existsById = prevFiltered.find(msg => msg.id === newMessage.id);
+                
+                if (existsById) {
+                  console.log('⚠️ [ChatContext] Mensagem já existe no estado, atualizando:', newMessage.id);
+                  // Atualizar mensagem existente preservando todas as outras
+                  const updated = prev.map(msg => 
+                    msg.id === newMessage.id ? newMessage : msg
+                  );
+                  return updated;
+                }
+                
+                // ✅ CORREÇÃO MELHORADA: Verificar por conteúdo e timestamp (para mensagens otimistas)
+                const existsByContent = prevFiltered.find(msg => {
+                  const isOptimistic = msg.id.startsWith('temp-') || msg.id.startsWith('tmp-');
+                  if (!isOptimistic) return false;
+                  
+                  const timeDiff = Math.abs(
+                    new Date(msg.created_at).getTime() - 
+                    new Date(newMessage.created_at).getTime()
+                  );
+                  
+                  // Verificar se conteúdo e remetente são iguais e timestamp está dentro de 5 segundos
+                  return (
+                    msg.content === newMessage.content &&
+                    msg.sender_id === newMessage.sender_id &&
+                    timeDiff < 5000 // 5 segundos de janela
+                  );
+                });
+                
+                if (existsByContent) {
+                  console.log('✅ [ChatContext] Substituindo mensagem otimista por confirmada:', existsByContent.id, '->', newMessage.id);
+                  // Substituir mensagem otimista pela confirmada preservando todas as outras
+                  const updated = prev.map(msg => 
+                    msg.id === existsByContent.id ? newMessage : msg
+                  );
+                  // ✅ CORREÇÃO: Remover duplicatas se houver (caso mensagem confirmada já exista)
+                  const seen = new Set<string>();
+                  return updated.filter(msg => {
+                    if (seen.has(msg.id)) return false;
+                    seen.add(msg.id);
+                    return true;
+                  });
+                }
+                
+                // ✅ CORREÇÃO: Adicionar nova mensagem preservando todas as anteriores
+                const updatedMessages = [...prevFiltered, newMessage];
+                
+                // Ordenar por timestamp (cronológico)
+                updatedMessages.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+                
+                // Preservar mensagens de outras conversas no estado
+                const otherConversationMessages = prev.filter(msg => msg.conversation_id !== capturedConversationId);
+                return [...otherConversationMessages, ...updatedMessages];
+              });
+            });
+            
+            // ✅ CORREÇÃO: Tocar som se não for do usuário atual - verificar se função existe
+            if (newMessage.sender_id !== currentUser?.uid && !document.hidden) {
+              try {
+                if (notificationSound && typeof notificationSound === 'function') {
+                  notificationSound();
+                }
+              } catch (err) {
+                console.warn('⚠️ Erro ao tocar som:', err);
+              }
+            }
+            
+            // ✅ OTIMIZAÇÃO: Atualizar cache com a nova mensagem
+            const cachedData = messagesCacheRef.current.get(capturedConversationId);
+            if (cachedData) {
+              const existingIds = new Set(cachedData.messages.map(m => m.id));
+              if (!existingIds.has(newMessage.id)) {
+                const updatedMessages = [...cachedData.messages, newMessage];
+                // Ordenar por timestamp
+                updatedMessages.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+                messagesCacheRef.current.set(capturedConversationId, {
+                  messages: updatedMessages,
+                  timestamp: Date.now()
+                });
+              }
+            }
+            } catch (callbackError) {
+              console.error('❌ [ChatContext] Erro ao processar mensagem do real-time:', callbackError);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${capturedConversationId}`
+          },
+          (payload) => {
+            console.log('🔄 [ChatContext] Mensagem atualizada via real-time:', payload.new);
+            const updatedMessage = payload.new as Message;
+            
+            // ✅ CORREÇÃO: Verificar se a mensagem é da conversa atual
+            const currentConvId = pollingConversationIdRef.current || currentConversation?.id;
+            if (updatedMessage.conversation_id !== currentConvId) {
+              return;
+            }
+            
+            // ✅ CORREÇÃO CRÍTICA: Atualizar mensagem existente preservando TODAS as mensagens
+            startTransition(() => {
+              setMessages((prev) => {
+                const filtered = prev.filter((msg) => msg.conversation_id === capturedConversationId);
+                const exists = filtered.find((msg) => msg.id === updatedMessage.id);
+                
+                let updated: Message[];
+                if (exists) {
+                  // Atualizar mensagem existente preservando todas as outras
+                  updated = filtered.map((msg) => 
+                    msg.id === updatedMessage.id ? updatedMessage : msg
+                  );
+                } else {
+                  // Adicionar nova mensagem se não existir
+                  updated = [...filtered, updatedMessage].sort((a, b) => 
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  );
+                }
+                
+                // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+                const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== capturedConversationId);
+                return [...otherConversationMessages, ...updated];
+              });
+            });
+          }
+        )
+        .subscribe((status, err) => {
+          try {
+            // ✅ CORREÇÃO: Verificar se status é válido antes de usar
+            if (status && typeof status === 'string') {
+              subscriptionStatusRef.current = status as 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED' | null;
+            } else {
+              subscriptionStatusRef.current = null;
+            }
+            
+            if (err) {
+              console.error('❌ [ChatContext] Erro na subscription de mensagens:', err);
+              // ✅ Forçar polling quando há erro
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+              return;
+            }
+            
+            if (status === 'SUBSCRIBED') {
+              console.log('✅ [ChatContext] Subscription de mensagens ativa para conversa:', capturedConversationId);
+              realtimeWorkingRef.current = true;
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.error('❌ [ChatContext] Erro no canal de mensagens, forçando polling:', status);
+              // ✅ Forçar polling quando canal falha
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+              
+              // ✅ Tentar reconectar após 5 segundos
+              setTimeout(() => {
+                try {
+                  const currentConvId = pollingConversationIdRef.current;
+                  if (currentConvId === capturedConversationId && messagesSubscriptionRef.current) {
+                    console.log('🔄 [ChatContext] Tentando reconectar subscription...');
+                    supabase.removeChannel(messagesSubscriptionRef.current);
+                    messagesSubscriptionRef.current = null;
+                    // A subscription será recriada no próximo ciclo do useEffect
+                  }
+                } catch (e) {
+                  console.warn('⚠️ [ChatContext] Erro ao remover canal antigo:', e);
+                }
+              }, 5000);
+            } else if (status === 'CLOSED') {
+              console.warn('⚠️ [ChatContext] Canal fechado, forçando polling:', status);
+              // ✅ Forçar polling quando canal fecha
+              lastRealtimeMessageRef.current = 0;
+              realtimeWorkingRef.current = false;
+            } else if (status) {
+              console.log('📡 [ChatContext] Status da subscription:', status);
+            }
+          } catch (callbackError) {
+            console.error('❌ [ChatContext] Erro no callback do subscribe:', callbackError);
+          }
+        });
+
+      messagesSubscriptionRef.current = messagesChannel;
+
+    } catch (err) {
+      setError('Erro ao carregar conversa');
+      console.error('Erro ao carregar conversa:', err);
+    } finally {
+      setIsLoadingMessages(false);
+      isLoadingRef.current = false;
+    }
+  }, [conversations]); // 🚀 CORREÇÃO: Apenas conversations como dependência
+
+  const queueMessageNotification = useCallback(async (conversation: Conversation, messageContent: string) => {
+    try {
+      if (!user?.uid) return;
+
+      const preview = messageContent.trim().slice(0, 200);
+      if (!preview) return;
+
+      const { data: participants, error: participantsError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversation.id);
+
+      if (participantsError) {
+        console.error('⚠️ Erro ao buscar participantes para notificação de mensagem:', participantsError);
+        return;
+      }
+
+      const recipientIds =
+        participants
+          ?.map(p => p.user_id)
+          .filter((id): id is string => !!id && id !== user.uid) || [];
+
+      if (recipientIds.length === 0) return;
+
+      const senderName =
+        user.profile?.full_name ||
+        user.profile?.company_name ||
+        user.email?.split('@')[0] ||
+        'Usuário Veredicta';
+
+      const recentThreshold = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const notifications: any[] = [];
+
+      for (const recipientId of recipientIds) {
+        const { data: existing } = await supabase
+          .from('app_2d8133c678_notifications')
+          .select('id')
+          .eq('user_id', recipientId)
+          .eq('type', 'chat') // ✅ CORREÇÃO: usar 'chat' ao invés de 'message' (não está na lista permitida)
+          .eq('related_entity_id', conversation.id)
+          .gt('created_at', recentThreshold)
+          .maybeSingle();
+
+        if (existing) continue;
+
+        notifications.push({
+          user_id: recipientId,
+          type: 'chat', // ✅ CORREÇÃO: usar 'chat' ao invés de 'message' (não está na lista permitida)
+          title: `Nova mensagem de ${senderName}`,
+          body: preview, // ✅ CORREÇÃO: usar 'body' ao invés de 'message'
+          priority: 'normal',
+          is_read: false,
+          related_entity_type: 'conversation',
+          related_entity_id: conversation.id
+          // ✅ CORREÇÃO: Removido campo 'meta' que não existe na tabela
+        });
+      }
+
+      if (notifications.length > 0) {
+        const { error: insertError } = await supabase
+          .from('app_2d8133c678_notifications')
+          .insert(notifications);
+        
+        if (insertError) {
+          // ✅ CORREÇÃO: Não bloquear o envio de mensagem se a notificação falhar
+          console.error('⚠️ Erro ao criar notificações de mensagem:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Erro ao enfileirar notificação de nova mensagem:', error);
+    }
+  }, [user]);
+
+  // Enviar mensagem
+  const sendSingleMessage = useCallback(
+    async ({
+      content,
+      messageType = 'text',
+      fileData,
+      replyToId,
+    }: {
+      content: string;
+      messageType?: 'text' | 'file' | 'image' | 'system' | 'audio';
+      fileData?: { url: string; name: string; size: number };
+      replyToId?: string;
+    }) => {
+      if (!currentConversation || !user) {
+        console.error('❌ sendMessage: Faltando dados obrigatórios:', {
+          currentConversation: currentConversation?.id,
+          user: user?.uid,
+        });
+        return;
+      }
+
+      // ✅ CORREÇÃO: Verificar debounce para evitar envio duplicado da mesma mensagem
+      const messageKey = `${content}-${fileData?.name || ''}-${Date.now()}`;
+      const messageHash = messageKey.split('-').slice(0, -1).join('-'); // Remove timestamp para comparação
+      
+      // Limpar timeout anterior se existir
+      if (messageSendTimeoutRef.current) {
+        clearTimeout(messageSendTimeoutRef.current);
+        messageSendTimeoutRef.current = null;
+      }
+      
+      // Verificar se é mensagem duplicada (mesmo conteúdo em menos de 1 segundo)
+      if (lastMessageSentRef.current === messageHash) {
+        console.log('⚠️ [ChatContext] Mensagem duplicada detectada, ignorando envio');
+        return;
+      }
+      
+      // Marcar mensagem como sendo enviada
+      lastMessageSentRef.current = messageHash;
+
+      const now = new Date().toISOString();
+      const optimisticId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const optimisticMessage: Message = {
+        id: optimisticId,
+        conversation_id: currentConversation.id,
+        sender_id: user.uid,
+        content,
+        message_type: messageType,
+        file_url: fileData?.url,
+        file_name: fileData?.name,
+        file_size: fileData?.size,
+        reply_to_id: replyToId,
+        status: 'sending',
+        created_at: now,
+        updated_at: now,
+        sender: {
+          id: user.uid,
+          name: user.email || 'Usuário',
+          avatar_url: undefined,
+          role: 'client',
+        },
+      };
+
+      // ✅ CORREÇÃO CRÍTICA: Adicionar mensagem otimista preservando TODAS as mensagens anteriores
+      // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
+      startTransition(() => {
+        setMessages((prev) => {
+          // Filtrar mensagens da conversa atual
+          const prevFiltered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+          
+          // ✅ CORREÇÃO: Adicionar nova mensagem otimista preservando todas as anteriores
+          const updatedConversationMessages = [...prevFiltered, optimisticMessage];
+          
+          // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+          const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+          
+          // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+          return [...otherConversationMessages, ...updatedConversationMessages];
+        });
+      });
+      lastMessageIdRef.current = optimisticMessage.id;
+      localPreviewOverridesRef.current.set(currentConversation.id, {
+        preview: getPreviewFromMessage(optimisticMessage),
+        createdAt: optimisticMessage.created_at,
+      });
+
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === currentConversation.id
+              ? {
+                  ...conv,
+                  last_message_content: getPreviewFromMessage(optimisticMessage),
+                  last_message_at: optimisticMessage.created_at,
+                }
+              : conv
+          )
+        );
+      });
+
+      let messageId: string | null = null;
+
+      try {
+        messageId = await ChatService.sendMessage(
+          currentConversation.id,
+          content,
+          messageType,
+          fileData,
+          replyToId
+        );
+
+        // 🚀 OTIMIZAÇÃO: Invalidar cache de conversas quando nova mensagem é enviada
+        conversationsCacheRef.current = null;
+        lastConversationsLoadRef.current = 0;
+        
+        // ✅ CORREÇÃO CRÍTICA: Atualizar mensagem confirmada preservando TODAS as mensagens anteriores
+        // ✅ OTIMIZAÇÃO: Usar startTransition para não bloquear UI
+        startTransition(() => {
+          setMessages((prev) => {
+            // Filtrar mensagens da conversa atual
+            const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+            const hasMessage = filtered.some(msg => msg.id === optimisticMessage.id);
+            
+            let updated: Message[];
+            if (hasMessage) {
+              // ✅ CORREÇÃO: Atualizar mensagem otimista preservando todas as outras
+              updated = filtered.map((msg) =>
+                msg.id === optimisticMessage.id
+                  ? { ...msg, id: messageId as string, status: 'sent' as const }
+                  : msg
+              );
+            } else {
+              // Se a mensagem otimista não está mais no estado, adicionar a mensagem confirmada
+              updated = [...filtered, { ...optimisticMessage, id: messageId as string, status: 'sent' as const }];
+            }
+            
+            // ✅ OTIMIZAÇÃO: Atualizar cache com as mensagens atualizadas
+            messagesCacheRef.current.set(currentConversation.id, {
+              messages: updated,
+              timestamp: Date.now()
+            });
+            
+            // ✅ CORREÇÃO CRÍTICA: Preservar mensagens de outras conversas
+            const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+            
+            // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+            return [...otherConversationMessages, ...updated];
+          });
+        });
+      lastMessageIdRef.current = messageId as string;
+      localPreviewOverridesRef.current.set(currentConversation.id, {
+          preview: getPreviewFromMessage({
+            ...optimisticMessage,
+            id: messageId,
+            status: 'sent',
+          }),
+          createdAt: optimisticMessage.created_at,
+        });
+        // ✅ OTIMIZAÇÃO: Usar startTransition para atualizações não críticas
+        startTransition(() => {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversation.id
+                ? {
+                    ...conv,
+                    last_message_content: getPreviewFromMessage({
+                      ...optimisticMessage,
+                      id: messageId,
+                      status: 'sent',
+                    }),
+                  last_message_at: optimisticMessage.created_at,
+                }
+              : conv
+          )
+        );
+      });
+
+      if (currentConversation.type === 'support') {
+          setTimeout(async () => {
+            try {
+              await SupportBotService.simulateSupportResponse(
+                currentConversation.id,
+                content,
+                messageType === 'image' || messageType === 'audio' ? 'file' : messageType
+              );
+            } catch (error) {
+              console.error('Erro na resposta automática do suporte:', error);
+            }
+          }, 1500);
+        }
+
+        // ✅ CORREÇÃO: Executar operações pesadas em background (não bloqueiam o envio)
+        queueMessageNotification(currentConversation, content).catch(err => {
+          console.error('Erro ao criar notificação:', err);
+        });
+        
+        // ✅ CORREÇÃO: Limpar ref de debounce após envio bem-sucedido
+        lastMessageSentRef.current = '';
+        
+        // Não recarregar mensagens após envio - a mensagem já foi adicionada otimisticamente
+        // e será atualizada via real-time quando chegar do servidor
+        // loadConversationMessages(currentConversation.id).catch(err => {
+        //   console.error('Erro ao recarregar mensagens:', err);
+        // });
+      } catch (err) {
+        console.error('Erro ao enviar mensagem:', err);
+        
+        // ✅ CORREÇÃO CRÍTICA: Marcar mensagem como falha preservando TODAS as mensagens anteriores
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages((prev) => {
+            // Filtrar mensagens da conversa atual
+            const filtered = prev.filter((msg) => msg.conversation_id === currentConversation.id);
+            
+            // Atualizar mensagem otimista para status 'failed'
+            const updated = filtered.map((msg): Message => {
+              if (msg.id === optimisticMessage.id) {
+                return {
+                  ...msg,
+                  status: 'failed' as const,
+                  content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                } as Message;
+              }
+              return msg;
+            });
+            
+            // ✅ CORREÇÃO: Preservar mensagens de outras conversas
+            const otherConversationMessages = prev.filter((msg) => msg.conversation_id !== currentConversation.id);
+            
+            // ✅ CORREÇÃO: Retornar TODAS as mensagens (outras conversas + conversa atual atualizada)
+            return [...otherConversationMessages, ...updated];
+          });
+        });
+        localPreviewOverridesRef.current.set(currentConversation.id, {
+          preview: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+          createdAt: optimisticMessage.created_at,
+        });
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversation.id
+                ? {
+                    ...conv,
+                    last_message_content: `${content || '📎 Arquivo anexado'} ❌ (Falha no envio)`,
+                    last_message_at: optimisticMessage.created_at,
+                  }
+                : conv
+            )
+          );
+        });
+        setError('Erro ao enviar mensagem');
+        console.error('Erro ao enviar mensagem:', err);
+        messageId = null;
+        
+        // ✅ CORREÇÃO: Limpar ref de debounce em caso de erro
+        lastMessageSentRef.current = '';
+        
+        // ✅ CORREÇÃO: Lançar erro para que o ChatWindow possa tratá-lo e remover a mensagem otimista
+        throw err;
+      }
+    },
+    [currentConversation, queueMessageNotification, user, loadConversationMessages, getPreviewFromMessage]
+  );
+
+  const sendMessage = useCallback(
+    async (
+      content: string,
+      messageType: 'text' | 'file' | 'image' | 'system' | 'audio' = 'text',
+      fileData?: { url: string; name: string; size: number },
+      replyToId?: string,
+      files?: File[]
+    ) => {
+      if (!currentConversation || !user) {
+        console.error('❌ sendMessage: Faltando dados obrigatórios:', {
+          currentConversation: currentConversation?.id,
+          user: user?.uid,
+        });
+        return;
+      }
+
+      const trimmedContent = (content || '').trim();
+      const hasFiles = Array.isArray(files) && files.length > 0;
+
+      if (hasFiles) {
+        let captionUsed = false;
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index];
+          try {
+            const { fileData: uploadedFile, messageType: derivedType } = await uploadAttachmentToStorage(
+              currentConversation.id,
+              file
+            );
+
+            const messageContent =
+              trimmedContent && !captionUsed ? trimmedContent : '📎 Arquivo anexado';
+
+            await sendSingleMessage({
+              content: messageContent,
+              messageType: derivedType,
+              fileData: uploadedFile,
+              replyToId,
+            });
+
+            captionUsed = captionUsed || Boolean(trimmedContent);
+          } catch (uploadError) {
+            console.error('❌ Falha ao enviar anexo:', uploadError);
+            setError('Erro ao enviar anexo');
+          }
+        }
+        return;
+      }
+
+      if (!trimmedContent && !fileData) {
+        console.warn('⚠️ sendMessage: mensagem vazia e sem anexo');
+        return;
+      }
+
+      await sendSingleMessage({
+        content: trimmedContent || content || '📎 Arquivo anexado',
+        messageType,
+        fileData,
+        replyToId,
+      });
+    },
+    [currentConversation?.id, sendSingleMessage, uploadAttachmentToStorage, user]
+  );
+
+  // Marcar como lida
+  const markAsRead = useCallback(async (messageId: string) => {
+    try {
+      await ChatService.markMessageAsRead(messageId);
+      
+      // Atualizar contador de não lidas
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => 
+          prev.map(c => 
+            c.id === currentConversation?.id 
+              ? { ...c, unread_count: Math.max(0, c.unread_count - 1) }
+              : c
+          )
+        );
+      });
+      
+    } catch (err) {
+      console.error('Erro ao marcar mensagem como lida:', err);
+    }
+  }, [currentConversation]);
+
+  // Criar conversa
+  const createConversation = useCallback(async (
+    title: string,
+    type: 'support' | 'petition' | 'general',
+    participants: { userId: string; role: 'client' | 'writer' | 'admin' | 'support' }[],
+    metadata?: { petitionId?: string; [key: string]: any }
+  ): Promise<string> => {
+    try {
+      const conversationId = await ChatService.createConversation(title, type, participants, metadata);
+      
+      // 🚀 CORREÇÃO: Adicionar nova conversa à lista local
+      const normalizedMetadata: Record<string, any> = { ...(metadata || {}) };
+      if (!normalizedMetadata.petitionId && normalizedMetadata.petition_id) {
+        normalizedMetadata.petitionId = normalizedMetadata.petition_id;
+      }
+      if (!normalizedMetadata.petitionDisplayId) {
+        normalizedMetadata.petitionDisplayId =
+          normalizedMetadata.petitionDisplayId ??
+          normalizedMetadata.petition_display_id ??
+          normalizedMetadata.display_id ??
+          normalizedMetadata.petitionId ??
+          (normalizedMetadata.petition as any)?.id;
+      }
+
+      const newConversation = {
+        id: conversationId,
+        title,
+        type,
+        status: 'active' as const,
+        priority: 'normal' as const,
+        created_by: user?.uid || 'unknown',
+        petition_id: normalizedMetadata?.petitionId || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_message_content: null,
+        last_message_at: null,
+        unread_count: 0,
+        metadata: normalizedMetadata,
+        conversation_participants: participants.map(p => ({
+          user_id: p.userId,
+          role: p.role,
+          user_name: p.role === 'support' ? 'Suporte Veredicta' : 'Usuário',
+          user: null
+        }))
+      };
+      
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => [newConversation, ...prev]);
+      });
+      
+      return conversationId;
+    } catch (err) {
+      setError('Erro ao criar conversa');
+      console.error('Erro ao criar conversa:', err);
+      throw err;
+    }
+  }, []); // 🔧 CORREÇÃO: Removido loadConversations das dependências
+
+  // Atualizar status da conversa
+  const updateConversationStatus = useCallback(async (
+    status: 'active' | 'closed' | 'archived',
+    priority?: 'low' | 'normal' | 'high' | 'urgent',
+    assignedTo?: string
+  ) => {
+    if (!currentConversation) return;
+    
+    try {
+      await ChatService.updateConversationStatus(
+        currentConversation.id,
+        status,
+        priority,
+        assignedTo
+      );
+      
+      // Atualizar estado local
+      setCurrentConversation(prev => 
+        prev ? { ...prev, status, priority: priority || prev.priority, assigned_to: assignedTo || prev.assigned_to } : null
+      );
+      
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => 
+          prev.map(c => 
+            c.id === currentConversation.id 
+              ? { ...c, status, priority: priority || c.priority, assigned_to: assignedTo || c.assigned_to }
+              : c
+          )
+        );
+      });
+      
+    } catch (err) {
+      setError('Erro ao atualizar conversa');
+      console.error('Erro ao atualizar conversa:', err);
+    }
+  }, [currentConversation]);
+
+  // Obter contagem de não lidas
+  const getUnreadCount = useCallback(() => {
+    return conversations.reduce((total, c) => total + c.unread_count, 0);
+  }, [conversations]);
+
+  // Obter contagem de não lidas de uma conversa específica
+  const getConversationUnreadCount = useCallback((conversationId: string) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    return conversation?.unread_count || 0;
+  }, [conversations]);
+
+  // Excluir conversa - VERSÃO SIMPLIFICADA
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    try {
+      setIsLoading(true);
+      await ChatService.deleteConversation(conversationId);
+      
+      // Remover da lista local
+      // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+      startTransition(() => {
+        setConversations(prev => prev.filter(c => c.id !== conversationId));
+      });
+      
+      // Se era a conversa atual, limpar
+      if (currentConversation?.id === conversationId) {
+        setCurrentConversation(null);
+        // ✅ OTIMIZAÇÃO: Usar startTransition para evitar violation
+        startTransition(() => {
+          setMessages([]);
+        });
+        lastMessageIdRef.current = null;
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro ao excluir conversa:', error);
+      setError('Erro ao excluir conversa');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentConversation?.id]);
+
+  // Sistema de Permissões - NOVA FUNCIONALIDADE
+  const getAvailableUsers = useCallback(async () => {
+    try {
+      if (!user) {
+        return [];
+      }
+
+      const availableUsers = await ConversationPermissionService.getAvailableUsersForCommunication(
+        user.uid,
+        'client' // TODO: Obter role real do usuário
+      );
+
+      return availableUsers;
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar usuários disponíveis:', error);
+      return [];
+    }
+  }, [user]);
+
+  const createConversationWithUser = useCallback(async (
+    targetUserId: string,
+    title: string,
+    message?: string
+  ) => {
+    try {
+      setIsLoading(true);
+
+      const conversationId = await ChatService.createConversationWithPermission(
+        targetUserId,
+        title,
+        message
+      );
+
+      // Recarregar conversas para incluir a nova
+      await loadConversations();
+
+      return conversationId;
+
+    } catch (error) {
+      console.error('❌ Erro ao criar conversa com usuário:', error);
+      setError('Erro ao criar conversa');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadConversations]);
+
+  // Arquivar conversa - VERSÃO SIMPLIFICADA
+  const archiveConversation = useCallback(async (conversationId: string) => {
+    try {
+      setIsLoading(true);
+      
+      await ChatService.archiveConversation(conversationId);
+      
+      // Atualizar status na lista local
+      setConversations(prev => {
+        return prev.map(c => 
+          c.id === conversationId 
+            ? { ...c, status: 'archived' as const }
+            : c
+        );
+      });
+    } catch (error) {
+      console.error('❌ ChatContext: Erro ao arquivar conversa:', error);
+      setError('Erro ao arquivar conversa');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Efeitos - Carregar conversas quando usuário estiver pronto
+  useEffect(() => {
+    if (user && !loading && isProviderReady) {
+      loadConversations();
+    }
+  }, [user, loading, isProviderReady]); // 🔧 CORREÇÃO: Removido loadConversations das dependências para evitar loop
+
+  useEffect(() => {
+    const shouldPoll = !!user && !loading && isProviderReady;
+
+    if (!shouldPoll) {
+      if (conversationPollingRef.current) {
+        clearInterval(conversationPollingRef.current);
+        conversationPollingRef.current = null;
+      }
+      return;
+    }
+
+    // ✅ OTIMIZAÇÃO: Polling de conversas com proteção contra execuções simultâneas
+    const pollConversations = async () => {
+      // ✅ OTIMIZAÇÃO: Prevenir execuções simultâneas
+      if (isPollingConversationsRef.current) {
+        return;
+      }
+
+      try {
+        isPollingConversationsRef.current = true;
+        
+        // ✅ OTIMIZAÇÃO: Usar requestIdleCallback para não bloquear a thread principal
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(() => {
+            fetchConversations({ silent: true })
+              .catch((pollError) => {
+                console.warn('⚠️ ChatContext: Falha ao atualizar conversas via polling:', pollError);
+              })
+              .finally(() => {
+                isPollingConversationsRef.current = false;
+              });
+          }, { timeout: 2000 });
+        } else {
+          // Fallback: usar setTimeout para não bloquear
+          setTimeout(() => {
+            fetchConversations({ silent: true })
+              .catch((pollError) => {
+                console.warn('⚠️ ChatContext: Falha ao atualizar conversas via polling:', pollError);
+              })
+              .finally(() => {
+                isPollingConversationsRef.current = false;
+              });
+          }, 0);
+        }
+      } catch (err) {
+        isPollingConversationsRef.current = false;
+        console.warn('⚠️ ChatContext: Erro no polling de conversas:', err);
+      }
+    };
+
+    pollConversations();
+
+    if (conversationPollingRef.current) {
+      clearInterval(conversationPollingRef.current);
+    }
+
+    // ✅ OTIMIZAÇÃO: Aumentar intervalo de 5s para 10s para reduzir carga
+    conversationPollingRef.current = setInterval(pollConversations, 10000);
+
+    return () => {
+      if (conversationPollingRef.current) {
+        clearInterval(conversationPollingRef.current);
+        conversationPollingRef.current = null;
+        isPollingConversationsRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
+      }
+    };
+  }, [user, loading, isProviderReady, fetchConversations]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (messagePollingRef.current) {
+        clearInterval(messagePollingRef.current);
+        messagePollingRef.current = null;
+        isPollingRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
+      }
+      if (conversationPollingRef.current) {
+        clearInterval(conversationPollingRef.current);
+        conversationPollingRef.current = null;
+        isPollingConversationsRef.current = false; // ✅ OTIMIZAÇÃO: Resetar flag ao limpar polling
+      }
+      // ✅ NOVO: Limpar subscription real-time
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription de mensagens removida no cleanup');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription no cleanup:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
+      
+      // ✅ CORREÇÃO: Limpar timeouts de deduplicação e debounce
+      processedMessageIdsTimeoutRef.current.forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      processedMessageIdsTimeoutRef.current.clear();
+      processedMessageIdsRef.current.clear();
+      
+      if (messageSendTimeoutRef.current) {
+        clearTimeout(messageSendTimeoutRef.current);
+        messageSendTimeoutRef.current = null;
+      }
+      
+      // ✅ CORREÇÃO: Limpar intervalo de verificação de saúde da subscription
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // ✅ NOVO: Cleanup da subscription quando a conversa muda
+  useEffect(() => {
+    return () => {
+      if (messagesSubscriptionRef.current) {
+        try {
+          supabase.removeChannel(messagesSubscriptionRef.current);
+          console.log('🧹 [ChatContext] Subscription removida ao mudar conversa');
+        } catch (err) {
+          console.warn('⚠️ [ChatContext] Erro ao remover subscription:', err);
+        }
+        messagesSubscriptionRef.current = null;
+      }
+    };
+  }, [currentConversation?.id]);
+
+  // ✅ NOVO: Verificação periódica de saúde da subscription
+  useEffect(() => {
+    if (!currentConversation?.id) {
+      // Limpar intervalo se não há conversa ativa
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
+      }
+      return;
+    }
+    
+    // Limpar intervalo anterior
+    if (subscriptionCheckIntervalRef.current) {
+      clearInterval(subscriptionCheckIntervalRef.current);
+    }
+    
+    // Verificar saúde da subscription a cada 30 segundos
+    subscriptionCheckIntervalRef.current = setInterval(() => {
+      const currentConvId = pollingConversationIdRef.current;
+      
+      // Só verificar se ainda é a conversa atual
+      if (currentConvId !== currentConversation?.id) {
+        return;
+      }
+      
+      const status = subscriptionStatusRef.current;
+      const timeSinceLastMessage = Date.now() - lastRealtimeMessageRef.current;
+      
+      // ✅ CORREÇÃO: Reduzir tempo para detectar problemas mais rapidamente (15 segundos)
+      if ((status !== 'SUBSCRIBED' && status !== null) || 
+          (timeSinceLastMessage > 15000 && lastRealtimeMessageRef.current > 0)) {
+        console.warn('⚠️ [ChatContext] Subscription pode ter parado de funcionar, forçando polling...', {
+          status,
+          timeSinceLastMessage,
+          lastRealtimeMessage: lastRealtimeMessageRef.current,
+          conversationId: currentConvId
+        });
+        
+        // Forçar polling ativo
+        lastRealtimeMessageRef.current = 0;
+        realtimeWorkingRef.current = false;
+        
+        // Tentar reconectar subscription se não estiver SUBSCRIBED
+        if (messagesSubscriptionRef.current && status !== 'SUBSCRIBED') {
+          try {
+            supabase.removeChannel(messagesSubscriptionRef.current);
+            messagesSubscriptionRef.current = null;
+            console.log('🔄 [ChatContext] Canal removido para reconexão...');
+          } catch (e) {
+            console.warn('⚠️ [ChatContext] Erro ao remover canal:', e);
+          }
+        }
+      }
+    }, 30000); // Verificar a cada 30 segundos
+    
+    return () => {
+      if (subscriptionCheckIntervalRef.current) {
+        clearInterval(subscriptionCheckIntervalRef.current);
+        subscriptionCheckIntervalRef.current = null;
+      }
+    };
+  }, [currentConversation?.id]);
+
+  const value: ChatContextType = {
+    // Estado
+    conversations,
+    currentConversation,
+    messages,
+    participants,
+    isLoading,
+    isLoadingMessages,
+    isLoadingOlderMessages,
+    error,
+    hasMoreOlderMessages,
+    
+    // Ações
+    loadConversations,
+    loadConversationMessages,
+    loadOlderMessages,
+    selectConversation,
+    sendMessage,
+    markAsRead,
+    createConversation,
+    updateConversationStatus,
+    
+    // Utilitários
+    getUnreadCount,
+    getConversationUnreadCount,
+    
+    // Exclusão
+    deleteConversation,
+    archiveConversation,
+    
+    // Sistema de Permissões - NOVA FUNCIONALIDADE
+    getAvailableUsers,
+    createConversationWithUser,
+  };
+
+
+  // 🚀 CORREÇÃO: Usar valor padrão apenas se não houver usuário, mas sempre fornecer conversas se disponíveis
+  const contextValue = !user ? defaultContextValue : value;
+
+  return (
+    <ChatContext.Provider value={contextValue}>
+      {children}
+    </ChatContext.Provider>
+  );
+};

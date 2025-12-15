@@ -1,0 +1,112 @@
+sequenceDiagram
+    participant C as Client
+    participant API as Next.js API
+    participant Auth as Supabase Auth
+    participant DB as PostgreSQL
+    participant Storage as Supabase Storage
+    participant Edge as Edge Functions
+    participant Payment as Payment Gateway
+    participant Email as Email Service
+
+    %% User Authentication Flow
+    Note over C,Email: Authentication Flow
+    C->>API: POST /auth/login {email, password}
+    API->>Auth: signInWithPassword()
+    Auth->>DB: validate credentials
+    DB-->>Auth: user data + role
+    Auth-->>API: session + user info
+    API-->>C: JWT token + user profile
+
+    %% Client Creates Petition Flow
+    Note over C,Email: Create Petition Flow
+    C->>API: POST /petitions {title, description, type}
+    API->>Auth: verify JWT token
+    Auth-->>API: user session valid
+    API->>DB: INSERT INTO petitions
+    DB-->>API: petition created with ID
+    API->>Storage: upload files to bucket
+    Storage-->>API: file URLs
+    API->>DB: UPDATE petition SET file_paths
+    API->>Edge: trigger-auto-assignment function
+    Edge->>DB: SELECT writers by specialization
+    DB-->>Edge: available writers list
+    Edge->>DB: UPDATE petition SET writer_id
+    Edge->>Email: send notification to writer
+    Email-->>Edge: email sent
+    API-->>C: petition created successfully
+
+    %% Writer Accepts Petition Flow
+    Note over C,Email: Writer Accepts Petition
+    C->>API: PUT /petitions/{id}/accept
+    API->>Auth: verify writer role
+    Auth-->>API: writer authorized
+    API->>DB: UPDATE petition SET status='IN_PROGRESS'
+    API->>DB: INSERT INTO audit_logs
+    API->>Edge: trigger-status-notification
+    Edge->>Email: notify client petition accepted
+    API-->>C: petition accepted
+
+    %% Payment Processing Flow
+    Note over C,Email: Payment Processing
+    C->>API: POST /payments/subscribe {plan_id}
+    API->>Auth: verify client role
+    API->>Payment: create payment intent
+    Payment-->>API: payment intent created
+    API->>DB: INSERT INTO payments
+    C->>Payment: complete payment
+    Payment->>API: webhook payment_completed
+    API->>DB: UPDATE payment SET status='COMPLETED'
+    API->>DB: UPDATE client_profile SET credits
+    API->>DB: INSERT INTO credit_transactions
+    API->>Email: send payment confirmation
+    API-->>C: payment successful
+
+    %% Admin Dashboard Flow
+    Note over C,Email: Admin Dashboard Access
+    C->>API: GET /admin/dashboard
+    API->>Auth: verify admin role
+    Auth-->>API: admin authorized
+    API->>DB: SELECT metrics data
+    DB-->>API: aggregated statistics
+    API->>DB: SELECT recent activities
+    DB-->>API: recent logs
+    API-->>C: dashboard data
+
+    %% File Upload Flow
+    Note over C,Storage: File Upload Process
+    C->>API: POST /files/upload
+    API->>Auth: verify user permissions
+    API->>Storage: upload to bucket with RLS
+    Storage->>Storage: encrypt file
+    Storage-->>API: secure file URL
+    API->>DB: INSERT INTO petition_files
+    API-->>C: file uploaded successfully
+
+    %% Real-time Updates Flow
+    Note over C,DB: Real-time Subscriptions
+    C->>API: subscribe to petition updates
+    API->>DB: LISTEN for petition changes
+    DB->>API: NOTIFY petition status changed
+    API->>C: push real-time update
+    
+    %% Writer Completes Petition Flow
+    Note over C,Email: Complete Petition
+    C->>API: PUT /petitions/{id}/complete
+    API->>Storage: upload final petition file
+    API->>DB: UPDATE petition SET status='COMPLETED'
+    API->>DB: INSERT INTO payments (writer payment)
+    API->>Edge: trigger-completion-workflow
+    Edge->>Email: notify client petition ready
+    Edge->>DB: UPDATE writer stats
+    API-->>C: petition completed
+
+    %% Credit System Flow
+    Note over C,DB: Credit Management
+    C->>API: POST /credits/purchase {amount}
+    API->>Payment: process credit purchase
+    Payment-->>API: payment confirmed
+    API->>DB: BEGIN TRANSACTION
+    API->>DB: UPDATE client_profile SET credits
+    API->>DB: INSERT INTO credit_transactions
+    API->>DB: COMMIT TRANSACTION
+    API-->>C: credits added successfully

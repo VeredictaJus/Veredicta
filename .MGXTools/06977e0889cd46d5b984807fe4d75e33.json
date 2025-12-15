@@ -1,0 +1,40 @@
+{
+    "tabs": {
+        "00": {
+            "tab_id": "00",
+            "cwd": "/workspace/veredicta",
+            "observer": {
+                "block": "Terminal",
+                "uuid": "c0221eb6-0f9b-4fa0-a5c4-532cc14dd469",
+                "enable_llm_stream": false,
+                "callback_url": ""
+            },
+            "shell_command": [
+                "bash"
+            ],
+            "command_terminator": "\n"
+        },
+        "01": {
+            "tab_id": "01",
+            "cwd": "/workspace/veredicta",
+            "observer": {
+                "block": "Terminal",
+                "uuid": "2affe17f-1d0e-43f7-a5a2-8c5625354791",
+                "enable_llm_stream": false,
+                "callback_url": ""
+            },
+            "shell_command": [
+                "bash"
+            ],
+            "command_terminator": "\n"
+        }
+    },
+    "current_tab_id": "01",
+    "forbidden_commands": {
+        "run preview": "Use Deployer.deploy_to_public instead.",
+        "serve ": "Use Deployer.deploy_to_public instead.",
+        "python -m http.server": "Use python -u -m http.server port_number instead."
+    },
+    "timeout": 300.0,
+    "working_dir": "/workspace"
+}

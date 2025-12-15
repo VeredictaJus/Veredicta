@@ -1,0 +1,15 @@
+# CONFIGURAÇÕES DO STRIPE - COPIE PARA SEU ARQUIVO .env
+
+# Stripe Configuration - Planos Reais
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+VITE_STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+VITE_STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+
+# Stripe Price IDs - Planos Principais
+VITE_STRIPE_PRICE_START=price_1SIx0xLnE1r0oPJFSN2Kt41R
+VITE_STRIPE_PRICE_PRO=price_1SIx2XLnE1r0oPJFljNvb1t3
+VITE_STRIPE_PRICE_ELITE=price_1SIx3jLnE1r0oPJFw8pvuZnO
+
+# Supabase Configuration
+VITE_SUPABASE_URL='https://dmsodonmkffyvbuxtxec.supabase.co'
+VITE_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtc29kb25ta2ZmeXZidXh0eGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM0NDk1NDYsImV4cCI6MjA2OTAyNTU0Nn0.lI6m8L9IPkV_2YZonS94Z71VGoHj5lym9VN2L-t3sXg'

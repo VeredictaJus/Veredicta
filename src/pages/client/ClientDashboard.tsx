@@ -54,6 +54,7 @@ export default function ClientDashboard() {
   const [petitions, setPetitions] = useState<Petition[]>([]);
   const [selected, setSelected] = useState<Petition | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showNewClientWelcomeModal, setShowNewClientWelcomeModal] = useState(false);
   const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
   const navigate = useNavigate();
 
@@ -253,6 +254,48 @@ export default function ClientDashboard() {
       console.error('Erro ao verificar bônus FREE:', error);
     }
   };
+
+  // ✅ Modal de boas-vindas para novos clientes
+  useEffect(() => {
+    if (!user?.uid || user.role !== 'client') return;
+
+    async function checkNewClientWelcome() {
+      try {
+        // Verificar se o cliente já viu o modal de boas-vindas antes
+        const welcomeModalKey = `welcome_modal_seen_${user.uid}`;
+        const hasSeenWelcome = localStorage.getItem(welcomeModalKey);
+        
+        if (hasSeenWelcome) {
+          return; // Cliente já viu o modal
+        }
+
+        // Verificar se o cliente tem plano FREE ativo (plano gratuito para novos clientes)
+        const { supabase: supabaseClient } = await getClient();
+        const { data: subscription, error: subError } = await supabaseClient
+          .from('user_subscriptions')
+          .select('plan_code, status, created_at')
+          .eq('user_id', user.uid)
+          .eq('status', 'active')
+          .eq('plan_code', 'free')
+          .maybeSingle();
+
+        if (subError) {
+          console.error('Erro ao verificar plano:', subError);
+          return;
+        }
+
+        // Se tem plano FREE e não viu o modal, mostrar
+        // Mostrar para qualquer cliente novo com plano FREE que ainda não viu o modal
+        if (subscription) {
+          setShowNewClientWelcomeModal(true);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar modal de boas-vindas:', error);
+      }
+    }
+
+    checkNewClientWelcome();
+  }, [user?.uid, user?.role, getClient]);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -753,6 +796,72 @@ export default function ClientDashboard() {
             >
               Começar a usar
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Boas-vindas para Novos Clientes */}
+      <Dialog open={showNewClientWelcomeModal} onOpenChange={(open) => {
+        setShowNewClientWelcomeModal(open);
+        // Salvar no localStorage que o cliente já viu o modal
+        if (!open && user?.uid) {
+          localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-orange-100 mb-4">
+              <span className="text-3xl">🎉</span>
+            </div>
+            
+            <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">
+              Bem-vindo à Veredicta!
+            </DialogTitle>
+            
+            <DialogDescription className="text-gray-600 mb-4">
+              Estamos muito felizes em tê-lo conosco!
+            </DialogDescription>
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-orange-800 mb-2 flex items-center justify-center gap-2">
+                <span className="text-xl">🎁</span>
+                Presente de Boas-vindas
+              </h4>
+              <p className="text-sm text-orange-700 leading-relaxed">
+                Você ganhou <strong className="text-orange-900">1 petição gratuita</strong> para utilizar!
+                <br />
+                <br />
+                Use quando quiser para criar sua primeira petição jurídica. 
+                Esta é nossa forma de agradecer por escolher a Veredicta.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => {
+                  setShowNewClientWelcomeModal(false);
+                  if (user?.uid) {
+                    localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+                  }
+                  navigate('/client/petitions/new');
+                }} 
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                Criar Minha Primeira Petição
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowNewClientWelcomeModal(false);
+                  if (user?.uid) {
+                    localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+                  }
+                }} 
+                variant="outline"
+                className="w-full"
+              >
+                Explorar Plataforma
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

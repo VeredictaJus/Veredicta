@@ -218,9 +218,10 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
       })
       setUser(authUser)
       
-      // ✅ CORREÇÃO: Aguardar um pouco para garantir que o estado seja sincronizado
+      // ✅ CORREÇÃO: Aguardar um pouco mais para garantir que o estado seja sincronizado
       // antes de navegar, evitando race condition com ProtectedRoute
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Aumentado de 300ms para 500ms para dar mais tempo de sincronização
+      await new Promise(resolve => setTimeout(resolve, 500))
       
       // Para redatores, não redirecionar automaticamente - deixar o componente decidir
       if (data.role !== 'writer') {

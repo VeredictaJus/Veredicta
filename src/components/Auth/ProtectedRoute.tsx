@@ -16,6 +16,7 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   const location = useLocation()
   const [writerStatus, setWriterStatus] = useState<'pending' | 'approved' | 'rejected' | 'loading'>('loading')
   const [roleValidating, setRoleValidating] = useState(false)
+  const [initialCheckDone, setInitialCheckDone] = useState(false)
 
   // ✅ CORREÇÃO CRÍTICA: Todos os hooks devem ser chamados ANTES de qualquer return condicional
   // Verificar status de aprovação do redator
@@ -68,6 +69,21 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     checkWriterStatus()
   }, [user])
 
+  // ✅ CORREÇÃO: Inicializar roleValidating quando user aparece pela primeira vez
+  // Isso evita flash de "não autorizado" no primeiro render após cadastro
+  useEffect(() => {
+    if (user && !initialCheckDone) {
+      const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+      if (!isValidRole) {
+        setRoleValidating(true)
+      }
+      setInitialCheckDone(true)
+    } else if (!user) {
+      setInitialCheckDone(false)
+      setRoleValidating(false)
+    }
+  }, [user, initialCheckDone])
+
   // ✅ CORREÇÃO: Verificar se o role está válido - se não estiver, aguardar mais um pouco
   // Isso evita redirecionamento para "unauthorized" durante a sincronização inicial
   useEffect(() => {
@@ -78,15 +94,19 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     
     const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
     
-    if (!isValidRole && !roleValidating) {
-      setRoleValidating(true)
-      // Aguardar até 2 segundos para o role ser sincronizado
+    if (!isValidRole && roleValidating) {
+      // Aguardar até 3 segundos para o role ser sincronizado
       const timeout = setTimeout(() => {
-        setRoleValidating(false)
-      }, 2000)
+        // Verificar novamente se o role já está válido
+        const stillInvalid = !user.role || !['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+        if (stillInvalid) {
+          setRoleValidating(false)
+        }
+      }, 3000)
       
       return () => clearTimeout(timeout)
-    } else if (isValidRole) {
+    } else if (isValidRole && roleValidating) {
+      // Role é válido, desativar validação imediatamente
       setRoleValidating(false)
     }
   }, [user, roleValidating])
@@ -144,6 +164,18 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
 
   // Se houver restrição de papéis, checa autorização
   // ✅ CORREÇÃO: Verificar se user.role existe antes de chamar toLowerCase
+  // ✅ CORREÇÃO: Se roleValidating ainda estiver ativo, não verificar autorização ainda
+  if (roleValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Finalizando carregamento...</p>
+        </div>
+      </div>
+    )
+  }
+  
   const role = (user?.role ? String(user.role).toLowerCase() : 'client') as UserRole
   const isAuthorized =
     !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)

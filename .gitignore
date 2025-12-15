@@ -65,3 +65,53 @@ __pycache__
 *.sw?
 
 .vercel
+
+# Cursor IDE files
+.cursor/
+*.cursor
+
+# System files
+.bash_history
+.config/
+.docker/
+.fontconfig/
+.gitconfig
+.lesshst
+.node_repl_history
+.pjeoffice-pro/
+.shodo/
+.vscode/
+NTUSER.DAT*
+ntuser.dat*
+ntuser.ini
+package-lock.json
+scoop/
+
+# Windows system directories
+3D Objects/
+AppData/
+Contacts/
+Downloads/
+Favorites/
+Games/
+IntelGraphicsProfiles/
+Links/
+Music/
+Saved Games/
+Searches/
+Tracing/
+Valid/
+Videos/
+Ambiente de Impressão/
+Ambiente de Rede/
+Configurações Locais/
+Cookies/
+Dados de Aplicativos/
+Documents/Meus Vídeos/
+Documents/Minhas Imagens/
+Documents/Minhas Músicas/
+Menu Iniciar/
+Meus Documentos/
+Modelos/
+Recent/
+SendTo/

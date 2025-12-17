@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Eye, EyeOff, ArrowLeft, Building, Users, FileText, Upload, ChevronDown, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { toast } from 'sonner';
-import logoImage from '@/assets/images/veredicta-logo.png';
+// Usar logo da pasta public para garantir que funcione no deploy
+const logoImage = '/veredicta-logo.png';
 import AnimatedBackground from "@/components/ui/AnimatedBackground";
 import Logo from '@/components/ui/Logo';
 import { VerificationService } from '@/services/verificationService';

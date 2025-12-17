@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Building, Users, Shield } from 'lucide-react';
-import logoImage from '@/assets/images/veredicta-logo.png';
+// Usar logo da pasta public para garantir que funcione no deploy
+const logoImage = '/veredicta-logo.png';
 
 export default function LoginForm() {
   const navigate = useNavigate();

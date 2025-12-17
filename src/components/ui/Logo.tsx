@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-import logoImage from '@/assets/images/veredicta-logo.png';
+// Usar logo da pasta public para garantir que funcione no deploy
+const logoImage = '/veredicta-logo.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';

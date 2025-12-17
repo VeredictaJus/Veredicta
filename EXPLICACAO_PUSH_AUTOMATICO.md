@@ -36,7 +36,7 @@ O arquivo `.git/hooks/post-commit` contém:
 branch=$(git rev-parse --abbrev-ref HEAD)
 
 # 2. Define o token do GitHub
-token="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"
+token="SEU_TOKEN_AQUI"  # Removido por segurança
 
 # 3. Faz push para o GitHub usando o token
 git push https://${token}@github.com/VeredictaJus/Veredicta.git $branch

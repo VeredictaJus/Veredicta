@@ -78,7 +78,7 @@ $statusAfter = git status
 if ($statusAfter -match "Your branch is ahead") {
     Write-Host "Push pode nao ter acontecido automaticamente." -ForegroundColor Yellow
     Write-Host "Fazendo push manual..." -ForegroundColor Yellow
-    $token = "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"
+    $token = "SEU_TOKEN_AQUI"  # Removido por segurança
     git push "https://${token}@github.com/VeredictaJus/Veredicta.git" main
 } else {
     Write-Host "Push realizado automaticamente pelo hook!" -ForegroundColor Green

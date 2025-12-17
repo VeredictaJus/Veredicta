@@ -65,3 +65,70 @@ __pycache__
 *.sw?
 
 .vercel
+
+# Scripts com tokens (não commitar)
+*commit*.ps1
+*push*.ps1
+*PUSH*.bat
+*EXECUTAR*.ps1
+*EXECUTAR*.bat
+*restaurar*.ps1
+*RESTAURAR*.bat
+*corrigir*.ps1
+*resolver*.ps1
+*configurar*.ps1
+*inicializar*.ps1
+*EXPLICACAO*.md
+*SOLUCAO*.md
+*INSTRUCOES*.md
+*RESTAURAR*.md
+
+# Cursor IDE files
+.cursor/
+*.cursor
+
+# System files
+.bash_history
+.config/
+.docker/
+.fontconfig/
+.gitconfig
+.lesshst
+.node_repl_history
+.pjeoffice-pro/
+.shodo/
+.vscode/
+NTUSER.DAT*
+ntuser.dat*
+ntuser.ini
+package-lock.json
+scoop/
+
+# Windows system directories
+3D Objects/
+AppData/
+Contacts/
+Downloads/
+Favorites/
+Games/
+IntelGraphicsProfiles/
+Links/
+Music/
+Saved Games/
+Searches/
+Tracing/
+Valid/
+Videos/
+Ambiente de Impressão/
+Ambiente de Rede/
+Configurações Locais/
+Cookies/
+Dados de Aplicativos/
+Documents/Meus Vídeos/
+Documents/Minhas Imagens/
+Documents/Minhas Músicas/
+Menu Iniciar/
+Meus Documentos/
+Modelos/
+Recent/
+SendTo/

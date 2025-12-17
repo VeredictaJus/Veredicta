@@ -59,3 +59,5 @@ Write-Host "2. Faça o primeiro commit: git commit -m 'Initial commit'" -Foregro
 Write-Host "3. Faça push: git push -u origin main" -ForegroundColor Cyan
 Write-Host ""
 
+
+

@@ -1,0 +1,15 @@
+========================================
+COPIE E COLE NO POWERSHELL
+(Execute na pasta workspace)
+========================================
+
+git add veredicta/vercel.json veredicta/.npmrc veredicta/SOLUCAO_ERRO_VERCEL.md workspace/.gitignore veredicta/.gitignore
+
+git commit -m "Fix Vercel build configuration and update gitignore"
+
+========================================
+O push acontece AUTOMATICAMENTE!
+========================================
+
+
+

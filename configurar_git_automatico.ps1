@@ -172,3 +172,5 @@ Write-Host "Verifique em: https://github.com/VeredictaJus/Veredicta" -Foreground
 Write-Host ""
 pause
 
+
+

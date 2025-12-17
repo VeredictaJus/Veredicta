@@ -85,3 +85,5 @@ Write-Host '$token = "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"' -ForegroundColo
 Write-Host 'git push https://${token}@github.com/VeredictaJus/Veredicta.git main' -ForegroundColor White
 Write-Host ""
 
+
+

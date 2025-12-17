@@ -1,0 +1,27 @@
+========================================
+COMANDOS PARA COPIAR E COLAR NO POWERSHELL
+========================================
+
+Execute estes comandos UM POR VEZ na pasta workspace:
+
+1. Navegar para workspace:
+cd workspace
+
+2. Adicionar arquivos:
+git add workspace/ veredicta/ *.ps1 *.bat *.md
+
+3. Fazer commit:
+git commit -m "Update - $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+
+4. O push acontece AUTOMATICAMENTE pelo hook!
+
+========================================
+OU TUDO DE UMA VEZ:
+========================================
+
+cd workspace; git add workspace/ veredicta/ *.ps1 *.bat *.md; git commit -m "Update - $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+
+========================================
+
+
+

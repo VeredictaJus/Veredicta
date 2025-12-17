@@ -3,6 +3,7 @@
 # Dependências (serão instaladas pelo Vercel)
 node_modules/
 .pnpm-store/
+pnpm-lock.yaml
 
 # Arquivos de desenvolvimento
 .env.local

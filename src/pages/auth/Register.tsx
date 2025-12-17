@@ -596,6 +596,9 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         `✅ Conta criada com sucesso como ${userType === 'client' ? 'Cliente' : 'Redator'}!`
       );
       
+      // ✅ CORREÇÃO: Marcar tempo de cadastro para evitar flash de "não autorizado"
+      localStorage.setItem('last_registration_time', Date.now().toString())
+      
       // Mostrar modal de aprovação para redatores
       if (userType === 'writer') {
         setShowApprovalModal(true);

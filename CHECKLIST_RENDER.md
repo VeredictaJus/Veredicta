@@ -72,3 +72,5 @@ Copie TODO o conteúdo do arquivo `FIREBASE_PRIVATE_KEY_VALUE.txt` e cole no Ren
 **Importante**: Cole exatamente como está, com os `\n` preservados.
 
 
+
+

@@ -173,3 +173,5 @@ sudo certbot --nginx -d api.veredictajus.com.br
 
 
 
+
+

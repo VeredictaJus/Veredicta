@@ -90,3 +90,5 @@ O frontend já está configurado para tentar o backend primeiro. Quando o backen
 **Resultado:** Apenas 1 email bonito, sem email padrão do Firebase! 🎉
 
 
+
+

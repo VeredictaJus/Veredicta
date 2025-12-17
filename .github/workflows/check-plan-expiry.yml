@@ -12,16 +12,42 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Verify secrets are set
+        run: |
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
+            echo "❌ Error: VITE_SUPABASE_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+            echo "❌ Error: VITE_SUPABASE_ANON_KEY secret is not set"
+            exit 1
+          fi
+          echo "✅ Secrets are configured"
+      
       - name: Call Supabase Edge Function
         run: |
+          SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}"
+          SUPABASE_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}"
+          
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "❌ Error: Supabase credentials are missing"
+            exit 1
+          fi
+          
+          echo "📡 Calling Supabase Edge Function..."
           curl -X POST \
-            ${{ secrets.VITE_SUPABASE_URL }}/functions/v1/check-plan-expiry \
-            -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            "${SUPABASE_URL}/functions/v1/check-plan-expiry" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{}'
-        
-      - name: Log result
-        run: echo "✅ Plan expiry check completed"
+            -d '{}' \
+            -f -s -S
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Plan expiry check completed successfully"
+          else
+            echo "❌ Error calling Supabase Edge Function"
+            exit 1
+          fi
 
 
 

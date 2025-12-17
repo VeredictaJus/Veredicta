@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build
+out
+bin
+obj
 *.local
 
 # Environment variables
@@ -19,15 +23,41 @@ dist-ssr
 .env.development
 .env.production.local
 .env.development.local
-
-# Firebase private key (sensitive)
-FIREBASE_PRIVATE_KEY_VALUE.txt
+env/
+venv/
+ENV/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+*.iml
+.temp/
+*.tmp
+coverage/
+CMakeFiles/
+CMakeCache.txt
+*~
+*.bak
+*.swp
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Build and cache
+.sass-cache/
+.vite_opt_cache/
+test-results/
+*.coverage
+*.lcov
+*.user
+*.code-workspace
+pnpm-lock.yaml
+*.pyc
+__pycache__
+
+# Project specific
 *.suo
 *.ntvs*
 *.njsproj

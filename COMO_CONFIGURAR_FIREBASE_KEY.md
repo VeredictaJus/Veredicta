@@ -63,3 +63,5 @@ Certifique-se de que estas também estão configuradas:
 - `APP_PUBLIC_URL` = `https://www.veredictajus.com.br`
 
 
+
+

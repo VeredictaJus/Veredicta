@@ -29,7 +29,7 @@ WHERE tablename = 'user_settings';
 SELECT 
     schemaname,
     tablename,
-    rowsecurity
+1    rowsecurity
 FROM pg_tables 
 WHERE tablename = 'user_settings' AND schemaname = 'public';
 

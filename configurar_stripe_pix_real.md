@@ -119,3 +119,22 @@ ORDER BY created_at DESC;
 ✅ **Sistema robusto** - Tratamento de erros e expiração  
 
 **Agora você receberá pagamentos PIX reais na sua conta Stripe!** 🚀💰
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

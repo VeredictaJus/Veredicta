@@ -1,4 +1,4 @@
--- ========================================
+ -- ========================================
 -- FORÇAR DESATIVAÇÃO TOTAL DE RLS
 -- ========================================
 
@@ -49,4 +49,10 @@ SELECT
   available_balance
 FROM writer_balance
 WHERE writer_id = 'nUI3YU8WJQgsUvkVsmGkvR8ZN2Q2';
+
+
+
+
+
+
 

@@ -266,6 +266,7 @@ export default function ClientDashboard() {
         const hasSeenWelcome = localStorage.getItem(welcomeModalKey);
         
         if (hasSeenWelcome) {
+<<<<<<< HEAD
           console.log('✅ Cliente já viu o modal de boas-vindas');
           return; // Cliente já viu o modal
         }
@@ -418,6 +419,60 @@ export default function ClientDashboard() {
     }, 2000); // Aumentado de 1 segundo para 2 segundos
 
     return () => clearTimeout(timeout);
+=======
+          return; // Cliente já viu o modal
+        }
+
+        // Verificar se o cliente tem plano FREE ativo (plano gratuito para novos clientes)
+        try {
+          const { supabase: supabaseClient } = await getClient();
+          const { data: subscription, error: subError } = await supabaseClient
+            .from('user_subscriptions')
+            .select('plan_code, status, created_at')
+            .eq('user_id', user.uid)
+            .eq('status', 'active')
+            .eq('plan_code', 'free')
+            .maybeSingle();
+
+          // ✅ CORREÇÃO: Tratar erros 406/400 especificamente
+          if (subError) {
+            // Se for erro de rede/CORS (406/400), ainda tentar mostrar o modal para novos clientes
+            if (subError.status === 406 || subError.status === 400 || subError.code === 'PGRST116') {
+              console.warn('⚠️ Erro de rede ao verificar plano. Mostrando modal de boas-vindas mesmo assim para novos clientes.');
+              // Verificar se é um cliente novo (primeira vez acessando) baseado em localStorage
+              const isNewClient = !localStorage.getItem(`client_created_${user.uid}`);
+              if (isNewClient) {
+                setShowNewClientWelcomeModal(true);
+              }
+              return;
+            }
+            console.error('Erro ao verificar plano:', subError);
+            return;
+          }
+
+          // Se tem plano FREE e não viu o modal, mostrar
+          if (subscription) {
+            setShowNewClientWelcomeModal(true);
+          }
+        } catch (dbError: any) {
+          // ✅ CORREÇÃO: Tratar erros de conexão com banco de dados
+          if (dbError?.status === 406 || dbError?.status === 400) {
+            console.warn('⚠️ Erro de conexão ao verificar plano. Mostrando modal de boas-vindas para novos clientes.');
+            const isNewClient = !localStorage.getItem(`client_created_${user.uid}`);
+            if (isNewClient) {
+              setShowNewClientWelcomeModal(true);
+            }
+          } else {
+            console.error('Erro ao verificar modal de boas-vindas:', dbError);
+          }
+        }
+      } catch (error) {
+        console.error('Erro geral ao verificar modal de boas-vindas:', error);
+      }
+    }
+
+    checkNewClientWelcome();
+>>>>>>> 5a9ee219a7283007b879b5de6f8e14946ce94371
   }, [user?.uid, user?.role, getClient]);
 
   useEffect(() => {
@@ -923,6 +978,7 @@ export default function ClientDashboard() {
         </DialogContent>
       </Dialog>
 
+<<<<<<< HEAD
       {/* Modal de Boas-vindas para Novos Clientes - Aparece apenas na primeira vez */}
       <Dialog 
         open={showNewClientWelcomeModal} 
@@ -985,10 +1041,60 @@ export default function ClientDashboard() {
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
               >
                 <FileText className="mr-2 h-5 w-5" />
+=======
+      {/* Modal de Boas-vindas para Novos Clientes */}
+      <Dialog open={showNewClientWelcomeModal} onOpenChange={(open) => {
+        setShowNewClientWelcomeModal(open);
+        // Salvar no localStorage que o cliente já viu o modal
+        if (!open && user?.uid) {
+          localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-orange-100 mb-4">
+              <span className="text-3xl">🎉</span>
+            </div>
+            
+            <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">
+              Bem-vindo à Veredicta!
+            </DialogTitle>
+            
+            <DialogDescription className="text-gray-600 mb-4">
+              Estamos muito felizes em tê-lo conosco!
+            </DialogDescription>
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-orange-800 mb-2 flex items-center justify-center gap-2">
+                <span className="text-xl">🎁</span>
+                Presente de Boas-vindas
+              </h4>
+              <p className="text-sm text-orange-700 leading-relaxed">
+                Você ganhou <strong className="text-orange-900">1 petição gratuita</strong> para utilizar!
+                <br />
+                <br />
+                Use quando quiser para criar sua primeira petição jurídica. 
+                Esta é nossa forma de agradecer por escolher a Veredicta.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => {
+                  setShowNewClientWelcomeModal(false);
+                  if (user?.uid) {
+                    localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+                  }
+                  navigate('/client/petitions/new');
+                }} 
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+>>>>>>> 5a9ee219a7283007b879b5de6f8e14946ce94371
                 Criar Minha Primeira Petição
               </Button>
               <Button 
                 onClick={() => {
+<<<<<<< HEAD
                   if (user?.uid) {
                     localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
                   }
@@ -1005,6 +1111,19 @@ export default function ClientDashboard() {
             <p className="text-xs text-gray-500 mt-4">
               Esta mensagem aparecerá apenas uma vez. Você pode criar sua petição gratuita quando quiser!
             </p>
+=======
+                  setShowNewClientWelcomeModal(false);
+                  if (user?.uid) {
+                    localStorage.setItem(`welcome_modal_seen_${user.uid}`, 'true');
+                  }
+                }} 
+                variant="outline"
+                className="w-full"
+              >
+                Explorar Plataforma
+              </Button>
+            </div>
+>>>>>>> 5a9ee219a7283007b879b5de6f8e14946ce94371
           </div>
         </DialogContent>
       </Dialog>

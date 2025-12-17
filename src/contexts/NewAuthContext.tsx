@@ -218,22 +218,30 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
       })
       setUser(authUser)
       
-      // ✅ CORREÇÃO: Aguardar um pouco mais para garantir que o estado seja sincronizado
-      // antes de navegar, evitando race condition com ProtectedRoute
-      // Aumentado de 300ms para 500ms para dar mais tempo de sincronização
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // ✅ CORREÇÃO: Aguardar mais tempo para garantir que o estado seja sincronizado
+      // antes de navegar e desativar loading, evitando race condition com ProtectedRoute
+      // Aumentado para 1000ms para dar mais tempo de sincronização completa
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Para redatores, não redirecionar automaticamente - deixar o componente decidir
       if (data.role !== 'writer') {
         navigate(routeForRole(authUser.role), { replace: true })
       }
       
+      // ✅ CORREÇÃO ADICIONAL: Aguardar mais um pouco antes de desativar loading
+      // Isso garante que o ProtectedRoute tenha tempo de verificar o usuário antes do loading ser false
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no registro:', error)
       throw error
     } finally {
-      setLoading(false)
+      // ✅ CORREÇÃO: Aguardar um pouco mais antes de desativar loading
+      // Isso evita que o ProtectedRoute veja loading=false antes do usuário estar completamente sincronizado
+      setTimeout(() => {
+        setLoading(false)
+      }, 300)
     }
   }
 

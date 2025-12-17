@@ -28,7 +28,7 @@ BEGIN
     SELECT firebase_uid
     FROM profiles_v2
     WHERE role = 'admin'
-      AND is_active = true
+    -- ✅ CORREÇÃO: Removido is_active pois não existe na tabela profiles_v2
   LOOP
     -- Criar notificação para cada admin
     INSERT INTO app_2d8133c678_notifications (
@@ -74,7 +74,8 @@ BEGIN
   -- Só notificar se for um novo perfil de redator (INSERT)
   IF TG_OP = 'INSERT' AND NEW.role = 'writer' THEN
     -- Buscar nome e email do redator
-    writer_name := COALESCE(NEW.full_name, NEW.name, 'Redator');
+    -- ✅ CORREÇÃO: Removido NEW.name pois não existe na tabela profiles_v2
+    writer_name := COALESCE(NEW.full_name, 'Redator');
     writer_email := COALESCE(NEW.email, '');
     
     -- Notificar todos os admins
@@ -238,7 +239,8 @@ BEGIN
       p.title, 
       p.display_id, 
       p.client_name,
-      COALESCE(w.full_name, w.name, 'Redator') as writer_name
+      -- ✅ CORREÇÃO: Removido w.name pois não existe na tabela profiles_v2
+      COALESCE(w.full_name, 'Redator') as writer_name
     INTO petition_title, petition_display_id, client_name, writer_name
     FROM petitions p
     LEFT JOIN profiles_v2 w ON w.firebase_uid = p.assigned_writer_id
@@ -317,13 +319,14 @@ BEGIN
       SELECT 
         wb.writer_id,
         wb.available_balance,
-        COALESCE(p.full_name, p.name, 'Redator') as writer_name,
+        -- ✅ CORREÇÃO: Removido p.name pois não existe na tabela profiles_v2
+        COALESCE(p.full_name, 'Redator') as writer_name,
         p.email as writer_email
       FROM writer_balance wb
       JOIN profiles_v2 p ON p.firebase_uid = wb.writer_id
       WHERE wb.available_balance > 0
         AND p.role = 'writer'
-        AND p.is_active = true
+        -- ✅ CORREÇÃO: Removido p.is_active pois não existe na tabela profiles_v2
         AND NOT EXISTS (
           -- Verificar se enviou nota fiscal do mês anterior
           SELECT 1

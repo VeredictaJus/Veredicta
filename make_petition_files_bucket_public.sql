@@ -53,3 +53,4 @@ FROM pg_policies
 WHERE tablename = 'objects'
   AND policyname LIKE '%petition_files%';
 
+

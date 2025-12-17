@@ -66,6 +66,23 @@ __pycache__
 
 .vercel
 
+# Scripts com tokens (não commitar)
+*commit*.ps1
+*push*.ps1
+*PUSH*.bat
+*EXECUTAR*.ps1
+*EXECUTAR*.bat
+*restaurar*.ps1
+*RESTAURAR*.bat
+*corrigir*.ps1
+*resolver*.ps1
+*configurar*.ps1
+*inicializar*.ps1
+*EXPLICACAO*.md
+*SOLUCAO*.md
+*INSTRUCOES*.md
+*RESTAURAR*.md
+
 # Cursor IDE files
 .cursor/
 *.cursor

@@ -199,3 +199,5 @@ Este arquivo é um script shell (bash) que o Git executa automaticamente.
 
 É como ter um assistente que sempre faz o push para você! 🤖
 
+
+

@@ -23,3 +23,5 @@ cd workspace; git add workspace/ veredicta/ *.ps1 *.bat *.md; git commit -m "Upd
 
 ========================================
 
+
+

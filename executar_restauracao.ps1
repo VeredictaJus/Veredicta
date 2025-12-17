@@ -89,3 +89,5 @@ Write-Host "=== Restauração Concluída ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Verifique no GitHub: https://github.com/VeredictaJus/Veredicta" -ForegroundColor Cyan
 
+
+

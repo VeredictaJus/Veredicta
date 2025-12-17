@@ -135,3 +135,5 @@ Write-Host "Agora, sempre que você fizer commit, o push acontecerá automaticam
 Write-Host ""
 pause
 
+
+

@@ -71,3 +71,5 @@ git commit -m "Teste push automático"
 
 Agora você tem o mesmo comportamento de antes: **commit = push automático!**
 
+
+

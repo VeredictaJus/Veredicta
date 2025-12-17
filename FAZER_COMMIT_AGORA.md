@@ -51,3 +51,5 @@ O arquivo `FIREBASE_PRIVATE_KEY_VALUE.txt` está agora no `.gitignore`, então:
 3. Verifique no GitHub: https://github.com/VeredictaJus/Veredicta
 4. Seu código estará lá! 🎉
 
+
+

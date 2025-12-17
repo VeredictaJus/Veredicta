@@ -94,3 +94,5 @@ Mas normalmente, só o commit já é suficiente! O push acontece automaticamente
 
 Apenas faça commit normalmente e o push acontece sozinho! 🚀
 
+
+

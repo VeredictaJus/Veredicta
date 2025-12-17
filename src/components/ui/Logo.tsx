@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-// Usar logo da pasta public para garantir que funcione no deploy
-const logoImage = '/veredicta-logo.png';
+// Logo do Supabase Storage
+const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';

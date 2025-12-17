@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Eye, EyeOff, ArrowLeft, Building, Users, FileText, Upload, ChevronDown, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { toast } from 'sonner';
-// Usar logo da pasta public para garantir que funcione no deploy
-const logoImage = '/veredicta-logo.png';
+// Logo do Supabase Storage
+const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 import AnimatedBackground from "@/components/ui/AnimatedBackground";
 import Logo from '@/components/ui/Logo';
 import { VerificationService } from '@/services/verificationService';

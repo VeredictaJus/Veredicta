@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Building, Users, Shield } from 'lucide-react';
-// Usar logo da pasta public para garantir que funcione no deploy
-const logoImage = '/veredicta-logo.png';
+// Logo do Supabase Storage
+const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 
 export default function LoginForm() {
   const navigate = useNavigate();

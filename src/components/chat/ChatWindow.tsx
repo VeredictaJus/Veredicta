@@ -1695,9 +1695,9 @@ export default function ChatWindow({ conversationId, onClose }: ChatWindowProps)
     return `Usuário ${participant.user_id.slice(0, 8)}`;
   };
 
-  // URL fixa para avatar do admin/suporte
+  // URL fixa para avatar do admin/suporte (logo do Supabase Storage)
   const getAdminAvatarUrl = () => {
-    return '/veredicta-logo.png';
+    return 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
   };
 
   // Verificar se é admin/suporte

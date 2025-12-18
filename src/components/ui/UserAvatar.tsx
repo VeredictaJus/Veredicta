@@ -32,8 +32,9 @@ export function UserAvatar({ size = 'md', className = '' }: UserAvatarProps) {
                   user?.email?.includes('@veredictajus.com') || 
                   user?.email?.includes('contato@veredictajus.com');
   
-  // Se for admin, usar logo fixo da Veredicta
-  const finalAvatarUrl = isAdmin ? '/veredicta-logo.png' : avatarUrl;
+  // Se for admin, usar logo fixo da Veredicta do Supabase Storage
+  const logoUrl = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
+  const finalAvatarUrl = isAdmin ? logoUrl : avatarUrl;
 
 
   const getInitials = () => {

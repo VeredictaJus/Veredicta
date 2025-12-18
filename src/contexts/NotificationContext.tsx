@@ -140,7 +140,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                   new Notification(n.title ?? 'Atualização', {
                     body: n.body ?? '',
                     tag: n.id, // evita duplicadas
-                    icon: '/veredicta-logo.png' // Adicionar ícone se disponível
+                    icon: 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png' // Logo do Supabase Storage
                   });
                 } catch (err) {
                   console.warn('⚠️ Erro ao criar notificação desktop:', err);

@@ -210,9 +210,9 @@ export default function FloatingChatModal() {
 
   const totalUnreadCount = displayConversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
 
-  // URL fixa para avatar do admin/suporte
+  // URL fixa para avatar do admin/suporte (logo do Supabase Storage)
   const getAdminAvatarUrl = React.useCallback(() => {
-    return '/veredicta-logo.png';
+    return 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
   }, []);
   
   // Obter avatar da conversa

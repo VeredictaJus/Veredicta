@@ -469,10 +469,9 @@ export default function MultiAdminChatManager({
     }
   };
 
-  // URL fixa para avatar do admin/suporte
+  // URL fixa para avatar do admin/suporte (logo do Supabase Storage)
   const getAdminAvatarUrl = () => {
-    // Usar logo da Veredicta como avatar fixo para admins
-    return '/veredicta-logo.png';
+    return 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
   };
 
   return (

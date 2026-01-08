@@ -259,39 +259,57 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   // ✅ CORREÇÃO ADICIONAL: Aguardar um pouco mais se acabamos de fazer cadastro para evitar race condition
   const role = (user?.role ? String(user.role).toLowerCase() : 'client') as UserRole
   
-  // ✅ CORREÇÃO CRÍTICA: Se acabamos de fazer cadastro, aguardar até que o role seja válido
-  // e corresponda aos allowedRoles antes de verificar autorização
-  // Isso evita completamente o flash de "não autorizado" durante a sincronização pós-cadastro
-  if (isRecentlyRegistered) {
+  // ✅ CORREÇÃO CRÍTICA: Se acabamos de fazer cadastro, NUNCA verificar autorização
+  // Sempre aguardar a sincronização completa do role antes de qualquer verificação
+  const finalCheckRecentlyRegistered = checkIfRecentlyRegistered()
+  
+  // Se acabou de fazer cadastro recentemente, sempre mostrar loading e aguardar
+  if (finalCheckRecentlyRegistered || justRegistered) {
+    // Aguardar até que o role seja válido e corresponda aos allowedRoles
     const roleIsValid = role && ['client', 'writer', 'admin'].includes(role)
-    const roleMatches = !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)
     
-    // Se o role não está válido ou não corresponde, aguardar mais
-    if (!roleIsValid || !roleMatches) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center" role="status" aria-live="polite">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
-            <p className="mt-4 text-gray-600">Finalizando sincronização do perfil...</p>
+    // Se não há allowedRoles definido, apenas aguardar o role ser válido
+    if (!allowedRoles || allowedRoles.length === 0) {
+      if (!roleIsValid) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center" role="status" aria-live="polite">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+              <p className="mt-4 text-gray-600">Finalizando sincronização do perfil...</p>
+            </div>
           </div>
-        </div>
-      )
+        )
+      }
+    } else {
+      // Se há allowedRoles, verificar se o role corresponde
+      const roleMatches = allowedRoles.includes(role)
+      
+      // Se o role não está válido ou não corresponde, aguardar mais
+      if (!roleIsValid || !roleMatches) {
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center" role="status" aria-live="polite">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+              <p className="mt-4 text-gray-600">Finalizando sincronização do perfil...</p>
+            </div>
+          </div>
+        )
+      }
     }
   }
   
+  // Só verificar autorização se NÃO acabou de fazer cadastro
   const isAuthorized =
     !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)
 
   // ✅ CORREÇÃO CRÍTICA: Nunca redirecionar para /unauthorized durante os primeiros 15 segundos após cadastro
   // Isso previne completamente o flash de "não autorizado"
-  // Verificar novamente aqui para garantir que não há race condition
-  const finalCheckRecentlyRegistered = checkIfRecentlyRegistered()
-  
   if (!isAuthorized && !finalCheckRecentlyRegistered && !justRegistered) {
     return <Navigate to="/unauthorized" replace />
   }
   
   // Se não autorizado mas acabamos de cadastrar, mostrar loading em vez de redirecionar
+  // (Esta verificação deve ser redundante agora, mas mantida por segurança)
   if (!isAuthorized && (finalCheckRecentlyRegistered || justRegistered)) {
     return (
       <div className="min-h-screen flex items-center justify-center">

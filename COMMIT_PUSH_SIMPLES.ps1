@@ -30,3 +30,4 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "✅ Pronto!" -ForegroundColor Green
 
+

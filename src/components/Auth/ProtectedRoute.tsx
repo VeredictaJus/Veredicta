@@ -32,7 +32,14 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
           setJustRegistered(false)
           localStorage.removeItem('last_registration_time')
         }, 10000)
+      } else {
+        // Se passou mais de 10 segundos, remover o timestamp e garantir que justRegistered seja false
+        localStorage.removeItem('last_registration_time')
+        setJustRegistered(false)
       }
+    } else {
+      // Se não há registro no localStorage, garantir que justRegistered seja false
+      setJustRegistered(false)
     }
   }, [])
 
@@ -107,20 +114,35 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
       // Verificar se acabamos de fazer um cadastro (usuário existe mas pode estar sincronizando)
       const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
       
+      // ✅ CORREÇÃO: Só setar justRegistered se realmente acabou de fazer cadastro (verificar localStorage)
+      const registrationTime = localStorage.getItem('last_registration_time')
+      const isRecentlyRegistered = registrationTime && (Date.now() - parseInt(registrationTime, 10) < 10000)
+      
       if (!isValidRole) {
         // Role não está válido ainda - pode ser sincronização pós-cadastro
         setRoleValidating(true)
-        setJustRegistered(true)
-      } else {
-        // Role está válido, mas aguardar um pouco para garantir sincronização completa
-        // ✅ CORREÇÃO: Aumentar tempo de espera para 3 segundos para garantir sincronização completa
-        setJustRegistered(true)
-        const timeout = setTimeout(() => {
+        // Só marcar como justRegistered se realmente acabou de fazer cadastro
+        if (isRecentlyRegistered) {
+          setJustRegistered(true)
+        } else {
           setJustRegistered(false)
-        }, 3000)
-        return () => clearTimeout(timeout)
+        }
+      } else {
+        // Role está válido
+        // ✅ CORREÇÃO: Só mostrar "Finalizando cadastro" se realmente acabou de fazer cadastro
+        if (isRecentlyRegistered) {
+          setJustRegistered(true)
+          const timeout = setTimeout(() => {
+            setJustRegistered(false)
+          }, 3000)
+          setInitialCheckDone(true)
+          return () => clearTimeout(timeout)
+        } else {
+          // Se não acabou de fazer cadastro, não mostrar a mensagem
+          setJustRegistered(false)
+          setInitialCheckDone(true)
+        }
       }
-      setInitialCheckDone(true)
     } else if (!user) {
       setInitialCheckDone(false)
       setRoleValidating(false)

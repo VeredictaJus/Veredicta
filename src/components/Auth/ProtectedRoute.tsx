@@ -19,29 +19,48 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   const [initialCheckDone, setInitialCheckDone] = useState(false)
   const [justRegistered, setJustRegistered] = useState(false)
 
-  // ✅ CORREÇÃO CRÍTICA: Detectar cadastro recente via localStorage
-  useEffect(() => {
-    // Verificar se acabamos de fazer um cadastro (dentro dos últimos 10 segundos)
+  // ✅ Função auxiliar para verificar se acabou de fazer cadastro
+  const checkIfRecentlyRegistered = (): boolean => {
     const registrationTime = localStorage.getItem('last_registration_time')
-    if (registrationTime) {
-      const timeDiff = Date.now() - parseInt(registrationTime, 10)
-      if (timeDiff < 10000) { // 10 segundos
+    if (!registrationTime) return false
+    const timeDiff = Date.now() - parseInt(registrationTime, 10)
+    return timeDiff < 15000 // Aumentado para 15 segundos para dar mais margem
+  }
+
+  // ✅ CORREÇÃO CRÍTICA: Detectar cadastro recente via localStorage
+  // Verificar tanto na montagem quanto quando o user muda
+  useEffect(() => {
+    const checkRegistration = () => {
+      const isRecentlyRegistered = checkIfRecentlyRegistered()
+      if (isRecentlyRegistered) {
         setJustRegistered(true)
-        // Remover após 10 segundos
-        setTimeout(() => {
-          setJustRegistered(false)
-          localStorage.removeItem('last_registration_time')
-        }, 10000)
+        // Remover após 15 segundos
+        const registrationTime = localStorage.getItem('last_registration_time')
+        if (registrationTime) {
+          const timeDiff = Date.now() - parseInt(registrationTime, 10)
+          const remainingTime = 15000 - timeDiff
+          if (remainingTime > 0) {
+            setTimeout(() => {
+              setJustRegistered(false)
+              localStorage.removeItem('last_registration_time')
+            }, remainingTime)
+          } else {
+            localStorage.removeItem('last_registration_time')
+            setJustRegistered(false)
+          }
+        }
       } else {
-        // Se passou mais de 10 segundos, remover o timestamp e garantir que justRegistered seja false
-        localStorage.removeItem('last_registration_time')
         setJustRegistered(false)
+        // Limpar se passou o tempo
+        const registrationTime = localStorage.getItem('last_registration_time')
+        if (registrationTime) {
+          localStorage.removeItem('last_registration_time')
+        }
       }
-    } else {
-      // Se não há registro no localStorage, garantir que justRegistered seja false
-      setJustRegistered(false)
     }
-  }, [])
+    
+    checkRegistration()
+  }, [user]) // ✅ CORREÇÃO: Verificar também quando user muda
 
   // ✅ CORREÇÃO CRÍTICA: Todos os hooks devem ser chamados ANTES de qualquer return condicional
   // Verificar status de aprovação do redator
@@ -113,19 +132,14 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     if (user && !initialCheckDone) {
       // Verificar se acabamos de fazer um cadastro (usuário existe mas pode estar sincronizando)
       const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
-      
-      // ✅ CORREÇÃO: Só setar justRegistered se realmente acabou de fazer cadastro (verificar localStorage)
-      const registrationTime = localStorage.getItem('last_registration_time')
-      const isRecentlyRegistered = registrationTime && (Date.now() - parseInt(registrationTime, 10) < 10000)
+      const isRecentlyRegistered = checkIfRecentlyRegistered()
       
       if (!isValidRole) {
         // Role não está válido ainda - pode ser sincronização pós-cadastro
         setRoleValidating(true)
-        // Só marcar como justRegistered se realmente acabou de fazer cadastro
+        // Se acabou de fazer cadastro, marcar como justRegistered
         if (isRecentlyRegistered) {
           setJustRegistered(true)
-        } else {
-          setJustRegistered(false)
         }
       } else {
         // Role está válido
@@ -159,6 +173,7 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     }
     
     const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
+    const isRecentlyRegistered = checkIfRecentlyRegistered()
     
     if (!isValidRole && roleValidating) {
       // Aguardar até 5 segundos para o role ser sincronizado
@@ -174,6 +189,12 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
     } else if (isValidRole && roleValidating) {
       // Role é válido, desativar validação imediatamente
       setRoleValidating(false)
+    }
+    
+    // ✅ CORREÇÃO: Se acabou de fazer cadastro e role ainda não está válido, aguardar mais
+    if (!isValidRole && isRecentlyRegistered) {
+      setJustRegistered(true)
+      setRoleValidating(true)
     }
   }, [user, roleValidating])
 
@@ -199,7 +220,21 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   
   // Se o role não está válido após aguardar, aguardar mais um pouco antes de redirecionar
   const isValidRole = user.role && ['client', 'writer', 'admin'].includes(String(user.role).toLowerCase())
-  if (!isValidRole) {
+  const isRecentlyRegistered = checkIfRecentlyRegistered()
+  
+  // ✅ CORREÇÃO: Se acabou de fazer cadastro, aguardar mais tempo antes de verificar role
+  if (!isValidRole && isRecentlyRegistered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto" />
+          <p className="mt-4 text-gray-600">Finalizando sincronização...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!isValidRole && !isRecentlyRegistered) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">
@@ -227,12 +262,12 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   // ✅ CORREÇÃO CRÍTICA: Se acabamos de fazer cadastro, aguardar até que o role seja válido
   // e corresponda aos allowedRoles antes de verificar autorização
   // Isso evita completamente o flash de "não autorizado" durante a sincronização pós-cadastro
-  if (justRegistered) {
-    const isValidRole = role && ['client', 'writer', 'admin'].includes(role)
+  if (isRecentlyRegistered) {
+    const roleIsValid = role && ['client', 'writer', 'admin'].includes(role)
     const roleMatches = !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)
     
     // Se o role não está válido ou não corresponde, aguardar mais
-    if (!isValidRole || !roleMatches) {
+    if (!roleIsValid || !roleMatches) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center" role="status" aria-live="polite">
@@ -247,17 +282,17 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
   const isAuthorized =
     !allowedRoles || allowedRoles.length === 0 || allowedRoles.includes(role)
 
-  // ✅ CORREÇÃO CRÍTICA: Nunca redirecionar para /unauthorized durante os primeiros 10 segundos após cadastro
+  // ✅ CORREÇÃO CRÍTICA: Nunca redirecionar para /unauthorized durante os primeiros 15 segundos após cadastro
   // Isso previne completamente o flash de "não autorizado"
-  const registrationTime = localStorage.getItem('last_registration_time')
-  const isRecentlyRegistered = registrationTime && (Date.now() - parseInt(registrationTime, 10) < 10000)
+  // Verificar novamente aqui para garantir que não há race condition
+  const finalCheckRecentlyRegistered = checkIfRecentlyRegistered()
   
-  if (!isAuthorized && !isRecentlyRegistered && !justRegistered) {
+  if (!isAuthorized && !finalCheckRecentlyRegistered && !justRegistered) {
     return <Navigate to="/unauthorized" replace />
   }
   
-  // Se não autorizado mas acabamos de cadastrar, mostrar loading
-  if (!isAuthorized && (isRecentlyRegistered || justRegistered)) {
+  // Se não autorizado mas acabamos de cadastrar, mostrar loading em vez de redirecionar
+  if (!isAuthorized && (finalCheckRecentlyRegistered || justRegistered)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center" role="status" aria-live="polite">

@@ -25,6 +25,7 @@ import {
   Leaf
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentYear } from '@/utils/dateUtils';
 import { toast } from 'sonner';
 
@@ -305,18 +306,21 @@ export default function LandingPage() {
     {
       name: 'Ricardo Almeida',
       role: 'Advogado Trabalhista - Belo Horizonte/MG',
+      avatar: '/avatars/ricardo-almeida.svg',
       content: 'Uso a Veredicta há 8 meses e já solicitei mais de 40 petições. A qualidade é excelente e os prazos sempre cumpridos. Consegui aumentar minha carteira de clientes em 60% sem perder a qualidade do atendimento.',
       rating: 5
     },
     {
       name: 'Patrícia Costa',
       role: 'Sócia - Escritório Costa & Associados',
+      avatar: '/avatars/patricia-costa.svg',
       content: 'Nossa equipe de 5 advogados usa a plataforma regularmente. Economizamos cerca de 15 horas por semana que antes eram gastas na redação de petições. Os clientes elogiam a qualidade técnica e a argumentação jurídica.',
       rating: 5
     },
     {
       name: 'Fernando Rodrigues',
       role: 'Redator Jurídico Especializado',
+      avatar: '/avatars/fernando-rodrigues.svg',
       content: 'Trabalho como redator há 1 ano na plataforma. A flexibilidade de horários me permite conciliar com minha advocacia e ainda tenho uma renda complementar estável. Os valores são justos e o sistema de pagamento é confiável.',
       rating: 5
     }
@@ -668,17 +672,31 @@ export default function LandingPage() {
               <Card key={index} className="shadow-lg">
                 <CardContent className="pt-6">
                   <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                    ))}
+                    <Avatar className="h-12 w-12 mr-3">
+                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                      <AvatarFallback>
+                        {testimonial.name
+                          .split(' ')
+                          .filter(Boolean)
+                          .map((part) => part[0]?.toUpperCase())
+                          .slice(0, 2)
+                          .join('')}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                        ))}
+                      </div>
+                      <p className="font-semibold text-gray-900 leading-tight">{testimonial.name}</p>
+                      <p className="text-sm text-gray-500 leading-tight">{testimonial.role}</p>
+                    </div>
                   </div>
                   <p className="text-gray-600 mb-4 italic">
                     "{testimonial.content}"
                   </p>
-                  <div>
-                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
-                  </div>
                 </CardContent>
               </Card>
             ))}

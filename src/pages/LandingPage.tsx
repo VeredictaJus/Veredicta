@@ -240,7 +240,6 @@ export default function LandingPage() {
         'Entrega em 3-5 dias úteis',
         '1 revisão gratuita',
         'Consulta com redator e chat incluso',
-        'Validade: 7 dias',
         'Confidencialidade garantida (NDA)'
       ]
     },

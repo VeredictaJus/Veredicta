@@ -306,21 +306,21 @@ export default function LandingPage() {
     {
       name: 'Ricardo Almeida',
       role: 'Advogado Trabalhista - Belo Horizonte/MG',
-      avatar: '/avatars/ricardo-almeida.svg',
+      avatar: '/avatars/ricardo-almeida.jpeg',
       content: 'Uso a Veredicta há 8 meses e já solicitei mais de 40 petições. A qualidade é excelente e os prazos sempre cumpridos. Consegui aumentar minha carteira de clientes em 60% sem perder a qualidade do atendimento.',
       rating: 5
     },
     {
       name: 'Patrícia Costa',
       role: 'Sócia - Escritório Costa & Associados',
-      avatar: '/avatars/patricia-costa.svg',
+      avatar: '/avatars/patricia-costa.jpeg',
       content: 'Nossa equipe de 5 advogados usa a plataforma regularmente. Economizamos cerca de 15 horas por semana que antes eram gastas na redação de petições. Os clientes elogiam a qualidade técnica e a argumentação jurídica.',
       rating: 5
     },
     {
       name: 'Fernando Rodrigues',
       role: 'Redator Jurídico Especializado',
-      avatar: '/avatars/fernando-rodrigues.svg',
+      avatar: '/avatars/fernando-rodrigues.jpeg',
       content: 'Trabalho como redator há 1 ano na plataforma. A flexibilidade de horários me permite conciliar com minha advocacia e ainda tenho uma renda complementar estável. Os valores são justos e o sistema de pagamento é confiável.',
       rating: 5
     }

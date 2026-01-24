@@ -712,20 +712,20 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-orange-600 text-white">
+      <section className="py-20 bg-gray-50 text-slate-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
               Como Funciona
             </h2>
-            <p className="text-xl text-orange-100">
+            <p className="text-xl text-slate-600">
               Continue no controle. Nós tiramos o peso da operação
             </p>
           </div>
 
           {/* Linha de progresso (desktop) */}
           <div className="relative max-w-6xl mx-auto">
-            <div className="hidden lg:block absolute top-10 left-10 right-10 h-px bg-white/30" />
+            <div className="hidden lg:block absolute top-10 left-10 right-10 h-px bg-slate-200" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {howItWorks.map((step, index) => {
@@ -746,16 +746,16 @@ export default function LandingPage() {
                       </div>
 
                       {/* Card do conteúdo */}
-                      <div className="w-full bg-white/10 border border-white/15 rounded-xl p-5">
-                        <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-                        <p className="text-orange-100 text-sm leading-relaxed">{step.description}</p>
+                      <div className="w-full bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">{step.title}</h3>
+                        <p className="text-slate-600 text-sm leading-relaxed">{step.description}</p>
                       </div>
                     </div>
 
                     {/* Setas (desktop) */}
                     {index < howItWorks.length - 1 && (
                       <div className="hidden lg:block absolute top-10 left-full w-10 -translate-x-5">
-                        <ArrowRight className="h-6 w-6 text-orange-200 mx-auto" />
+                        <ArrowRight className="h-6 w-6 text-orange-400 mx-auto" />
                       </div>
                     )}
                   </div>

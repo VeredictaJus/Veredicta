@@ -17,6 +17,7 @@ import {
   Calculator,
   BookOpen,
   Target,
+  BarChart3,
   Briefcase,
   Home,
   Car,
@@ -92,23 +93,23 @@ export default function LandingPage() {
   const features = [
     {
       icon: FileText,
-      title: 'Petições Profissionais',
-      description: 'Redatores especializados em todas as áreas jurídicas'
+      title: 'Petições profissionais',
+      description: 'Redação jurídica humana, especializada e contextualizada.'
     },
     {
       icon: Shield,
-      title: 'Revisão por Corretor',
-      description: 'Todas as petições passam por correção especializada antes da entrega'
+      title: 'Revisão especializada',
+      description: 'Todas as peças passam por conferência técnica antes da entrega.'
     },
     {
-      icon: Calculator,
-      title: 'Calculadora Trabalhista',
-      description: 'Ferramenta integrada para cálculos trabalhistas precisos'
+      icon: Scale,
+      title: 'Jurisprudência adequada',
+      description: 'Fundamentação alinhada aos entendimentos atuais dos tribunais.'
     },
     {
       icon: Clock,
-      title: 'Entrega Rápida',
-      description: 'Prazos garantidos com qualidade assegurada'
+      title: 'Prazos garantidos',
+      description: 'Produção com SLA e previsibilidade operacional.'
     }
   ];
 
@@ -607,6 +608,105 @@ export default function LandingPage() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* O que você ganha na prática */}
+      <section className="py-20 bg-white text-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-3">
+              <Briefcase className="h-8 w-8 text-orange-600" />
+              O que você ganha na prática
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Tempo</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Reduza horas operacionais por semana</li>
+                <li>Pare de virar noite escrevendo peças</li>
+                <li>Libere o advogado para estratégia, audiência e cliente</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Volume</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Dê conta de picos de demanda sem contratar</li>
+                <li>Escale produção conforme sua necessidade</li>
+                <li>Produção contínua, sem gargalos internos</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <Scale className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Qualidade técnica</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Redação humana e contextualizada</li>
+                <li>Fundamentação jurídica consistente</li>
+                <li>Linguagem adequada ao seu tipo de demanda</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <BookOpen className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Jurisprudência adequada</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Pesquisa e aplicação de jurisprudência relevante ao caso</li>
+                <li>Alinhamento com entendimentos atuais dos tribunais</li>
+                <li>Peças mais robustas e seguras para revisão e protocolo</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Previsibilidade</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Custos claros e controlados</li>
+                <li>Sem risco trabalhista</li>
+                <li>Sem curva de aprendizado ou treinamento</li>
+              </ul>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Por que isso importa?</h3>
+              </div>
+              <ul className="space-y-2 text-gray-700">
+                <li>Eleva o ticket percebido</li>
+                <li>Reduz retrabalho</li>
+                <li>Fala com advogados mais experientes</li>
+                <li>Afasta comparação com IA e modelos prontos</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>

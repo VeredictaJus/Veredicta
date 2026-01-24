@@ -428,6 +428,52 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* O que torna a Veredicta diferente */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                O que torna a Veredicta diferente
+              </h2>
+              <p className="text-lg text-gray-600">
+                Aqui você delega a redação com segurança: contexto, técnica e responsabilidade — com inteligência humana aplicada à rotina jurídica.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">O que não é</h3>
+                <ul className="space-y-3 text-gray-700">
+                  <li className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
+                    <span>Não é IA</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
+                    <span>Não é banco de modelos</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
+                    <span>Não é automação genérica</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-orange-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">O que é</h3>
+                <p className="text-gray-700 mb-4">
+                  Inteligência humana aplicada à rotina jurídica.
+                </p>
+                <p className="text-gray-700">
+                  Na Veredicta, suas peças são redigidas por redatores jurídicos especializados, com contexto, técnica e responsabilidade — algo que ferramentas automáticas ainda não entregam com segurança.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Todas as Áreas do Direito */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">

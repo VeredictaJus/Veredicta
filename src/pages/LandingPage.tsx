@@ -359,13 +359,12 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Petições Jurídicas
-              <span className="block text-orange-200">Para Todas as Áreas</span>
+              Mais peças. Menos horas. Com inteligência humana.
             </h1>
             <p className="text-xl text-orange-100 mb-8 max-w-3xl mx-auto">
-              Redatores especializados em <strong>todas as áreas do Direito</strong> elaboram 
-              suas petições com <strong>correção profissional</strong> e <strong>calculadora trabalhista integrada</strong>. 
-              Do Civil ao Digital, do Trabalhista ao Tributário.
+              Delegue a redação jurídica a especialistas humanos e foque no que só o advogado pode fazer.
+              <br />
+              Produza mais, com qualidade técnica e previsibilidade — sem contratar, sem treinar, sem sobrecarregar seu escritório.
             </p>
             
             {/* Badges de áreas principais */}

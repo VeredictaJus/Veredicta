@@ -432,13 +432,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* O que torna a Veredicta diferente */}
+      {/* Por que a Veredicta não é automação jurídica */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                O que torna a Veredicta diferente
+                Por que a Veredicta não é automação jurídica
               </h2>
               <p className="text-lg text-gray-600">
                 Aqui você delega a redação com segurança: contexto, técnica e responsabilidade — com inteligência humana aplicada à rotina jurídica.
@@ -529,30 +529,30 @@ export default function LandingPage() {
           </div>
           
           {/* Destaque adicional */}
-          <div className="mt-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-8 text-center">
+          <div className="mt-16 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-center border border-orange-500/20 shadow-xl">
             <h3 className="text-2xl font-bold text-white mb-4">
               Não encontrou sua área?
             </h3>
-            <p className="text-orange-100 text-lg mb-6">
+            <p className="text-slate-200 text-lg mb-6">
               Trabalhamos com todas as especialidades jurídicas. Entre em contato e 
               encontraremos o redator especializado para seu caso específico.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <div className="flex items-center text-white">
-                <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
-                  <span className="text-2xl">⚖️</span>
+              <div className="flex items-center text-slate-100">
+                <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
+                  <Globe className="h-6 w-6 text-orange-300" />
                 </div>
                 <span className="font-medium">Cobertura Nacional</span>
               </div>
-              <div className="flex items-center text-white">
-                <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
-                  <span className="text-2xl">🎓</span>
+              <div className="flex items-center text-slate-100">
+                <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
+                  <Users className="h-6 w-6 text-orange-300" />
                 </div>
                 <span className="font-medium">Redatores Especializados</span>
               </div>
-              <div className="flex items-center text-white">
-                <div className="bg-white bg-opacity-20 rounded-full p-2 mr-3">
-                  <span className="text-2xl">⏰</span>
+              <div className="flex items-center text-slate-100">
+                <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
+                  <Clock className="h-6 w-6 text-orange-300" />
                 </div>
                 <span className="font-medium">Prazos Garantidos</span>
               </div>

@@ -411,14 +411,6 @@ export default function LandingPage() {
             
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
               <Button 
-                size="lg" 
-                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
-                onClick={() => navigate('/auth/register')}
-              >
-                Começar Agora
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
                 variant="outline" 
                 size="lg"
                 className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white bg-white"

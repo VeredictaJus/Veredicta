@@ -895,18 +895,20 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-orange-600">
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Pronto para começar?
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">
+            Uma nova forma de escalar a produção jurídica
           </h2>
-          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-            Junte-se à comunidade de advogados e redatores que já transformaram sua prática jurídica
+          <p className="text-xl text-slate-700 mb-8 max-w-2xl mx-auto">
+            Transforme a rotina do seu escritório
+            <br />
+            sem mudar sua forma de advogar
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
             <Button 
               size="lg"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold border-2 border-white"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
               onClick={() => navigate('/auth/register')}
             >
               Cadastrar-se Gratuitamente
@@ -914,7 +916,7 @@ export default function LandingPage() {
             <Button 
               variant="outline"
               size="lg"
-              className="border-white text-white hover:bg-white hover:text-orange-600 bg-transparent"
+              className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white bg-transparent"
               onClick={() => navigate('/auth/login')}
             >
               Já tenho conta

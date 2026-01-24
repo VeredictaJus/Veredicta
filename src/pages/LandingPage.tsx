@@ -397,18 +397,7 @@ export default function LandingPage() {
               </p>
             </div>
             
-            {/* Badges de áreas principais */}
-            <div className="mb-8 flex flex-wrap justify-center gap-3">
-              {['Civil', 'Trabalhista', 'Penal', 'Tributário', 'Família', 'Empresarial', 'Previdenciário', 'Digital'].map((area) => (
-                <span key={area} className="px-4 py-2 bg-white bg-opacity-20 border border-orange-300 rounded-full text-orange-100 font-medium shadow-sm">
-                  {area}
-                </span>
-              ))}
-              <span className="px-4 py-2 bg-orange-500 text-white rounded-full font-medium shadow-sm">
-                +42 outras áreas
-              </span>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
               <Button 
                 size="lg" 
                 className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"

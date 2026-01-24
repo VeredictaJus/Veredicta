@@ -367,6 +367,36 @@ export default function LandingPage() {
               Produza mais, com qualidade técnica e previsibilidade — sem contratar, sem treinar, sem sobrecarregar seu escritório.
             </p>
             
+            {/* Para quem é a Veredicta */}
+            <div className="mt-8 bg-white/10 border border-white/20 rounded-2xl p-6 md:p-8 text-left max-w-3xl mx-auto">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                🎯 Para quem é a Veredicta
+              </h2>
+
+              <p className="text-orange-100 mb-4">
+                A Veredicta é para escritórios que já têm demanda, mas não querem crescer no caos.
+              </p>
+
+              <ul className="space-y-2 mb-4">
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
+                  <span className="text-orange-100">Escritórios pequenos com alto volume</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
+                  <span className="text-orange-100">Escritórios médios e grandes</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
+                  <span className="text-orange-100">Contencioso recorrente e prazos apertados</span>
+                </li>
+              </ul>
+
+              <p className="text-orange-100 font-semibold">
+                Se escrever peças está consumindo o tempo do advogado, você está no lugar certo.
+              </p>
+            </div>
+            
             {/* Badges de áreas principais */}
             <div className="mb-8 flex flex-wrap justify-center gap-3">
               {['Civil', 'Trabalhista', 'Penal', 'Tributário', 'Família', 'Empresarial', 'Previdenciário', 'Digital'].map((area) => (

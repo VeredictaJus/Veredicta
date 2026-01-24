@@ -614,28 +614,46 @@ export default function LandingPage() {
               Processo simples e eficiente em 4 passos
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {howItWorks.map((step, index) => (
-              <div key={index} className="text-center">
-                <div className="relative mb-6">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full text-2xl font-bold mb-4" style={{color: 'hsl(222.2, 84%, 4.9%)'}}>
-                    {step.step}
-                  </div>
-                  {index < howItWorks.length - 1 && (
-                    <div className="hidden lg:block absolute top-10 left-full w-full">
-                      <ArrowRight className="h-6 w-6 text-orange-300 mx-auto" />
+
+          {/* Linha de progresso (desktop) */}
+          <div className="relative max-w-6xl mx-auto">
+            <div className="hidden lg:block absolute top-10 left-10 right-10 h-px bg-white/30" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {howItWorks.map((step, index) => {
+                const Icon = step.icon;
+
+                return (
+                  <div key={index} className="relative">
+                    <div className="flex flex-col items-center text-center">
+                      {/* Ícone + número */}
+                      <div className="relative mb-5">
+                        <div className="flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg">
+                          <Icon className="h-8 w-8 text-orange-600" />
+                        </div>
+
+                        <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-bold border-2 border-orange-600">
+                          {step.step}
+                        </div>
+                      </div>
+
+                      {/* Card do conteúdo */}
+                      <div className="w-full bg-white/10 border border-white/15 rounded-xl p-5">
+                        <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
+                        <p className="text-orange-100 text-sm leading-relaxed">{step.description}</p>
+                      </div>
                     </div>
-                  )}
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-orange-100">
-                  {step.description}
-                </p>
-              </div>
-            ))}
+
+                    {/* Setas (desktop) */}
+                    {index < howItWorks.length - 1 && (
+                      <div className="hidden lg:block absolute top-10 left-full w-10 -translate-x-5">
+                        <ArrowRight className="h-6 w-6 text-orange-200 mx-auto" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>

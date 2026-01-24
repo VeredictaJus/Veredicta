@@ -16,6 +16,7 @@ import {
   Trophy,
   Calculator,
   BookOpen,
+  Target,
   Briefcase,
   Home,
   Car,
@@ -368,33 +369,44 @@ export default function LandingPage() {
             </p>
             
             {/* Para quem é a Veredicta */}
-            <div className="mt-8 bg-white/10 border border-white/20 rounded-2xl p-6 md:p-8 text-left max-w-3xl mx-auto">
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                🎯 Para quem é a Veredicta
+            <div className="mt-10 bg-slate-900/70 border border-white/10 rounded-2xl p-6 md:p-8 text-left max-w-3xl mx-auto shadow-xl backdrop-blur">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 flex items-center gap-2">
+                <Target className="h-6 w-6 text-orange-400" />
+                Para quem é a Veredicta
               </h2>
 
-              <p className="text-orange-100 mb-4">
+              <p className="text-slate-200 mb-4">
                 A Veredicta é para escritórios que já têm demanda, mas não querem crescer no caos.
               </p>
 
-              <ul className="space-y-2 mb-4">
+              <ul className="space-y-2 mb-5">
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
-                  <span className="text-orange-100">Escritórios pequenos com alto volume</span>
+                  <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                  <span className="text-slate-200">Escritórios pequenos com alto volume</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
-                  <span className="text-orange-100">Escritórios médios e grandes</span>
+                  <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                  <span className="text-slate-200">Escritórios médios e grandes</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-300 mt-0.5" />
-                  <span className="text-orange-100">Contencioso recorrente e prazos apertados</span>
+                  <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                  <span className="text-slate-200">Contencioso recorrente e prazos apertados</span>
                 </li>
               </ul>
 
-              <p className="text-orange-100 font-semibold">
-                Se escrever peças está consumindo o tempo do advogado, você está no lugar certo.
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p className="text-white font-semibold">
+                  Se escrever peças está consumindo o tempo do advogado, você está no lugar certo.
+                </p>
+
+                <Button
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-semibold whitespace-nowrap"
+                  onClick={() => navigate('/auth/register')}
+                >
+                  Começar Agora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
             </div>
             
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -457,6 +469,10 @@ export default function LandingPage() {
                     <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
                     <span>Não é automação genérica</span>
                   </li>
+                  <li className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
+                    <span>Não é texto sem responsabilidade jurídica</span>
+                  </li>
                 </ul>
               </div>
 
@@ -466,7 +482,7 @@ export default function LandingPage() {
                   Inteligência humana aplicada à rotina jurídica.
                 </p>
                 <p className="text-gray-700">
-                  Na Veredicta, suas peças são redigidas por redatores jurídicos especializados, com contexto, técnica e responsabilidade — algo que ferramentas automáticas ainda não entregam com segurança.
+                  Na Veredicta, você delega a redação das suas peças a redatores jurídicos especializados, que trabalham com contexto, técnica, responsabilidade e jurisprudência adequada — algo que ferramentas automáticas ainda não entregam com segurança.
                 </p>
               </div>
             </div>
@@ -611,7 +627,7 @@ export default function LandingPage() {
               Como Funciona
             </h2>
             <p className="text-xl text-orange-100">
-              Processo simples e eficiente em 4 passos
+              Continue no controle. Nós tiramos o peso da operação
             </p>
           </div>
 

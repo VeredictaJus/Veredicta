@@ -34,6 +34,8 @@ import { toast } from 'sonner';
 export default function LandingPage() {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
+  const promoVideoUrl =
+    'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/copy_2E0B46BB-B907-4FFA-B7D8-31F3115A343B.mp4';
 
   // Forçar modo claro na landing page
   useEffect(() => {
@@ -608,6 +610,21 @@ export default function LandingPage() {
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Vídeo */}
+          <div className="mt-12 max-w-5xl mx-auto">
+            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-lg bg-white">
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto"
+              >
+                <source src={promoVideoUrl} type="video/mp4" />
+                Seu navegador não suporta vídeo HTML5.
+              </video>
+            </div>
           </div>
         </div>
       </section>

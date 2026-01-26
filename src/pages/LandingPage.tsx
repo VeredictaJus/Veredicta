@@ -870,7 +870,7 @@ export default function LandingPage() {
               O que dizem nossos usuários
             </h2>
             <p className="text-xl text-gray-600">
-              Depoimentos reais de advogados e redatores
+              Relatos de quem utiliza a Veredicta na prática
             </p>
           </div>
           

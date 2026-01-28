@@ -6,8 +6,6 @@ import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
-import { conciergeInviteEmailTemplate } from '../../src/services/emailTemplates';
-
 const require = createRequire(import.meta.url);
 const LOCAL_JSON_PATH = resolve(process.cwd(), 'src/config/firebaseAdmin.local.json');
 
@@ -160,6 +158,73 @@ function buildCustomSetPasswordLink(firebaseLink: string, appPublicUrl: string):
   } catch {
     return firebaseLink;
   }
+}
+
+function conciergeInviteEmailTemplate(userName: string, setPasswordLink: string): string {
+  const year = new Date().getFullYear();
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Veredicta</title>
+      </head>
+      <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;color:#111827;">
+        <div style="max-width:600px;margin:0 auto;padding:24px;">
+          <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.08);">
+            <div style="padding:24px 24px 8px;text-align:center;">
+              <h1 style="margin:0;font-size:20px;color:#111827;">Acesso Concierge</h1>
+            </div>
+
+            <div style="padding:16px 24px 24px;">
+              <p style="margin:0 0 12px;">Olá <strong>${userName}</strong>,</p>
+
+              <p style="margin:0 0 16px;">
+                Seu <strong>Acesso Concierge</strong> à Veredicta está pronto. Para começar, basta definir sua senha:
+              </p>
+
+              <div style="text-align:center;margin:22px 0;">
+                <a href="${setPasswordLink}"
+                   style="display:inline-block;background:#ea580c;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;">
+                  Definir senha e acessar
+                </a>
+              </div>
+
+              <div style="background:#fff7ed;border-left:4px solid #ea580c;padding:12px;border-radius:8px;margin:16px 0;">
+                <strong>Como funciona</strong>
+                <ul style="margin:10px 0 0;padding-left:18px;line-height:1.8;">
+                  <li>Defina sua senha e faça login</li>
+                  <li>Crie sua petição com suas informações e documentos</li>
+                  <li>Receba a entrega e aprove quando estiver tudo ok</li>
+                </ul>
+              </div>
+
+              <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px;border-radius:8px;margin:16px 0;">
+                <strong>Importante</strong>
+                <ul style="margin:10px 0 0;padding-left:18px;line-height:1.8;">
+                  <li>Este link expira em <strong>1 hora</strong></li>
+                  <li>Se você não reconhece este convite, ignore este email</li>
+                </ul>
+              </div>
+
+              <p style="margin:16px 0 0;">
+                Suporte: <a href="mailto:contato@veredictajus.com" style="color:#ea580c;">contato@veredictajus.com</a>
+              </p>
+
+              <p style="margin:16px 0 0;">
+                Atenciosamente,<br /><strong style="color:#ea580c;">Equipe Veredicta</strong>
+              </p>
+            </div>
+
+            <div style="background:#111827;color:#9ca3af;padding:14px 24px;text-align:center;font-size:12px;">
+              © ${year} Veredicta. Todos os direitos reservados.
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

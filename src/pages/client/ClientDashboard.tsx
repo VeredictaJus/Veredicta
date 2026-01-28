@@ -12,6 +12,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Eye, FileText, CreditCard, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { PetitionUsageCard } from '@/components/dashboard/PetitionUsageCard';
 import { toast } from 'sonner';
+import { UserSettingsService } from '@/services/userSettingsService';
 
 const getStatusColor = (status: string) => {
   const upperStatus = status?.toUpperCase();
@@ -57,6 +58,7 @@ export default function ClientDashboard() {
   const [showNewClientWelcomeModal, setShowNewClientWelcomeModal] = useState(false);
   const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
   const navigate = useNavigate();
+  const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
 
   // ✅ CORREÇÃO CRÍTICA: Garantir que apenas clientes possam acessar este componente
   // Verifica o role do usuário ao montar o componente
@@ -126,6 +128,32 @@ export default function ClientDashboard() {
       window.history.replaceState({}, '', '/client');
     }
   }, [user?.uid, user?.role, navigate]);
+
+  // Detectar plano (para adaptar textos do modal em Concierge)
+  useEffect(() => {
+    if (!user?.uid) {
+      setCurrentPlanCode(null);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const plan = await UserSettingsService.getUserCurrentPlan(user.uid);
+        if (!alive) return;
+        setCurrentPlanCode(String(plan?.plan_code || '').toLowerCase() || null);
+      } catch {
+        if (!alive) return;
+        setCurrentPlanCode(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.uid]);
+
+  const isConcierge = (currentPlanCode || '').toLowerCase() === 'concierge';
   
   const verifyAndUpdatePlan = async (
     sessionId: string, 
@@ -955,19 +983,24 @@ export default function ClientDashboard() {
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-6 mb-6 shadow-md">
               <div className="flex items-center justify-center gap-3 mb-3">
                 <div className="flex items-center justify-center h-12 w-12 rounded-full bg-orange-500">
-                  <span className="text-2xl">🎁</span>
+                  <span className="text-2xl">{isConcierge ? '📝' : '🎁'}</span>
                 </div>
                 <h4 className="text-xl font-bold text-orange-900">
-                  Presente de Boas-vindas
+                  {isConcierge ? 'Primeiro passo' : 'Presente de Boas-vindas'}
                 </h4>
               </div>
               
               <div className="bg-white rounded-lg p-4 border border-orange-200">
                 <p className="text-base text-gray-800 leading-relaxed">
-                  <span className="font-semibold text-orange-700 text-lg">Uma petição está disponível para você</span>!
+                  <span className="font-semibold text-orange-700 text-lg">
+                    {isConcierge ? 'Sua primeira petição pode ser criada agora' : 'Uma petição está disponível para você'}
+                  </span>
+                  !
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Use quando quiser para criar sua primeira petição jurídica com qualidade profissional.
+                  {isConcierge
+                    ? 'Preencha as informações e envie seus documentos para iniciar a redação.'
+                    : 'Use quando quiser para criar sua primeira petição jurídica com qualidade profissional.'}
                 </p>
               </div>
             </div>

@@ -87,7 +87,12 @@ async function ensureFirebaseAdmin() {
 
 function getSupabaseServiceClient() {
   const supabaseUrl = getEnvVar('SUPABASE_URL', 'VITE_SUPABASE_URL');
-  const supabaseServiceKey = getEnvVar('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'VITE_SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseServiceKey = getEnvVar(
+    'SUPABASE_ADMIN_TOKEN',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'VITE_SUPABASE_SERVICE_ROLE_KEY'
+  );
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase service role is not configured');

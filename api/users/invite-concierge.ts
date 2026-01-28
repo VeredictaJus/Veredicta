@@ -90,7 +90,13 @@ async function ensureFirebaseAdmin() {
 
 function getSupabaseServiceClient() {
   const supabaseUrl = getEnvVar('SUPABASE_URL', 'VITE_SUPABASE_URL');
-  const supabaseServiceKey = getEnvVar('SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SERVICE_KEY', 'VITE_SUPABASE_SERVICE_ROLE_KEY');
+  // Em produção (Vercel), o nome seguro recomendado no projeto é SUPABASE_ADMIN_TOKEN
+  const supabaseServiceKey = getEnvVar(
+    'SUPABASE_ADMIN_TOKEN',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'VITE_SUPABASE_SERVICE_ROLE_KEY'
+  );
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase service role is not configured');
@@ -132,7 +138,8 @@ async function requireAdmin(req: VercelRequest) {
 }
 
 function getAppPublicUrl(): string {
-  const envUrl = getEnvVar('APP_PUBLIC_URL', 'VITE_APP_URL');
+  // Nome seguro recomendado: APP_URL (ver VARIAVEIS_VERCEL_SEGURAS.md)
+  const envUrl = getEnvVar('APP_URL', 'APP_PUBLIC_URL', 'VITE_APP_URL');
   const url = envUrl || 'http://localhost:5176';
   return url.replace(/\/$/, '');
 }
@@ -252,7 +259,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const setPasswordLink = buildCustomSetPasswordLink(firebaseResetLink, appPublicUrl);
 
     // 5) Enviar email bonito via Resend
-    const resendKey = getEnvVar('RESEND_API_KEY', 'VITE_RESEND_API_KEY');
+    // Nome seguro recomendado: RESEND_API_TOKEN (ver VARIAVEIS_VERCEL_SEGURAS.md)
+    const resendKey = getEnvVar('RESEND_API_TOKEN', 'RESEND_API_KEY', 'VITE_RESEND_API_KEY', 'VITE_RESEND_API_TOKEN');
     if (!resendKey) {
       return res.status(500).json({ error: 'Email service not configured (RESEND_API_KEY)' });
     }

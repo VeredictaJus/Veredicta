@@ -17,21 +17,24 @@ const planIcons = {
   free: AlertTriangle,
   start: Star,
   pro: Crown,
-  elite: Zap
+  elite: Zap,
+  concierge: Star,
 };
 
 const planColors = {
   free: 'text-muted-foreground',
   start: 'text-blue-600',
   pro: 'text-purple-600',
-  elite: 'text-orange-600'
+  elite: 'text-orange-600',
+  concierge: 'text-orange-600',
 };
 
 const planNames = {
   free: 'Gratuito',
   start: 'Start',
   pro: 'Pro',
-  elite: 'Elite'
+  elite: 'Elite',
+  concierge: 'Acesso Concierge',
 };
 
 interface UsageStats {
@@ -84,9 +87,12 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
       
       // Para plano gratuito, contar TODAS as petições (sem filtro de data)
       // Para planos pagos, contar apenas petições do ciclo atual
-      const isFreePlan = !userPlan || userPlan.plan_code === 'free';
+      const planCodeLower = String(userPlan?.plan_code || '').toLowerCase();
+      const isFreePlan = !userPlan || planCodeLower === 'free';
+      const isConcierge = planCodeLower === 'concierge';
       
-      if (!isFreePlan) {
+      // Concierge não tem ciclo mensal; contar total (sem filtro de data)
+      if (!isFreePlan && !isConcierge) {
         // Buscar assinatura para pegar a data exata de início (apenas para planos pagos)
         const { data: subscription } = await supabase
           .rpc('get_user_subscription', { p_user_id: user.uid })
@@ -110,7 +116,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
         .eq('client_id', cleanedUid);
       
       // Se tem data de início do plano E não é plano gratuito, filtrar apenas petições criadas após essa data
-      if (planStartDate && !isFreePlan) {
+      if (planStartDate && !isFreePlan && !isConcierge) {
         query = query.gte('created_at', planStartDate.toISOString());
       }
       // Para plano gratuito, não filtrar por data - contar TODAS as petições
@@ -120,10 +126,10 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
       const petitionCount = count || 0;
       
       // Usar plano do usuário ou fallback para gratuito
-      const planCode = userPlan?.plan_code || 'free';
-      const planName = userPlan?.name || 'Gratuito';
-      const limit = userPlan?.petitions_limit || 1;
-      const hasActivePlan = userPlan && userPlan.plan_code !== 'free';
+      const planCode = planCodeLower || 'free';
+      const planName = userPlan?.name || (planCode === 'concierge' ? 'Acesso Concierge' : 'Gratuito');
+      const limit = planCode === 'concierge' ? 1 : (userPlan?.petitions_limit || 1);
+      const hasActivePlan = !!userPlan && planCode !== 'free';
       
       // Calcular restantes: limite total - petições usadas no período do plano
       const remaining = Math.max(0, limit - petitionCount);
@@ -141,7 +147,8 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
         total_usage: petitionCount,
         credits_balance: 0,
         period_remaining: remaining,
-        validity_days: 30
+        // Concierge e Free são "total" (sem ciclo)
+        validity_days: planCode === 'concierge' || planCode === 'free' ? 0 : 30
       };
       
       setUsageStats(stats);
@@ -217,7 +224,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
   const planDisplayName = planNames[plan_code as keyof typeof planNames] || 'Desconhecido';
 
   const getValidityText = () => {
-    if (plan_code === 'free') return 'total';
+    if (plan_code === 'free' || plan_code === 'concierge') return 'total';
     if (validity_days === 30) return '30 dias';
     if (validity_days === 60) return '60 dias';
     if (validity_days === 90) return '90 dias';

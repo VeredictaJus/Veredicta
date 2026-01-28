@@ -861,7 +861,8 @@ export class UserSettingsService {
         name: plan.name,
         price: plan.price,
         features: plan.features || [],
-        petitions_limit: plan.petitions_limit || 50,
+        // ✅ Compatibilidade: alguns schemas usam `petitions_included` (NOT NULL) em vez de `petitions_limit`
+        petitions_limit: (plan.petitions_limit ?? (plan as any).petitions_included ?? 50) as number,
         api_access: plan.api_access || false,
         support_level: plan.support_level || 'basic',
         next_billing_date: subscription.next_billing_date,

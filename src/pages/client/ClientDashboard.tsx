@@ -1003,7 +1003,7 @@ export default function ClientDashboard() {
             
             {/* Nota informativa */}
             <p className="text-xs text-gray-500 mt-4">
-              Esta mensagem aparecerá apenas uma vez. Você pode criar sua petição gratuita quando quiser!
+              Esta mensagem aparecerá apenas uma vez. Você pode criar sua primeira petição quando quiser!
             </p>
           </div>
         </DialogContent>

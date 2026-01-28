@@ -148,22 +148,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await requireAdmin(req);
     const supabase = getSupabaseServiceClient();
 
-    const farFuture = new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString();
-    const { error: upsertErr } = await supabase
+    // ⚠️ Não usar upsert/onConflict aqui: alguns schemas não têm UNIQUE(user_id)
+    const now = new Date().toISOString();
+    const farFuture = new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString(); // ~10 anos
+
+    const { data: updatedRows, error: updateErr } = await supabase
       .from('user_subscriptions')
-      .upsert(
-        {
+      .update({
+        plan_code: 'concierge',
+        status: 'active',
+        next_billing_date: farFuture,
+        updated_at: now,
+      })
+      .eq('user_id', targetUid)
+      .eq('status', 'active')
+      .select('id');
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Erro ao ativar concierge', details: updateErr.message });
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertErr } = await supabase
+        .from('user_subscriptions')
+        .insert({
           user_id: targetUid,
           plan_code: 'concierge',
           status: 'active',
           next_billing_date: farFuture,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+          updated_at: now,
+        });
 
-    if (upsertErr) {
-      return res.status(500).json({ error: 'Erro ao ativar concierge', details: upsertErr.message });
+      if (insertErr) {
+        return res.status(500).json({ error: 'Erro ao ativar concierge', details: insertErr.message });
+      }
     }
 
     return res.status(200).json({ success: true });

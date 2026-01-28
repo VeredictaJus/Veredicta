@@ -296,22 +296,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 3) Ativar assinatura concierge
-    const farFuture = new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString();
-    const { error: upsertErr } = await supabase
+    // ⚠️ Não usar upsert/onConflict aqui: alguns schemas não têm UNIQUE(user_id)
+    const now = new Date().toISOString();
+    const farFuture = new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString(); // ~10 anos
+
+    // Tentar atualizar assinatura ativa existente do usuário (qualquer plano)
+    const { data: updatedRows, error: updateErr } = await supabase
       .from('user_subscriptions')
-      .upsert(
-        {
+      .update({
+        plan_code: 'concierge',
+        status: 'active',
+        next_billing_date: farFuture,
+        updated_at: now,
+      })
+      .eq('user_id', firebaseUid)
+      .eq('status', 'active')
+      .select('id');
+
+    if (updateErr) {
+      return res.status(500).json({ error: 'Erro ao ativar concierge', details: updateErr.message });
+    }
+
+    // Se não havia assinatura ativa, criar uma nova
+    if (!updatedRows || updatedRows.length === 0) {
+      const { error: insertErr } = await supabase
+        .from('user_subscriptions')
+        .insert({
           user_id: firebaseUid,
           plan_code: 'concierge',
           status: 'active',
           next_billing_date: farFuture,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+          updated_at: now,
+        });
 
-    if (upsertErr) {
-      return res.status(500).json({ error: 'Erro ao ativar concierge', details: upsertErr.message });
+      if (insertErr) {
+        return res.status(500).json({ error: 'Erro ao ativar concierge', details: insertErr.message });
+      }
     }
 
     // 4) Gerar link de definir senha e converter para rota da app

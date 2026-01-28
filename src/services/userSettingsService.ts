@@ -834,6 +834,24 @@ export class UserSettingsService {
       }
 
       if (!plan) {
+        const planCode = String(subscription.plan_code || '').toLowerCase();
+
+        // Plano interno concierge pode não existir na tabela plans (fallback seguro)
+        if (planCode === 'concierge') {
+          return {
+            id: subscription.id,
+            plan_code: 'concierge',
+            name: 'Concierge',
+            price: 0,
+            features: [],
+            petitions_limit: 1,
+            api_access: false,
+            support_level: 'basic',
+            next_billing_date: subscription.next_billing_date,
+            status: subscription.status,
+          };
+        }
+
         return null;
       }
 

@@ -28,7 +28,10 @@ import { CalculatorExportService } from '@/services/calculatorExportService';
 import { PetitionFileService } from '@/services/petitionFileService';
 import { EmailService } from '@/services/emailService';
 import { DatabaseService } from '@/services/databaseService';
+import { UserSettingsService } from '@/services/userSettingsService';
 import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
 const BUCKET = 'petitions_correction_writer';
 
@@ -121,6 +124,9 @@ export default function MyPetitions() {
     used?: number;
     limit?: number;
   } | null>(null);
+  const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
+  const [finishingConcierge, setFinishingConcierge] = useState(false);
+  const [showFinishConciergeDialog, setShowFinishConciergeDialog] = useState(false);
 
   // Buscar arquivos e cálculo quando selecionar petição
   useEffect(() => {
@@ -523,6 +529,31 @@ export default function MyPetitions() {
     };
   }, [user?.uid]);
 
+  useEffect(() => {
+    if (!user?.uid) {
+      setCurrentPlanCode(null);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const plan = await UserSettingsService.getUserCurrentPlan(user.uid);
+        if (!alive) return;
+        setCurrentPlanCode(String(plan?.plan_code || '').toLowerCase() || null);
+      } catch {
+        if (!alive) return;
+        setCurrentPlanCode(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.uid]);
+
+  const isConcierge = (currentPlanCode || '').toLowerCase() === 'concierge';
+
   // Abrir petição automaticamente se houver parâmetro na URL
   useEffect(() => {
     const petitionId = searchParams.get('petition');
@@ -685,6 +716,41 @@ export default function MyPetitions() {
     // Se não foi avaliada, abrir modal de avaliação (que aprova automaticamente após avaliar)
     setSelectedPetitionForRating(petition);
     setShowRatingModal(true);
+  };
+
+  const finishConcierge = async () => {
+    if (!user?.uid) return;
+
+    setFinishingConcierge(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      const resp = await fetch('/api/users/disable-concierge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ firebase_uid: user.uid }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Não foi possível finalizar o Acesso Concierge');
+      }
+
+      toast.success('Acesso Concierge finalizado. Você será desconectado.');
+      await signOut(auth);
+      window.location.replace('/#/');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao finalizar Acesso Concierge');
+    } finally {
+      setFinishingConcierge(false);
+      setShowFinishConciergeDialog(false);
+    }
   };
 
   // Função para fazer upload dos arquivos de correção
@@ -1649,6 +1715,20 @@ export default function MyPetitions() {
                                             <p className="text-sm font-medium text-green-800 dark:text-green-200">
                                               Petição aprovada
                                             </p>
+                                            {isConcierge && (
+                                              <div className="mt-4">
+                                                <Button
+                                                  onClick={() => setShowFinishConciergeDialog(true)}
+                                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                                                  disabled={finishingConcierge}
+                                                >
+                                                  Confirmar finalização do Acesso Concierge
+                                                </Button>
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                  Ao confirmar, seu acesso será encerrado e você será desconectado.
+                                                </p>
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       } else {
@@ -1708,6 +1788,23 @@ export default function MyPetitions() {
                                       }
                                     })()}
                                   </div>
+
+                                  <AlertDialog open={showFinishConciergeDialog} onOpenChange={setShowFinishConciergeDialog}>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Finalizar Acesso Concierge</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Confirme que não há mais alterações nesta petição. Ao finalizar, seu acesso será encerrado e seus dados pessoais serão anonimizados, mantendo o histórico da petição.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel disabled={finishingConcierge}>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={finishConcierge} disabled={finishingConcierge}>
+                                          {finishingConcierge ? 'Finalizando...' : 'Confirmar finalização'}
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
 
                                   {/* Solicitar Correção - Apenas para petições entregues ou concluídas com redator atribuído */}
                                   {selectedPetition.assigned_writer_id && 

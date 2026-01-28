@@ -28,6 +28,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabaseClient'
+import { auth } from '@/lib/firebase'
 import { EmailService } from '@/services/emailService'
 import { toast } from 'sonner'
 
@@ -108,6 +109,10 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState<'all' | UiUser['role']>('all');
   const [statusFilter, setStatusFilter] =
     useState<'all' | 'active' | 'pending' | 'suspended' | 'blocked'>('all');
+
+  // ✅ Convite Concierge por email (sem UID)
+  const [conciergeInviteEmail, setConciergeInviteEmail] = useState('');
+  const [invitingConcierge, setInvitingConcierge] = useState(false);
   
   // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
   const truncateLongName = (name: string | undefined | null): string => {
@@ -486,6 +491,102 @@ export default function Users() {
     }
   };
 
+  const getAdminIdToken = async () => {
+    const current = auth.currentUser;
+    const token = await current?.getIdToken();
+    if (!token) {
+      throw new Error('Admin não autenticado');
+    }
+    return token;
+  };
+
+  const inviteConciergeByEmail = async () => {
+    const email = conciergeInviteEmail.trim().toLowerCase();
+    if (!email) {
+      toast.error('Informe o e-mail do cliente');
+      return;
+    }
+
+    setInvitingConcierge(true);
+    try {
+      const token = await getAdminIdToken();
+      const resp = await fetch('/api/users/invite-concierge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Erro ao enviar convite concierge');
+      }
+
+      toast.success('Convite Concierge enviado por e-mail (link expira em 1h)');
+      setConciergeInviteEmail('');
+      loadUsers();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao enviar convite concierge');
+    } finally {
+      setInvitingConcierge(false);
+    }
+  };
+
+  const activateConcierge = async (user: UiUser) => {
+    try {
+      const firebaseUid = user._raw?.firebase_uid || user._raw?.firebase_user?.uid || user.id;
+      if (!firebaseUid) throw new Error('UID do usuário não encontrado');
+
+      const token = await getAdminIdToken();
+      const resp = await fetch('/api/users/activate-concierge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ firebase_uid: firebaseUid }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Erro ao ativar concierge');
+      }
+
+      toast.success('Concierge ativado (1 petição)');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao ativar concierge');
+    }
+  };
+
+  const disableConcierge = async (user: UiUser) => {
+    try {
+      const firebaseUid = user._raw?.firebase_uid || user._raw?.firebase_user?.uid || user.id;
+      if (!firebaseUid) throw new Error('UID do usuário não encontrado');
+
+      const token = await getAdminIdToken();
+      const resp = await fetch('/api/users/disable-concierge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ firebase_uid: firebaseUid }),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data?.error || 'Erro ao encerrar concierge');
+      }
+
+      toast.success('Concierge encerrado: login desabilitado e perfil anonimizado');
+      loadUsers();
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao encerrar concierge');
+    }
+  };
+
   const loadUsers = async () => {
     setLoading(true);
     setError(null);
@@ -648,6 +749,35 @@ export default function Users() {
             </div></CardContent></Card>
           </div>
 
+          {/* Acesso Concierge - Convite por email */}
+          <Card className="border-border">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Acesso Concierge</p>
+                  <p className="text-xs text-muted-foreground">
+                    Envie um convite por e-mail para o cliente definir a senha e acessar. O link expira em 1 hora.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                  <Input
+                    placeholder="email@cliente.com"
+                    value={conciergeInviteEmail}
+                    onChange={(e) => setConciergeInviteEmail(e.target.value)}
+                    className="sm:w-[320px]"
+                  />
+                  <Button
+                    onClick={inviteConciergeByEmail}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                    disabled={invitingConcierge}
+                  >
+                    {invitingConcierge ? 'Enviando…' : 'Enviar convite (Concierge)'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
             {/* Filtros */}
             <div className="flex flex-col sm:flex-row gap-4">
   <Input
@@ -733,6 +863,55 @@ export default function Users() {
                         <TableCell>{u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            {u.role === 'CLIENT' && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                                  onClick={() => activateConcierge(u)}
+                                  title="Ativar Cliente Concierge (1 petição)"
+                                >
+                                  <UserCheck className="h-4 w-4" />
+                                </Button>
+
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                                      title="Encerrar Cliente Concierge (desabilitar login e anonimizar)"
+                                    >
+                                      <Shield className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Encerrar Cliente Concierge</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta ação é <strong>somente para Cliente Concierge</strong>. O login será desabilitado no Firebase e o perfil será anonimizado, mantendo o histórico de petições.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-slate-900 hover:bg-slate-800"
+                                        onClick={async () => {
+                                          try {
+                                            await disableConcierge(u);
+                                          } catch (e) {
+                                            console.error(e);
+                                          }
+                                        }}
+                                      >
+                                        Encerrar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </>
+                            )}
                             {/* Gerenciar */}
                             <Dialog>
                               <DialogTrigger asChild>

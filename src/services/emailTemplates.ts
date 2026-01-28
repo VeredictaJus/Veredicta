@@ -990,6 +990,75 @@ export function passwordResetEmailTemplate(
 }
 
 /**
+ * Template de Convite Concierge (definição de senha / primeiro acesso)
+ */
+export function conciergeInviteEmailTemplate(
+  userName: string,
+  setPasswordLink: string
+): string {
+  const content = `
+    <!-- Header -->
+    <div class="header" style="background: #ffffff; padding-bottom: 15px;">
+      <!-- Logo -->
+      <div style="text-align: center; margin-bottom: 0px;">
+        <img src="${LOGO_URL}" alt="Veredicta Logo" style="max-width: 80px; height: auto; display: block; margin: 0 auto;" />
+      </div>
+      <!-- Nome da empresa -->
+      <div style="text-align: center; margin-bottom: 20px; margin-top: -30px;">
+        <img src="${EMAIL_TEXT_LOGO_URL}" alt="Veredicta" style="display: inline-block; height: 100px; width: auto; vertical-align: middle; margin: 0; padding: 0; border: 0;" />
+      </div>
+      <h1 class="header-title" style="color: #1f2937; font-size: 22px; margin-bottom: 0;">Acesso Concierge</h1>
+    </div>
+    
+    <!-- Content -->
+    <div class="content" style="padding-top: 20px;">
+      <p style="font-size: 16px; margin-top: 0; margin-bottom: 14px;">
+        Olá <strong style="color: ${COLORS.primary}">${userName}</strong>,
+      </p>
+      
+      <p style="margin-top: 0;">
+        Seu <strong>Acesso Concierge</strong> à Veredicta está pronto.
+        Para começar, basta definir sua senha:
+      </p>
+      
+      <div style="text-align: center; margin: 26px 0;">
+        <a href="${setPasswordLink}" class="button" style="background: ${COLORS.primary}; color: white;">
+          Definir senha e acessar
+        </a>
+      </div>
+      
+      <div class="info-box" style="background: #fff7ed; border-left: 4px solid ${COLORS.primary}; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <strong>Como funciona</strong>
+        <ul style="margin: 10px 0 0; padding-left: 20px; line-height: 1.8;">
+          <li>Defina sua senha e faça login</li>
+          <li>Crie sua petição com suas informações e documentos</li>
+          <li>Receba a entrega e aprove quando estiver tudo ok</li>
+        </ul>
+      </div>
+      
+      <div class="alert-box">
+        <strong>⚠️ Importante:</strong>
+        <ul style="margin: 10px 0 0; padding-left: 20px;">
+          <li>Este link expira em <strong>1 hora</strong></li>
+          <li>Se você não reconhece este convite, ignore este email</li>
+        </ul>
+      </div>
+      
+      <p style="margin-top: 26px;">
+        Suporte: <a href="mailto:contato@veredictajus.com" style="color: ${COLORS.primary};">contato@veredictajus.com</a>
+      </p>
+      
+      <p style="margin-top: 26px;">
+        Atenciosamente,<br />
+        <strong style="color: ${COLORS.primary};">Equipe Veredicta</strong>
+      </p>
+    </div>
+  `;
+  
+  return getBaseTemplate(content);
+}
+
+/**
  * Template de Notificação Genérica
  */
 export function notificationEmailTemplate(

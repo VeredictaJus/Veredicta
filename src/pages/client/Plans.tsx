@@ -141,7 +141,8 @@ export default function Plans() {
       try {
         // ✅ Usar getActivePlans() para buscar apenas planos ativos
         const plansData = await PlansService.getActivePlans();
-        setPlans(plansData);
+        // Concierge é um plano interno (não exibir na página de planos)
+        setPlans((plansData || []).filter((p) => (p.plan_code || '').toLowerCase() !== 'concierge'));
       } catch (error) {
         console.error('Erro ao carregar planos:', error);
         setPlans(fallbackPlans);

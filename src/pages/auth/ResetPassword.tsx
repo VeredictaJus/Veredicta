@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
-import logoImage from '@/assets/images/veredicta-logo.png';
 import { auth } from '@/lib/firebase';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import AnimatedBackground from "@/components/ui/AnimatedBackground";
+
+// ✅ Usar logo público (evita falhas de asset path/case em produção)
+const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 
 /* --- Mini componente local para o logo dentro do círculo branco --- */
 const BrandLogo: FC = () => (

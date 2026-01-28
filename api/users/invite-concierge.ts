@@ -174,6 +174,13 @@ function conciergeInviteEmailTemplate(userName: string, setPasswordLink: string)
         <div style="max-width:600px;margin:0 auto;padding:24px;">
           <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.08);">
             <div style="padding:24px 24px 8px;text-align:center;">
+              <div style="text-align:center;margin-bottom:12px;">
+                <img
+                  src="https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png"
+                  alt="Veredicta"
+                  style="width:48px;height:48px;object-fit:contain;display:inline-block;"
+                />
+              </div>
               <h1 style="margin:0;font-size:20px;color:#111827;">Acesso Concierge</h1>
             </div>
 

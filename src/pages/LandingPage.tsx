@@ -852,26 +852,26 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <p className="text-base font-semibold text-gray-900">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
+              <p className="text-base font-semibold text-gray-900 text-center">
                 Redação jurídica com checklist técnico
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <p className="text-base font-semibold text-gray-900">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
+              <p className="text-base font-semibold text-gray-900 text-center">
                 Acompanhamento do pedido à entrega
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <p className="text-base font-semibold text-gray-900">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
+              <p className="text-base font-semibold text-gray-900 text-center">
                 Comunicação clara e centralizada
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-              <p className="text-base font-semibold text-gray-900">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
+              <p className="text-base font-semibold text-gray-900 text-center">
                 Prazos definidos previamente
               </p>
             </div>

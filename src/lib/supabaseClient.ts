@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { auth } from '@/lib/firebase';
 
 // Valores padrão (fallback) garantem que sempre funcionem
 const DEFAULT_SUPABASE_URL = 'https://dmsodonmkffyvbuxtxec.supabase.co';
@@ -31,15 +32,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    // ✅ CORREÇÃO: Adicionar interceptor para tratar erros 406/400 silenciosamente
+    // ✅ Bridge Firebase -> Supabase:
+    // Injeta Authorization: Bearer <firebase_id_token> nas requests do Supabase
+    // para que RLS baseado em auth.uid() funcione com Firebase Auth.
     fetch: async (url, options = {}) => {
       try {
-        const response = await fetch(url, options);
+        const token = await auth.currentUser?.getIdToken?.();
+        const headers = new Headers((options as any).headers || {});
+        if (token && !headers.has('Authorization')) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+
+        const response = await fetch(url, { ...(options as any), headers });
         
-        // ✅ CORREÇÃO: Suprimir erros 406/400 apenas para queries GET não-críticas
-        // Esses erros geralmente ocorrem quando:
-        // - 406: Servidor não aceita o formato (pode ser ignorado em queries de leitura)
-        // - 400: Requisição malformada (pode ser ignorado em queries de leitura)
+        // ✅ CORREÇÃO: Suprimir erros 406/400 APENAS para queries GET de notificações
+        // (algumas telas usam .single() em leitura opcional e geram PGRST116).
         if ((response.status === 406 || response.status === 400) && (!options.method || options.method === 'GET')) {
           const urlString = typeof url === 'string' ? url : url.toString();
           
@@ -47,12 +54,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           const isAuthRequest = urlString.includes('/auth/') || urlString.includes('/rest/v1/auth');
           const isRealtimeRequest = urlString.includes('/realtime/');
           
-          // Apenas suprimir erros em queries de leitura não-críticas (notificações, etc)
+          // Apenas suprimir erros em queries de leitura NÃO-CRÍTICAS (notificações)
           if (!isAuthRequest && !isRealtimeRequest) {
-            // Verificar se é uma query de notificações ou outras queries de leitura
-            const isNotificationQuery = urlString.includes('notifications') || 
-                                       urlString.includes('select=') ||
-                                       urlString.includes('/rest/v1/');
+            // Limitar supressão ao endpoint de notificações (evitar mascarar falhas em user_profiles, etc.)
+            const isNotificationQuery =
+              urlString.includes('/rest/v1/app_2d8133c678_notifications') ||
+              urlString.includes('app_2d8133c678_notifications') ||
+              urlString.includes('/rest/v1/notifications');
             
             if (isNotificationQuery) {
               if (import.meta.env.DEV) {

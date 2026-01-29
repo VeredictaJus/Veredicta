@@ -80,7 +80,7 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
           .from('user_profiles')
           .select('status, role, email, firebase_uid, full_name, created_at, updated_at')
           .eq('firebase_uid', user.uid)
-          .single()
+          .maybeSingle()
 
         if (error) {
           console.error('❌ Erro ao verificar status do redator:', error)
@@ -92,6 +92,13 @@ export default function ProtectedRoute({ allowedRoles, children }: Props) {
           } else {
             setWriterStatus('pending')
           }
+          return
+        }
+
+        if (!data) {
+          // Pode ocorrer logo após cadastro (race condition). Não bloquear acesso por isso.
+          console.warn('⚠️ Perfil do redator ainda não disponível. Assumindo approved temporariamente.')
+          setWriterStatus('approved')
           return
         }
 

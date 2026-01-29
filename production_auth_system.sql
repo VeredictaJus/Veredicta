@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     cnpj TEXT,
     phone TEXT,
     address TEXT,
+    -- Documentos do redator / OAB (caminhos no Supabase Storage)
+    petition_files JSONB DEFAULT '{}'::jsonb,
+    oab_documents JSONB DEFAULT '{}'::jsonb,
+    -- Status de verificação (admin)
+    verification_status TEXT DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_active BOOLEAN DEFAULT true

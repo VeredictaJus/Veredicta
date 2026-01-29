@@ -536,24 +536,71 @@ const handleInputChange = (field: keyof FormData, value: string) => {
           const uploadedOAB = await uploadOABFiles(authUser.uid, oabFiles, getClient);
           console.log('✅ Register.tsx - Carteirinha OAB enviada com sucesso:', uploadedOAB);
           
-          // Salvar URLs das petições e carteirinha no perfil do usuário
+          // Salvar caminhos das petições e carteirinha no perfil do usuário
+          // ✅ IMPORTANTE: em alguns cenários o registro pode existir só em profiles_v2
+          // (ex.: RPC falhou / corrida de sincronização). Então fazemos update + fallback com RPC/UPSERT.
           const { supabase: supabaseClient } = await getClient();
-          const { error: updateError } = await supabaseClient
+
+          const profilePatch = {
+            petition_files: uploadedFiles,
+            oab_documents: uploadedOAB,
+            full_name: formData.fullName,
+            phone: formData.phone,
+            updated_at: new Date().toISOString(),
+          };
+
+          // 1) Tentar UPDATE (caso o registro já exista)
+          const { data: updatedRows, error: updateError } = await supabaseClient
             .from('user_profiles')
-            .update({ 
-              petition_files: uploadedFiles,
-              oab_documents: uploadedOAB,
-              full_name: formData.fullName, // ✅ Salvar nome completo
-              phone: formData.phone, // ✅ Salvar telefone
-              updated_at: new Date().toISOString()
-            })
-            .eq('firebase_uid', authUser.uid);
-            
-          if (updateError) {
-            console.error('❌ Erro ao salvar URLs:', updateError);
-          } else {
-            console.log('✅ URLs salvas no perfil');
+            .update(profilePatch)
+            .eq('firebase_uid', authUser.uid)
+            .select('id');
+
+          const updatedOk = !updateError && Array.isArray(updatedRows) && updatedRows.length > 0;
+
+          if (!updatedOk) {
+            if (updateError) {
+              console.warn('⚠️ Register.tsx - Falha no UPDATE de user_profiles, tentando fallback:', updateError);
+            } else {
+              console.warn('⚠️ Register.tsx - UPDATE não afetou linhas (perfil pode não existir). Tentando fallback...');
+            }
+
+            // 2) Tentar garantir perfil via RPC (quando disponível)
+            try {
+              await supabaseClient.rpc('create_or_update_user_profile', {
+                p_firebase_uid: authUser.uid,
+                p_email: formData.email,
+                p_role: 'writer',
+                p_full_name: formData.fullName || null,
+                p_phone: formData.phone || null,
+                p_address: null,
+              });
+            } catch (rpcErr) {
+              // Sem quebrar fluxo: RPC pode não existir/estar bloqueada
+              console.warn('⚠️ Register.tsx - RPC create_or_update_user_profile falhou (ok continuar):', rpcErr);
+            }
+
+            // 3) UPSERT como fallback final (cria se não existir)
+            const { error: upsertError } = await supabaseClient
+              .from('user_profiles')
+              .upsert(
+                {
+                  firebase_uid: authUser.uid,
+                  email: formData.email,
+                  role: 'writer',
+                  ...profilePatch,
+                },
+                { onConflict: 'firebase_uid' }
+              );
+
+            if (upsertError) {
+              console.error('❌ Register.tsx - Erro ao salvar documentos (UPSERT user_profiles):', upsertError);
+              toast.error('Erro ao salvar seus documentos. Tente novamente.');
+              return;
+            }
           }
+
+          console.log('✅ Register.tsx - Documentos salvos no perfil (user_profiles)');
         } catch (error) {
           console.error('❌ Erro ao fazer upload:', error);
           toast.error('Erro ao enviar documentos. Tente novamente.');
@@ -568,24 +615,64 @@ const handleInputChange = (field: keyof FormData, value: string) => {
           const uploadedOAB = await uploadOABFiles(authUser.uid, oabFiles, getClient);
           console.log('✅ Register.tsx - Carteirinha OAB enviada com sucesso:', uploadedOAB);
           
-          // Salvar URLs da carteirinha no perfil do usuário
+          // Salvar caminho da carteirinha no perfil do usuário (update + fallback)
           const { supabase: supabaseClient } = await getClient();
-          const { error: updateError } = await supabaseClient
+          const profilePatch = {
+            oab_documents: uploadedOAB,
+            oab_number: formData.oabNumber,
+            full_name: formData.companyName,
+            phone: formData.phone,
+            updated_at: new Date().toISOString(),
+          };
+
+          const { data: updatedRows, error: updateError } = await supabaseClient
             .from('user_profiles')
-            .update({ 
-              oab_documents: uploadedOAB,
-              oab_number: formData.oabNumber,
-              full_name: formData.companyName,  // ✅ Salvar nome completo do advogado
-              phone: formData.phone,             // ✅ Salvar telefone
-              updated_at: new Date().toISOString()
-            })
-            .eq('firebase_uid', authUser.uid);
-            
-          if (updateError) {
-            console.error('❌ Erro ao salvar URLs da carteirinha:', updateError);
-          } else {
-            console.log('✅ URLs da carteirinha salvas no perfil');
+            .update(profilePatch)
+            .eq('firebase_uid', authUser.uid)
+            .select('id');
+
+          const updatedOk = !updateError && Array.isArray(updatedRows) && updatedRows.length > 0;
+
+          if (!updatedOk) {
+            if (updateError) {
+              console.warn('⚠️ Register.tsx - Falha no UPDATE (cliente CPF), tentando fallback:', updateError);
+            } else {
+              console.warn('⚠️ Register.tsx - UPDATE não afetou linhas (cliente CPF). Tentando fallback...');
+            }
+
+            try {
+              await supabaseClient.rpc('create_or_update_user_profile', {
+                p_firebase_uid: authUser.uid,
+                p_email: formData.email,
+                p_role: 'client',
+                p_full_name: formData.companyName || null,
+                p_phone: formData.phone || null,
+                p_address: null,
+              });
+            } catch (rpcErr) {
+              console.warn('⚠️ Register.tsx - RPC create_or_update_user_profile falhou (cliente CPF):', rpcErr);
+            }
+
+            const { error: upsertError } = await supabaseClient
+              .from('user_profiles')
+              .upsert(
+                {
+                  firebase_uid: authUser.uid,
+                  email: formData.email,
+                  role: 'client',
+                  ...profilePatch,
+                },
+                { onConflict: 'firebase_uid' }
+              );
+
+            if (upsertError) {
+              console.error('❌ Register.tsx - Erro ao salvar carteirinha (UPSERT user_profiles):', upsertError);
+              toast.error('Erro ao salvar sua carteirinha. Tente novamente.');
+              return;
+            }
           }
+
+          console.log('✅ Register.tsx - Carteirinha salva no perfil (user_profiles)');
         } catch (error) {
           console.error('❌ Erro ao fazer upload da carteirinha:', error);
           toast.error('Erro ao enviar carteirinha OAB. Tente novamente.');

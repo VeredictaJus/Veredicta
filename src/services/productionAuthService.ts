@@ -169,13 +169,22 @@ class ProductionAuthService {
         .from('user_profiles')
         .select('*')
         .eq('firebase_uid', firebaseUid)
-        .single()
+        .maybeSingle()
 
       if (error) {
         throw error
       }
 
       if (!profile) {
+        // Fallback via RPC (evita 406/PGRST116 e funciona bem com RLS/SECURITY DEFINER)
+        const { data: existingProfile, error: fetchError } = await supabaseClient
+          .rpc('get_user_profile', { p_firebase_uid: firebaseUid })
+
+        if (!fetchError && existingProfile) {
+          console.log('✅ Perfil encontrado via RPC:', existingProfile)
+          return existingProfile
+        }
+
         throw new Error('Perfil não encontrado')
       }
 

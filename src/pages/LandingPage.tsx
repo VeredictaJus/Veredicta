@@ -306,30 +306,6 @@ export default function LandingPage() {
     }
   ];
 
-  const testimonials = [
-    {
-      name: 'Ricardo Almeida',
-      role: 'Advogado Trabalhista - Belo Horizonte/MG',
-      avatar: 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/ricardo-almeida.jpeg',
-      content: 'Uso a Veredicta há 8 meses e já solicitei mais de 40 petições. A qualidade é excelente e os prazos sempre cumpridos. Consegui aumentar minha carteira de clientes em 60% sem perder a qualidade do atendimento.',
-      rating: 5
-    },
-    {
-      name: 'Patrícia Costa',
-      role: 'Sócia - Escritório Costa & Associados',
-      avatar: 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/patricia-costa.jpeg',
-      content: 'Nossa equipe de 5 advogados usa a plataforma regularmente. Economizamos cerca de 15 horas por semana que antes eram gastas na redação de petições. Os clientes elogiam a qualidade técnica e a argumentação jurídica.',
-      rating: 5
-    },
-    {
-      name: 'Fernando Rodrigues',
-      role: 'Redator Jurídico Especializado',
-      avatar: 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/fernando-rodrigues.jpeg',
-      content: 'Trabalho como redator há 1 ano na plataforma. A flexibilidade de horários me permite conciliar com minha advocacia e ainda tenho uma renda complementar estável. Os valores são justos e o sistema de pagamento é confiável.',
-      rating: 5
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Header */}
@@ -562,23 +538,24 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Estatísticas */}
-          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-orange-600 mb-2">50+</div>
-              <div className="text-gray-600">Especialidades Jurídicas</div>
+          {/* Destaques */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <div className="text-base font-semibold text-gray-900">
+                Atendimento estruturado por fluxo
+              </div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-orange-600 mb-2">200+</div>
-              <div className="text-gray-600">Redatores Especializados</div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <div className="text-base font-semibold text-gray-900">
+                Prazos definidos previamente
+              </div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-orange-600 mb-2">5000+</div>
-              <div className="text-gray-600">Petições Elaboradas</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-orange-600 mb-2">98%</div>
-              <div className="text-gray-600">Taxa de Aprovação</div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <div className="text-base font-semibold text-gray-900">
+                Redação jurídica revisada antes da entrega
+              </div>
             </div>
           </div>
         </div>
@@ -862,51 +839,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Como funciona a experiência */}
       <section className="py-20 bg-white text-gray-900">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              O que dizem nossos usuários
+              Como funciona a experiência na Veredicta
             </h2>
             <p className="text-xl text-gray-600">
-              Relatos de quem utiliza a Veredicta na prática
+              Clareza, previsibilidade e qualidade do pedido à entrega
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex items-center mb-4">
-                    <Avatar className="h-12 w-12 mr-3">
-                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
-                      <AvatarFallback>
-                        {testimonial.name
-                          .split(' ')
-                          .filter(Boolean)
-                          .map((part) => part[0]?.toUpperCase())
-                          .slice(0, 2)
-                          .join('')}
-                      </AvatarFallback>
-                    </Avatar>
 
-                    <div className="flex flex-col">
-                      <div className="flex items-center">
-                        {[...Array(testimonial.rating)].map((_, i) => (
-                          <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                        ))}
-                      </div>
-                      <p className="font-semibold text-gray-900 leading-tight">{testimonial.name}</p>
-                      <p className="text-sm text-gray-500 leading-tight">{testimonial.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-4 italic">
-                    "{testimonial.content}"
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <p className="text-base font-semibold text-gray-900">
+                Redação jurídica com checklist técnico
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <p className="text-base font-semibold text-gray-900">
+                Acompanhamento do pedido à entrega
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <p className="text-base font-semibold text-gray-900">
+                Comunicação clara e centralizada
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+              <p className="text-base font-semibold text-gray-900">
+                Prazos definidos previamente
+              </p>
+            </div>
           </div>
         </div>
       </section>

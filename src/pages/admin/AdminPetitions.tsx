@@ -795,14 +795,14 @@ export default function AdminPetitions() {
                             </Button>
                           </DialogTrigger>
 
-                          <DialogContent className="max-w-2xl">
+                          <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden">
                             <DialogHeader>
                               <DialogTitle>{selectedPetition?.title}</DialogTitle>
                               <DialogDescription>Detalhes e gerenciamento da petição</DialogDescription>
                             </DialogHeader>
 
                             {selectedPetition && selectedPetition.id === p.id && (
-                              <div className="space-y-4">
+                              <div className="max-h-[calc(85vh-140px)] overflow-y-auto pr-2 space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="text-sm font-medium">Cliente</label>
@@ -826,7 +826,9 @@ export default function AdminPetitions() {
 
                                 <div>
                                   <label className="text-sm font-medium">Descrição</label>
-                                  <p className="text-sm text-muted-foreground mt-1">{selectedPetition.description || '—'}</p>
+                                  <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap break-words">
+                                    {selectedPetition.description || '—'}
+                                  </p>
                                 </div>
                                 {selectedPetition.dispute_reason && (
                                   <div className="p-3 bg-red-50 rounded-lg">

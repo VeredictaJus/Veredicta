@@ -29,3 +29,4 @@ WHERE table_name = 'user_profiles'
 ORDER BY column_name;
 
 
+

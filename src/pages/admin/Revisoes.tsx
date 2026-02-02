@@ -45,6 +45,25 @@ async function forceDownload(url: string, filename?: string) {
   }
 }
 
+function guessContentTypeByName(fileName: string, fallback?: string) {
+  const name = (fileName || '').toLowerCase();
+  if (name.endsWith('.pdf')) return 'application/pdf';
+  if (name.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (name.endsWith('.doc')) return 'application/msword';
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+  if (name.endsWith('.png')) return 'image/png';
+  if (name.endsWith('.gif')) return 'image/gif';
+  if (name.endsWith('.webp')) return 'image/webp';
+  if (name.endsWith('.bmp')) return 'image/bmp';
+  if (name.endsWith('.svg')) return 'image/svg+xml';
+  if (name.endsWith('.mp3')) return 'audio/mpeg';
+  if (name.endsWith('.wav')) return 'audio/wav';
+  if (name.endsWith('.ogg')) return 'audio/ogg';
+  if (name.endsWith('.webm')) return 'video/webm';
+  if (name.endsWith('.mp4')) return 'video/mp4';
+  return (fallback && fallback !== 'application/json') ? fallback : 'application/octet-stream';
+}
+
 // ✅ CORREÇÃO CRÍTICA: Suprimir aviso de múltiplas instâncias ANTES de criar qualquer cliente
 if (typeof window !== 'undefined' && !(window as any).__SUPPRESS_GT_CLIENT_WARNING) {
   (window as any).__SUPPRESS_GT_CLIENT_WARNING = true;
@@ -517,6 +536,7 @@ export default function Revisoes() {
       const timestamp = Date.now();
       const safeNewFileName = newFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
       const key = `${active.petition_id}_${timestamp}_${safeNewFileName}`;
+      const contentType = guessContentTypeByName(newFileName, correctedFile.type);
 
       if (import.meta.env.DEV) {
         console.log('📝 Nome do arquivo corrigido:', newFileName);
@@ -525,7 +545,7 @@ export default function Revisoes() {
 
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(key, correctedFile, {
         upsert: true,
-        contentType: correctedFile.type || undefined,
+        contentType,
       });
       if (upErr) throw upErr;
 
@@ -539,7 +559,7 @@ export default function Revisoes() {
         petition_id: active.petition_id,
         file_name: newFileName, // Usa o nome com "_corrigido"
         file_url: urlData.publicUrl,
-        file_type: correctedFile.type || 'application/octet-stream',
+        file_type: contentType,
         file_size: correctedFile.size,
         uploaded_by: user?.uid ?? null,
       });

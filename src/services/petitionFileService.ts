@@ -33,6 +33,26 @@ export class PetitionFileService {
     'image/webp'
   ];
 
+  private static guessContentTypeByName(fileName: string, fallback?: string) {
+    const name = (fileName || '').toLowerCase();
+    if (name.endsWith('.pdf')) return 'application/pdf';
+    if (name.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (name.endsWith('.doc')) return 'application/msword';
+    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+    if (name.endsWith('.png')) return 'image/png';
+    if (name.endsWith('.gif')) return 'image/gif';
+    if (name.endsWith('.webp')) return 'image/webp';
+    if (name.endsWith('.bmp')) return 'image/bmp';
+    if (name.endsWith('.svg')) return 'image/svg+xml';
+    return (fallback && fallback !== 'application/json') ? fallback : 'application/octet-stream';
+  }
+
+  private static inferContentType(file: File): string {
+    // Preferir o MIME pelo nome quando o browser manda vazio/errado (ex.: application/json)
+    const inferred = this.guessContentTypeByName(file.name, file.type);
+    return inferred || 'application/octet-stream';
+  }
+
   /**
    * Upload a file to Supabase Storage and save metadata to database
    */
@@ -42,8 +62,10 @@ export class PetitionFileService {
     userId: string
   ): Promise<FileUploadResult> {
     try {
+      const inferredType = this.inferContentType(file);
+
       // Validate file
-      const validation = this.validateFile(file);
+      const validation = this.validateFile(file, inferredType);
       if (!validation.valid) {
         return { success: false, error: validation.error };
       }
@@ -57,7 +79,7 @@ export class PetitionFileService {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(this.BUCKET_NAME)
         .upload(filePath, file, {
-          contentType: file.type,
+          contentType: inferredType,
           upsert: false,
         });
 
@@ -79,7 +101,7 @@ export class PetitionFileService {
           file_name: file.name,
           file_url: urlData.publicUrl,
           file_size: file.size,
-          file_type: file.type,
+          file_type: inferredType,
           uploaded_by: userId,
         })
         .select()
@@ -183,7 +205,7 @@ export class PetitionFileService {
   /**
    * Validate file before upload
    */
-  private static validateFile(file: File): { valid: boolean; error?: string } {
+  private static validateFile(file: File, inferredType?: string): { valid: boolean; error?: string } {
     // Check file size
     if (file.size > this.MAX_FILE_SIZE) {
       return { 
@@ -193,7 +215,8 @@ export class PetitionFileService {
     }
 
     // Check file type
-    if (!this.ALLOWED_TYPES.includes(file.type)) {
+    const t = inferredType || file.type;
+    if (!this.ALLOWED_TYPES.includes(t)) {
       return { 
         valid: false, 
         error: 'Tipo de arquivo não permitido. Use PDF, Word ou imagens.' 

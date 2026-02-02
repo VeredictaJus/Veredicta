@@ -41,6 +41,25 @@ const correctionStatusLabels: Record<string, string> = {
 
 const BUCKET = 'petitions_correction_writer'; // Bucket para petições enviadas pelos redatores para correção
 
+function guessContentTypeByName(fileName: string, fallback?: string) {
+  const name = (fileName || '').toLowerCase();
+  if (name.endsWith('.pdf')) return 'application/pdf';
+  if (name.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  if (name.endsWith('.doc')) return 'application/msword';
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+  if (name.endsWith('.png')) return 'image/png';
+  if (name.endsWith('.gif')) return 'image/gif';
+  if (name.endsWith('.webp')) return 'image/webp';
+  if (name.endsWith('.bmp')) return 'image/bmp';
+  if (name.endsWith('.svg')) return 'image/svg+xml';
+  if (name.endsWith('.mp3')) return 'audio/mpeg';
+  if (name.endsWith('.wav')) return 'audio/wav';
+  if (name.endsWith('.ogg')) return 'audio/ogg';
+  if (name.endsWith('.webm')) return 'video/webm';
+  if (name.endsWith('.mp4')) return 'video/mp4';
+  return (fallback && fallback !== 'application/json') ? fallback : 'application/octet-stream';
+}
+
 export default function MyPetitions() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -513,10 +532,11 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
     
     try {
       const key = `${petitionId}/delivered/${Date.now()}-${file.name}`;
+      const contentType = guessContentTypeByName(file.name, file.type);
       
       const { error: upErr, data: uploadData } = await supabase.storage
         .from(BUCKET)
-        .upload(key, file, { upsert: true, contentType: file.type || undefined });
+        .upload(key, file, { upsert: true, contentType });
       
       if (upErr) {
         console.error('❌ Erro no upload do Storage:', upErr);
@@ -532,7 +552,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         petition_id: petitionId,
         file_name: file.name,
         file_url: urlData.publicUrl,
-        file_type: file.type || 'application/octet-stream',
+        file_type: contentType,
         file_size: file.size,
         uploaded_by: user.uid
       };
@@ -621,10 +641,11 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
         const timestamp = Date.now();
         const safeName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const key = `${petitionId}_${timestamp}_${safeName}`;
+        const contentType = guessContentTypeByName(selectedFile.name, selectedFile.type);
         
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
-          .upload(key, selectedFile, { upsert: true, contentType: selectedFile.type || undefined });
+          .upload(key, selectedFile, { upsert: true, contentType });
         
         if (upErr) {
           console.error('❌ Erro no upload do Storage:', upErr);
@@ -641,7 +662,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           petition_id: petitionId,
           file_name: selectedFile.name,
           file_url: urlData.publicUrl,
-          file_type: selectedFile.type || 'application/octet-stream',
+          file_type: contentType,
           file_size: selectedFile.size,
           uploaded_by: user.uid
         });

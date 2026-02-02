@@ -35,6 +35,37 @@ import { signOut } from 'firebase/auth';
 
 const BUCKET = 'petitions_correction_writer';
 
+// ✅ Forçar download (sem abrir aba) mesmo se o Content-Type do Storage vier errado
+async function forceDownload(url: string, filename?: string) {
+  if (!url) return;
+  const downloadUrl = url.includes('?') ? `${url}&download=1` : `${url}?download=1`;
+
+  try {
+    const res = await fetch(downloadUrl, { credentials: 'omit' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || 'arquivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: deixa o navegador lidar (respeita Content-Disposition do download=1 quando disponível)
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename || 'arquivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
 const correctionStatusLabels: Record<string, string> = {
   pending: 'Aguardando revisão',
   in_progress: 'Em correção',
@@ -1643,7 +1674,7 @@ export default function MyPetitions() {
                                                 size="sm"
                                                 variant="outline"
                                                 className={isLatest ? 'border-orange-300 hover:bg-orange-100' : ''}
-                                                onClick={() => window.open(file.file_url, '_blank')}
+                                                onClick={() => forceDownload(file.file_url, file.file_name)}
                                               >
                                                 <Download className="h-4 w-4" />
                                               </Button>
@@ -1672,7 +1703,7 @@ export default function MyPetitions() {
                                               size="sm"
                                               variant="outline"
                                               className="border-orange-300 hover:bg-orange-100"
-                                              onClick={() => window.open(file.file_url, '_blank')}
+                                              onClick={() => forceDownload(file.file_url, file.file_name)}
                                             >
                                               <Download className="h-4 w-4" />
                                             </Button>

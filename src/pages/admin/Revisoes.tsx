@@ -14,6 +14,37 @@ import { CalculatorExportService } from '@/services/calculatorExportService';
 import { EmailService } from '@/services/emailService';
 import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
 
+// ✅ Forçar download (sem abrir aba) mesmo se o Content-Type do Storage vier errado
+async function forceDownload(url: string, filename?: string) {
+  if (!url) return;
+  const downloadUrl = url.includes('?') ? `${url}&download=1` : `${url}?download=1`;
+
+  try {
+    const res = await fetch(downloadUrl, { credentials: 'omit' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename || 'arquivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: deixa o navegador lidar (respeita Content-Disposition do download=1 quando disponível)
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename || 'arquivo';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
 // ✅ CORREÇÃO CRÍTICA: Suprimir aviso de múltiplas instâncias ANTES de criar qualquer cliente
 if (typeof window !== 'undefined' && !(window as any).__SUPPRESS_GT_CLIENT_WARNING) {
   (window as any).__SUPPRESS_GT_CLIENT_WARNING = true;
@@ -339,15 +370,28 @@ export default function Revisoes() {
       }
 
       const adminClient = getAdminClient();
-      
-      // ✅ OTIMIZAÇÃO: Paralelizar queries (petição, arquivos, correções)
-      const [petitionResult, filesResult, correctionsResult] = await Promise.all([
-        // Buscar petição
-        adminClient
+
+      // ✅ Robustez: algumas colunas variam entre ambientes. Tentar select "completo" e cair para select('*') se der erro.
+      const fetchPetition = async () => {
+        const primary = await adminClient
           .from('petitions')
           .select('id, title, type, status, client_id, assigned_writer_id, client_name, writer_name, price, description, delivered_file, calculation_id, created_at, deadline, updated_at')
           .eq('id', corr.petition_id)
-          .single(),
+          .single();
+
+        if (!primary?.error) return primary;
+
+        return await adminClient
+          .from('petitions')
+          .select('*')
+          .eq('id', corr.petition_id)
+          .single();
+      };
+      
+      // ✅ OTIMIZAÇÃO: Paralelizar queries (petição, arquivos, correções)
+      const [petitionResult, filesResult, correctionsResult] = await Promise.all([
+        // Buscar petição (com fallback)
+        fetchPetition(),
         
         // Buscar arquivos via adminClient (bypass RLS)
         adminClient
@@ -450,7 +494,7 @@ export default function Revisoes() {
     try {
       const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60);
       if (error || !data?.signedUrl) throw error || new Error('URL não gerada');
-      window.open(data.signedUrl, '_blank');
+      await forceDownload(data.signedUrl, 'arquivo');
     } catch (err) {
       console.error(err);
       toast.error('Falha ao gerar download.');
@@ -1045,11 +1089,11 @@ export default function Revisoes() {
                                           // Verificar se é uma URL do Supabase Storage
                                           if (f.file_url.includes('/storage/v1/object/public/')) {
                                             // URL pública, abrir diretamente
-                                            window.open(f.file_url, '_blank');
+                                            await forceDownload(f.file_url, f.file_name);
                                             return;
                                           } else if (f.file_url.includes('/storage/v1/object/sign/')) {
                                             // URL já assinada, usar diretamente
-                                            window.open(f.file_url, '_blank');
+                                            await forceDownload(f.file_url, f.file_name);
                                             return;
                                           }
                                         }
@@ -1092,15 +1136,15 @@ export default function Revisoes() {
                                           if (error) {
                                             console.error('Erro ao gerar URL assinada:', error);
                                             // Fallback: tentar abrir URL original
-                                            window.open(f.file_url, '_blank');
+                                            await forceDownload(f.file_url, f.file_name);
                                             return;
                                           }
                                           
-                                          window.open(data.signedUrl, '_blank');
+                                          await forceDownload(data.signedUrl, f.file_name);
                                         } catch (urlError) {
                                           console.error('Erro ao processar URL:', urlError);
                                           // Fallback: tentar abrir URL original
-                                          window.open(f.file_url, '_blank');
+                                          await forceDownload(f.file_url, f.file_name);
                                         }
                                       } catch (err) {
                                         console.error('Erro no download:', err);

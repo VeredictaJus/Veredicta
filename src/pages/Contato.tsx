@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, MapPin, Send, MessageSquare, CheckCircle, AlertCircle } from 'lucide-react';
-import logoImage from '@/assets/images/veredicta-logo.png';
+import Logo from '@/components/ui/Logo';
 import { EmailService } from '@/services/emailService';
 
 export default function Contato() {
@@ -76,33 +76,32 @@ export default function Contato() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 max-w-screen-2xl">
+    <div className="min-h-screen bg-white text-gray-900 pt-20">
+      {/* Header (padronizado + fixo) */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900 shadow-lg">
+        <div className="w-full px-6 lg:px-12 xl:px-16 py-4">
           <div className="flex flex-nowrap items-center justify-between w-full gap-2">
-            <div className="flex items-center cursor-pointer shrink-0" onClick={() => navigate('/')}>
-              <img src={logoImage} alt="Veredicta" className="h-6 sm:h-8 w-auto mr-2 sm:mr-3" />
-              <span className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">Veredicta</span>
+            <div className="flex items-center shrink-0 cursor-pointer" onClick={() => navigate('/')}>
+              <Logo size="xl" clickable={false} textColor="light" />
             </div>
             <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="outline"
+                className="bg-white text-slate-900 border-gray-300 hover:bg-gray-100 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/auth/login')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
               >
-                Login
+                Entrar
               </Button>
-              <Button 
+              <Button
+                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/auth/register')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
               >
-                Cadastrar
+                Cadastrar-se
               </Button>
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-orange-600 to-orange-800 text-white py-20">

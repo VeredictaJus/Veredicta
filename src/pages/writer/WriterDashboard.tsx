@@ -502,7 +502,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
               <div>
                 <div className="text-2xl font-bold">{dashboardStats.rating.toFixed(1)}</div>
                 <p className="text-xs text-muted-foreground">
-                  {dashboardStats.totalRatings} avaliação{dashboardStats.totalRatings !== 1 ? 'ões' : ''}
+                  {dashboardStats.totalRatings} avaliação(ões)
                 </p>
               </div>
             )}

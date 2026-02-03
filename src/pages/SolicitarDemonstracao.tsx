@@ -12,6 +12,17 @@ import { EmailService } from '@/services/emailService'
 type VolumeOption = 'ate_20' | '21_50' | '51_100' | 'mais_100'
 const WHATSAPP_PHONE_NUMBER = '5544997271991' // (44) 99727-1991 sem caracteres especiais
 
+function formatBrazilPhone(input: string): string {
+  const digits = (input || '').replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 2) return digits
+  const ddd = digits.slice(0, 2)
+  const rest = digits.slice(2)
+
+  if (rest.length <= 4) return `(${ddd}) ${rest}`
+  if (rest.length <= 8) return `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`
+  return `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5, 9)}`
+}
+
 function parseUtmParams(): Record<string, string> {
   const fromSearch = new URLSearchParams(window.location.search || '')
   const hash = window.location.hash || ''
@@ -71,6 +82,7 @@ function isCorporateEmail(email: string): boolean {
 function buildDemoWhatsAppUrl(params: {
   nome: string
   email: string
+  celular: string
   empresa: string
   cargo: string
   volume: VolumeOption | ''
@@ -89,6 +101,7 @@ function buildDemoWhatsAppUrl(params: {
     `Olá! Gostaria de solicitar uma demonstração da Veredicta.\n\n` +
     `Nome: ${params.nome || '-'}\n` +
     `Email: ${params.email || '-'}\n` +
+    `Celular: ${params.celular || '-'}\n` +
     `Escritório/Empresa: ${params.empresa || '-'}\n` +
     `Cargo: ${params.cargo || '-'}\n` +
     `Volume mensal de petições: ${volumeText}\n` +
@@ -118,6 +131,7 @@ export default function SolicitarDemonstracao() {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
+    celular: '',
     empresa: '',
     cargo: '',
     volume: '' as VolumeOption | '',
@@ -167,6 +181,7 @@ export default function SolicitarDemonstracao() {
           <div style="border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; background: #f9fafb;">
             <p style="margin: 0 0 6px;"><strong>Nome:</strong> ${formData.nome}</p>
             <p style="margin: 0 0 6px;"><strong>Email corporativo:</strong> ${emailTrim}</p>
+            <p style="margin: 0 0 6px;"><strong>Celular:</strong> ${formData.celular || '-'}</p>
             <p style="margin: 0 0 6px;"><strong>Escritório/Empresa:</strong> ${formData.empresa}</p>
             <p style="margin: 0 0 6px;"><strong>Cargo:</strong> ${formData.cargo}</p>
             <p style="margin: 0;"><strong>Volume mensal de petições:</strong> ${volumeLabel(formData.volume as VolumeOption)}</p>
@@ -210,7 +225,7 @@ export default function SolicitarDemonstracao() {
         type: 'success',
         message: 'Solicitação enviada com sucesso! Nossa equipe entrará em contato para orientar os próximos passos.',
       })
-      setFormData({ nome: '', email: '', empresa: '', cargo: '', volume: '' })
+      setFormData({ nome: '', email: '', celular: '', empresa: '', cargo: '', volume: '' })
     } catch {
       setSubmitStatus({ type: 'error', message: 'Erro inesperado. Tente novamente.' })
     } finally {
@@ -276,7 +291,6 @@ export default function SolicitarDemonstracao() {
                     <ShieldCheck className="h-5 w-5 text-orange-600" />
                     Atendemos exclusivamente
                   </CardTitle>
-                  <CardDescription>Este filtro é importante para garantir aderência ao perfil atendido.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -365,6 +379,17 @@ export default function SolicitarDemonstracao() {
                     <p className="text-xs text-gray-500">
                       Preferimos e-mail corporativo. Se você não tiver, pode solicitar a demonstração pelo WhatsApp no link abaixo.
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Celular (WhatsApp)</Label>
+                    <Input
+                      type="tel"
+                      value={formData.celular}
+                      onChange={(e) => setFormData((s) => ({ ...s, celular: formatBrazilPhone(e.target.value) }))}
+                      placeholder="(11) 91234-5678"
+                      autoComplete="tel"
+                    />
                   </div>
 
                   <div className="space-y-2">

@@ -323,6 +323,13 @@ export default function LandingPage() {
               >
                 Entrar
               </Button>
+              <Button
+                variant="outline"
+                className="bg-transparent text-white border-white/60 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
+                onClick={() => navigate('/solicitar-demonstracao')}
+              >
+                Solicitar demonstração
+              </Button>
               <Button 
                 className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/auth/register')}

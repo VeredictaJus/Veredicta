@@ -43,6 +43,7 @@ import GuiaIniciante from '@/pages/GuiaIniciante'
 import Seguranca from '@/pages/Seguranca'
 import Status from '@/pages/Status'
 import Contato from '@/pages/Contato'
+import SolicitarDemonstracao from '@/pages/SolicitarDemonstracao'
 
 /* ==== Artigos ==== */
 import ComoSolicitarPrimeiraPeticao from '@/pages/artigos/ComoSolicitarPrimeiraPeticao'
@@ -259,6 +260,7 @@ function AppRoutesContent() {
           <Route path="/seguranca" element={<Seguranca />} />
           <Route path="/status" element={<Status />} />
           <Route path="/contato" element={<Contato />} />
+          <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
           {/* Artigos */}
           <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
           <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />
@@ -295,6 +297,7 @@ function AppRoutesContent() {
           <Route path="/seguranca" element={<Seguranca />} />
           <Route path="/status" element={<Status />} />
           <Route path="/contato" element={<Contato />} />
+          <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
           {/* Artigos */}
           <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
           <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />

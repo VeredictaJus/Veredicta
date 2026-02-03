@@ -94,7 +94,14 @@ export class EmailService {
         })
       });
 
-      const result = await response.json();
+      // Nem toda API retorna JSON válido em erros (ou 204/empty body). Não deixe isso quebrar o fluxo.
+      const rawText = await response.text();
+      let result: any = null;
+      try {
+        result = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        result = rawText ? { raw: rawText } : null;
+      }
 
       if (!response.ok) {
         console.error('❌ Erro ao enviar email:', result);

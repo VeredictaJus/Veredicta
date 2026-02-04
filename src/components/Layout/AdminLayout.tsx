@@ -54,7 +54,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           subtitle={meta.subtitle}
           onToggleSidebar={() => setOpen(true)}
         />
-        <div className={isChatPage && !isSupportChatPage ? "pt-20 px-6 flex-1 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
+        <div className={isChatPage && !isSupportChatPage ? "pt-20 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
           {content}
         </div>
       </main>

@@ -24,7 +24,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       {/* Conteúdo Principal */}
       <main className="flex-1 flex flex-col ml-0 lg:ml-64">
         <Header onToggleSidebar={() => setSidebarOpen(true)} />
-        <div className={isChatPage ? "pt-20 px-6 flex-1 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
+        <div className={isChatPage ? "pt-20 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
           {content}
         </div>
       </main>

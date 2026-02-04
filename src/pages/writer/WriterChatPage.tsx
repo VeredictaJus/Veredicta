@@ -4,7 +4,7 @@ import WriterChatNotification from './WriterChatNotification';
 
 export default function WriterChatPage() {
   return (
-    <div className="h-[82vh] flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
       <div className="flex items-center justify-between pb-4 pt-4 flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Chat</h1>

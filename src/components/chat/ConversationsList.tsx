@@ -534,8 +534,8 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
       <Separator />
 
       {/* Conversations List */}
-      <CardContent className="bg-container-inner rounded-b-lg flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-[400px] overflow-hidden">
+      <CardContent className="bg-container-inner rounded-b-lg flex-1 min-h-0 p-0 overflow-hidden">
+        <ScrollArea className="h-full overflow-hidden">
           {isLoading ? (
             <div className="p-4 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>

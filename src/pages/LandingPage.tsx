@@ -337,6 +337,17 @@ export default function LandingPage() {
                 Cadastrar-se
               </Button>
             </div>
+
+            {/* CTA no mobile (2ª linha) */}
+            <div className="w-full sm:hidden">
+              <Button
+                variant="outline"
+                className="w-full bg-transparent text-white border-white/60 hover:bg-white/10 text-sm"
+                onClick={() => navigate('/solicitar-demonstracao')}
+              >
+                Solicitar demonstração
+              </Button>
+            </div>
           </div>
         </div>
       </header>

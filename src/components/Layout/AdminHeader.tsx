@@ -70,7 +70,7 @@ export default function AdminHeader({ title, subtitle, onToggleSidebar }: Props)
 
   return (
     <header className="fixed top-0 right-0 left-0 lg:left-64 z-40 bg-background border-b border-border h-20">
-      <div className="flex items-center h-full px-6">
+      <div className="flex items-center h-full px-4 sm:px-6 min-w-0">
         {/* Menu (mobile) */}
         {onToggleSidebar && (
           <button
@@ -84,10 +84,15 @@ export default function AdminHeader({ title, subtitle, onToggleSidebar }: Props)
         )}
 
         {/* Título */}
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{title}</h1>
+          {subtitle ? (
+            <p className="hidden sm:block text-xs text-muted-foreground truncate">{subtitle}</p>
+          ) : null}
+        </div>
 
         {/* Direita */}
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2 sm:gap-4">
           {/* Tema */}
           <SimpleThemeToggle className="rounded-md p-2 hover:bg-muted transition" />
 
@@ -113,7 +118,7 @@ export default function AdminHeader({ title, subtitle, onToggleSidebar }: Props)
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-[360px] p-0">
+            <PopoverContent align="end" className="w-[92vw] max-w-[360px] p-0">
               <NotificationDropdown onSeeAll={() => setNotifOpen(false)} />
             </PopoverContent>
           </Popover>
@@ -121,9 +126,9 @@ export default function AdminHeader({ title, subtitle, onToggleSidebar }: Props)
           {/* Usuário */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
+              <Button variant="ghost" className="flex items-center space-x-2 px-2 sm:px-3">
                 <UserAvatar size="md" />
-                <div className="text-left">
+                <div className="hidden sm:block text-left">
                   <div className="text-sm font-medium">{getDisplayName()}</div>
                   <div className="text-xs text-muted-foreground">{getRoleLabel()}</div>
                 </div>

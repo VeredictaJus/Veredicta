@@ -311,11 +311,11 @@ export default function LandingPage() {
       {/* Header */}
       <header className="bg-slate-900 shadow-lg">
         <div className="w-full px-6 lg:px-12 xl:px-16 py-4">
-          <div className="flex flex-nowrap items-center justify-between w-full gap-2">
+          <div className="flex flex-wrap items-center justify-between w-full gap-2">
             <div className="flex items-center shrink-0">
               <Logo size="xl" clickable={false} textColor="light" />
             </div>
-            <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto justify-end">
               <Button 
                 variant="outline" 
                 className="bg-white text-slate-900 border-gray-300 hover:bg-gray-100 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
@@ -325,7 +325,7 @@ export default function LandingPage() {
               </Button>
               <Button
                 variant="outline"
-                className="bg-transparent text-white border-white/60 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
+                className="hidden sm:inline-flex bg-transparent text-white border-white/60 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/solicitar-demonstracao')}
               >
                 Solicitar demonstração

@@ -7,6 +7,9 @@ interface NotificationOptions {
   requireInteraction?: boolean;
 }
 
+const TAB_FAVICON_TRANSPARENT =
+  'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
+
 class NotificationManager {
   private permission: NotificationPermission = 'default';
   private audioContext: AudioContext | null = null;
@@ -120,7 +123,8 @@ class NotificationManager {
     if (!favicon) return;
 
     if (count === 0) {
-      favicon.href = '/images/notification.jpg';
+      // Volta para o favicon transparente (ícone da aba), sem mexer no HTML base.
+      favicon.href = TAB_FAVICON_TRANSPARENT;
       return;
     }
 

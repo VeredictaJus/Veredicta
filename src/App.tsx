@@ -1,5 +1,5 @@
 /* @ts-nocheck */
-import React from 'react'
+import React, { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
@@ -325,6 +325,23 @@ function AppRoutes() {
 }
 
 const App = () => {
+  useEffect(() => {
+    // Troca SOMENTE o ícone da aba (favicon) no navegador do usuário.
+    // Mantém o favicon do HTML (útil para Google/SEO) sem mudanças.
+    const TAB_FAVICON_TRANSPARENT =
+      'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png'
+
+    const links = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]')
+    links.forEach((link) => {
+      try {
+        link.setAttribute('href', TAB_FAVICON_TRANSPARENT)
+        link.setAttribute('type', 'image/png')
+      } catch {
+        // no-op
+      }
+    })
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

@@ -1377,19 +1377,20 @@ export default function MyPetitions() {
           </div>
         </CardHeader>
         <CardContent className="bg-container-inner rounded-b-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Petição</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Redator</TableHead>
-                <TableHead>Prazo</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Petição</TableHead>
+                  <TableHead className="hidden md:table-cell">Tipo</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Prioridade</TableHead>
+                  <TableHead className="hidden lg:table-cell">Redator</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {isLoadingPetitions ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
@@ -1454,20 +1455,36 @@ export default function MyPetitions() {
                         <div className="text-sm text-muted-foreground">
                           Criada em {new Date(petition.created_at).toLocaleDateString('pt-BR')}
                         </div>
+                        {/* Resumo mobile */}
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground md:hidden">
+                          <div>
+                            <span className="font-medium text-foreground/80">Tipo:</span> {petition.type}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground/80">Prioridade:</span>
+                            <Badge className={priorityConfig[petition.priority].color}>
+                              {priorityConfig[petition.priority].label}
+                            </Badge>
+                          </div>
+                          <div className="lg:hidden">
+                            <span className="font-medium text-foreground/80">Redator:</span>{' '}
+                            {truncateLongName(petition.writer_name) || 'Não atribuído'}
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell>{petition.type}</TableCell>
+                      <TableCell className="hidden md:table-cell">{petition.type}</TableCell>
                       <TableCell>
                         <Badge className={statusConfig[petition.status].color}>
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {statusConfig[petition.status].label}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge className={priorityConfig[petition.priority].color}>
                           {priorityConfig[petition.priority].label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="truncate max-w-[200px]" title={petition.writer_name || 'Não atribuído'}>
+                      <TableCell className="hidden lg:table-cell truncate max-w-[200px]" title={petition.writer_name || 'Não atribuído'}>
                         {truncateLongName(petition.writer_name) || 'Não atribuído'}
                       </TableCell>
                       <TableCell>{new Date(petition.deadline).toLocaleDateString('pt-BR')}</TableCell>
@@ -1989,8 +2006,9 @@ export default function MyPetitions() {
                   );
                 })
               )}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

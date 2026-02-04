@@ -69,8 +69,20 @@ export default function AdminHeader({ title, subtitle, onToggleSidebar }: Props)
   };
 
   return (
-    <header className="fixed top-0 right-0 left-64 z-40 bg-background border-b border-border h-20">
+    <header className="fixed top-0 right-0 left-0 lg:left-64 z-40 bg-background border-b border-border h-20">
       <div className="flex items-center h-full px-6">
+        {/* Menu (mobile) */}
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="lg:hidden mr-3 rounded-md p-2 hover:bg-muted transition"
+            aria-label="Abrir menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
+
         {/* Título */}
         <h1 className="text-xl font-semibold text-foreground">{title}</h1>
 

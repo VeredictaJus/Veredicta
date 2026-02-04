@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
       <AdminSidebar open={open} onClose={() => setOpen(false)} />
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 flex flex-col ml-64">
+      <main className="flex-1 flex flex-col ml-0 lg:ml-64">
         <AdminHeader
           title={meta.title}
           subtitle={meta.subtitle}

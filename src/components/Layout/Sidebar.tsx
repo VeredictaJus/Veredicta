@@ -3,6 +3,7 @@ import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useLocation, Link } from 'react-router-dom';
 import Logo from '@/components/ui/Logo';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Home, FileText, CreditCard, Settings, Users,
   BarChart3, Briefcase, DollarSign, Clock,
@@ -39,10 +40,17 @@ const adminNavItems = [
   { icon: Settings, label: 'Configurações', href: '/admin/settings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  open = false,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+}) {
   const { user } = useNewAuth();
   const { isDisabled, disabledReason } = useSidebar();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const getNavItems = () => {
     switch (user?.role) {
@@ -60,58 +68,72 @@ export default function Sidebar() {
       e.preventDefault();
       return;
     }
+    if (isMobile) onClose?.();
   };
 
   return (
-    <div className="fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm">
-      {/* Logo Section - Padronizado como WriterLayout */}
-      <div className="p-6 border-b border-border">
-        <Logo size="md" textSize="xl" align="center" />
-      </div>
+    <>
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 bg-black/30 z-40 lg:hidden transition-opacity ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
-      {/* Aviso de sidebar desabilitado */}
-      {isDisabled && (
-        <div className="mx-6 mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <Lock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
-              Finalizando pagamento...
-            </span>
-          </div>
-          <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-            Complete o pagamento para continuar navegando
-          </p>
+      <aside
+        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm transition-transform duration-200 lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Logo Section - Padronizado como WriterLayout */}
+        <div className="p-6 border-b border-border">
+          <Logo size="md" textSize="xl" align="center" />
         </div>
-      )}
 
-      {/* Menu Section - Padronizado como WriterLayout */}
-      <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.href;
+        {/* Aviso de sidebar desabilitado */}
+        {isDisabled && (
+          <div className="mx-6 mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <Lock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <span className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                Finalizando pagamento...
+              </span>
+            </div>
+            <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+              Complete o pagamento para continuar navegando
+            </p>
+          </div>
+        )}
 
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={(e) => handleLinkClick(e, item.href)}
-              className={cn(
-                'flex items-center space-x-2 px-4 py-2 rounded-md transition-colors font-semibold',
-                isActive
-                  ? 'bg-primary/10 text-primary'
-                  : isDisabled
-                  ? 'text-muted-foreground/50 cursor-not-allowed opacity-50'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-              title={isDisabled ? 'Complete o pagamento para continuar navegando' : undefined}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
-              {isDisabled && <Lock className="h-3 w-3 ml-auto opacity-50" />}
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+        {/* Menu Section - Padronizado como WriterLayout */}
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                onClick={(e) => handleLinkClick(e, item.href)}
+                className={cn(
+                  'flex items-center space-x-2 px-4 py-2 rounded-md transition-colors font-semibold',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : isDisabled
+                    ? 'text-muted-foreground/50 cursor-not-allowed opacity-50'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+                title={isDisabled ? 'Complete o pagamento para continuar navegando' : undefined}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+                {isDisabled && <Lock className="h-3 w-3 ml-auto opacity-50" />}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }

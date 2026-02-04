@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, LogOut, Bell } from 'lucide-react';
+import { Menu, User, LogOut, Bell } from 'lucide-react';
 import { SimpleThemeToggle } from '@/components/ui/ThemeToggle';
 import { useNotifications, NotificationContext } from '@/contexts/NotificationContext';
 import { useContext } from 'react';
@@ -31,7 +31,7 @@ const useSafeNotifications = () => {
   return context;
 };
 
-export default function Header() {
+export default function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { user, logout } = useNewAuth();
   const { profile: userProfile } = useUser();
   const { avatarUrl } = useAvatar();
@@ -131,10 +131,22 @@ export default function Header() {
   };
 
   return (
-  <header className="fixed top-0 right-0 left-64 z-40 bg-background border-b border-border h-20 flex items-center">
-    <div className="flex items-center justify-between w-full px-6">
+  <header className="fixed top-0 right-0 left-0 lg:left-64 z-40 bg-background border-b border-border h-20 flex items-center">
+    <div className="flex items-center justify-between w-full px-4 sm:px-6">
       {/* Esquerda */}
-      <h1 className="text-xl font-semibold text-foreground">{getPageTitle()}</h1>
+      <div className="flex items-center gap-3 min-w-0">
+        {onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="lg:hidden rounded-md p-2 hover:bg-muted transition"
+            aria-label="Abrir menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
+        <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{getPageTitle()}</h1>
+      </div>
 
       {/* Direita */}
       <div className="flex items-center gap-4">

@@ -728,55 +728,73 @@ export default function AdminPetitions() {
         </CardHeader>
 
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Petição</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Redator</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Prazo</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((p) => {
-                const Icon = statusConfig[p.status].icon;
-                const d = daysLeft(p.deadline);
-                const isNumber = typeof d === 'number';
-                return (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <div className="font-medium">{p.title}</div>
-                      <div className="text-sm text-muted-foreground">{p.type}</div>
-                    </TableCell>
-                    <TableCell>{p.client_name}</TableCell>
-                    <TableCell>{p.writer_name || 'Não atribuído'}</TableCell>
-                    <TableCell>
-                      <Badge className={statusConfig[p.status].color}>
-                        <Icon className="h-3 w-3 mr-1" />
-                        {statusConfig[p.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={priorityConfig[p.priority].color}>
-                        {priorityConfig[p.priority].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>R$ {Number(p.price || 0).toLocaleString()}</TableCell>
-                    <TableCell>
-                      {p.deadline ? (
-                        <span className={isNumber && (d as number) <= 2 ? 'text-red-600 font-medium' : ''}>
-                          {new Date(p.deadline).toLocaleDateString('pt-BR')}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Petição</TableHead>
+                  <TableHead className="hidden md:table-cell">Cliente</TableHead>
+                  <TableHead className="hidden md:table-cell">Redator</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Prioridade</TableHead>
+                  <TableHead className="hidden lg:table-cell">Valor</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((p) => {
+                  const Icon = statusConfig[p.status].icon;
+                  const d = daysLeft(p.deadline);
+                  const isNumber = typeof d === 'number';
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell>
+                        <div className="font-medium">{p.title}</div>
+                        <div className="text-sm text-muted-foreground">{p.type}</div>
+                        {/* Resumo mobile */}
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground md:hidden">
+                          <div><span className="font-medium text-foreground/80">Cliente:</span> {p.client_name}</div>
+                          <div>
+                            <span className="font-medium text-foreground/80">Redator:</span>{' '}
+                            {p.writer_name || 'Não atribuído'}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground/80">Prioridade:</span>
+                            <Badge className={priorityConfig[p.priority].color}>
+                              {priorityConfig[p.priority].label}
+                            </Badge>
+                          </div>
+                          <div className="lg:hidden">
+                            <span className="font-medium text-foreground/80">Valor:</span> R$ {Number(p.price || 0).toLocaleString()}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{p.client_name}</TableCell>
+                      <TableCell className="hidden md:table-cell">{p.writer_name || 'Não atribuído'}</TableCell>
+                      <TableCell>
+                        <Badge className={statusConfig[p.status].color}>
+                          <Icon className="h-3 w-3 mr-1" />
+                          {statusConfig[p.status].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge className={priorityConfig[p.priority].color}>
+                          {priorityConfig[p.priority].label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">R$ {Number(p.price || 0).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {p.deadline ? (
+                          <span className={isNumber && (d as number) <= 2 ? 'text-red-600 font-medium' : ''}>
+                            {new Date(p.deadline).toLocaleDateString('pt-BR')}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
                         {/* Reatribuir / Atribuir */}
                         <Button 
                           variant="outline" 
@@ -868,11 +886,12 @@ export default function AdminPetitions() {
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

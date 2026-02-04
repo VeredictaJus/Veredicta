@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -37,6 +37,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
   const { user } = useNewAuth();
   const location = useLocation();
   const { canAccess, getBlockMessage, isSuspendedOrBlocked } = useSuspensionCheck();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Detectar se é a página de chat para aplicar layout especial
   const isChatPage = location.pathname.includes('/chat');
@@ -56,7 +57,19 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
   return (
     <div className={`flex ${isChatPage ? 'h-screen' : 'min-h-screen'} bg-background`}>
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm z-50">
+      {/* overlay no mobile */}
+      <div
+        onClick={() => setSidebarOpen(false)}
+        className={`fixed inset-0 bg-black/30 z-40 lg:hidden transition-opacity ${
+          sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      <aside
+        className={`fixed left-0 top-0 bottom-0 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm z-50 transition-transform duration-200 lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         {/* Logo Section - Separado com borda inferior */}
         <div className="p-6 border-b border-border">
           {(() => {
@@ -109,8 +122,8 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
       </aside>
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 flex flex-col ml-64">
-        <Header />
+      <main className="flex-1 flex flex-col ml-0 lg:ml-64">
+        <Header onToggleSidebar={() => setSidebarOpen(true)} />
         <div className={isChatPage ? "pt-20 px-6 flex-1 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
           {children}
         </div>

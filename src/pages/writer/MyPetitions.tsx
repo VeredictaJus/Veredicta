@@ -1055,32 +1055,42 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
           <p className="text-sm text-muted-foreground whitespace-nowrap">Acompanhe o progresso dos seus trabalhos</p>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Petição</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Progresso</TableHead>
-                <TableHead>Prazo</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {petitions.filter(p => p.status !== 'approved').map((petition) => {
-                const info = statusConfig[(petition.status as WriterStatus) || 'in_progress'];
-                const StatusIcon = info.icon;
-                const daysLeft = calculateDaysLeft(petition.deadline);
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Petição</TableHead>
+                  <TableHead className="hidden md:table-cell">Cliente</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Progresso</TableHead>
+                  <TableHead>Prazo</TableHead>
+                  <TableHead className="hidden lg:table-cell">Valor</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {petitions.filter(p => p.status !== 'approved').map((petition) => {
+                  const info = statusConfig[(petition.status as WriterStatus) || 'in_progress'];
+                  const StatusIcon = info.icon;
+                  const daysLeft = calculateDaysLeft(petition.deadline);
 
-                return (
-                  <TableRow key={petition.id}>
-                    <TableCell>
-                      <div className="font-medium">{petition.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {petition.display_id || `#${petition.id.substring(0, 8)}`} • {petition.type}
-                      </div>
-                      <div className="flex gap-2 mt-2">
+                  return (
+                    <TableRow key={petition.id}>
+                      <TableCell>
+                        <div className="font-medium">{petition.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {petition.display_id || `#${petition.id.substring(0, 8)}`} • {petition.type}
+                        </div>
+                        {/* Resumo mobile */}
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground md:hidden">
+                          <div>
+                            <span className="font-medium text-foreground/80">Cliente:</span> {truncateLongName(petition.client_name)}
+                          </div>
+                          <div className="lg:hidden">
+                            <span className="font-medium text-foreground/80">Valor:</span> R$ {(petition.price || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-2">
                         {(petition.status as string) === 'revision' && (
                           <Badge className="bg-orange-600 text-white text-xs animate-pulse">
                             <RefreshCcw className="h-3 w-3 mr-1" />
@@ -1100,33 +1110,33 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                           </Badge>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
-                    <TableCell>
-                      <Badge className={info.color}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {info.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="h-2 rounded-full bg-orange-600" style={{ width: `${calculateProgress(petition.status)}%` }} />
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
+                      <TableCell>
+                        <Badge className={info.color}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {info.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="h-2 rounded-full bg-orange-600" style={{ width: `${calculateProgress(petition.status)}%` }} />
+                          </div>
+                          <span className="text-sm text-muted-foreground">{calculateProgress(petition.status)}%</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{calculateProgress(petition.status)}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {petition.deadline ? (
-                        <span className={daysLeft !== null && daysLeft <= 2 ? 'text-red-600 font-medium' : ''}>
-                          {new Date(petition.deadline).toLocaleDateString('pt-BR')}
-                        </span>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell>R$ {(petition.price || 0).toLocaleString()}</TableCell>
+                      </TableCell>
+                      <TableCell>
+                        {petition.deadline ? (
+                          <span className={daysLeft !== null && daysLeft <= 2 ? 'text-red-600 font-medium' : ''}>
+                            {new Date(petition.deadline).toLocaleDateString('pt-BR')}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">R$ {(petition.price || 0).toLocaleString()}</TableCell>
 
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
                         {petition.requires_labor_calculation && !petition.calculation_id && (
                           <Button
                             variant="default"
@@ -1397,12 +1407,13 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                           <MessageSquare className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -1419,18 +1430,19 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
               <p className="text-muted-foreground">Nenhuma petição concluída ainda</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Petição</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Prazo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Petição</TableHead>
+                    <TableHead className="hidden md:table-cell">Cliente</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Prazo</TableHead>
+                    <TableHead className="hidden lg:table-cell">Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {petitions
                   .filter(p => p.status === 'approved')
                   .map((petition) => {
@@ -1442,6 +1454,15 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                         <TableCell>
                           <div className="font-medium">{petition.title}</div>
                           <div className="text-sm text-muted-foreground">{petition.type}</div>
+                          {/* Resumo mobile */}
+                          <div className="mt-2 space-y-1 text-xs text-muted-foreground md:hidden">
+                            <div>
+                              <span className="font-medium text-foreground/80">Cliente:</span> {truncateLongName(petition.client_name)}
+                            </div>
+                            <div className="lg:hidden">
+                              <span className="font-medium text-foreground/80">Valor:</span> R$ {(petition.price || 0).toLocaleString()}
+                            </div>
+                          </div>
                           {petition.calculation_id && (
                             <Badge className="bg-green-500 text-white text-xs mt-1">
                               <Calculator className="h-3 w-3 mr-1" />
@@ -1449,7 +1470,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
+                        <TableCell className="hidden md:table-cell truncate max-w-[200px]" title={petition.client_name}>{truncateLongName(petition.client_name)}</TableCell>
                         <TableCell>
                           <Badge className={info.color}>
                             <StatusIcon className="h-3 w-3 mr-1" />
@@ -1461,7 +1482,7 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                             ? new Date(petition.deadline).toLocaleDateString('pt-BR')
                             : 'Sem prazo'}
                         </TableCell>
-                        <TableCell>R$ {(petition.price || 0).toLocaleString()}</TableCell>
+                        <TableCell className="hidden lg:table-cell">R$ {(petition.price || 0).toLocaleString()}</TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-2">
                             {/* Ver Detalhes */}
@@ -1560,8 +1581,9 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                       </TableRow>
                     );
                   })}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

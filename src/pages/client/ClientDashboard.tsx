@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Eye, FileText, CreditCard, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { PetitionUsageCard } from '@/components/dashboard/PetitionUsageCard';
 import { toast } from 'sonner';
@@ -57,6 +57,7 @@ export default function ClientDashboard() {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [showNewClientWelcomeModal, setShowNewClientWelcomeModal] = useState(false);
   const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
   const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
   const activationHandledRef = useRef(false);
@@ -77,13 +78,12 @@ export default function ClientDashboard() {
       return;
     }
     
-    // Garantir que a URL sempre seja /client (não /admin ou outra rota)
-    if (user?.role === 'client' && window.location.pathname !== '/client') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const newUrl = urlParams.toString() ? `/client?${urlParams.toString()}` : '/client';
-      window.history.replaceState({}, '', newUrl);
+    // HashRouter: não usar window.location.pathname/search aqui (são da URL real, não do hash).
+    // Se por algum motivo chegarmos com rota diferente, normalize via navigate.
+    if (user?.role === 'client' && location.pathname !== '/client') {
+      navigate(`/client${location.search || ''}`, { replace: true });
     }
-  }, [user?.role, user?.uid, navigate]);
+  }, [user?.role, user?.uid, navigate, location.pathname, location.search]);
 
   useEffect(() => {
     // ✅ CORREÇÃO CRÍTICA: Verificar role ANTES de processar pagamento
@@ -93,7 +93,7 @@ export default function ClientDashboard() {
     }
 
     // Verificar retorno do Stripe e atualizar plano automaticamente
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(location.search);
     const activateToken = urlParams.get('activate_token');
     // Aceitar ambos os formatos: payment=success OU success=true
     const paymentSuccess = urlParams.get('payment') === 'success' || urlParams.get('success') === 'true';
@@ -111,7 +111,7 @@ export default function ClientDashboard() {
       });
       toast.error('Erro: Pagamento não corresponde ao usuário logado. Redirecionando...');
       // Limpar URL e redirecionar para planos
-      window.history.replaceState({}, '', '/client/plans');
+      navigate('/client/plans', { replace: true });
       return;
     }
     
@@ -142,7 +142,7 @@ export default function ClientDashboard() {
           toast.error(err?.message || 'Não foi possível concluir a ativação.');
         } finally {
           // Limpar URL (evita reprocessar se o usuário atualizar)
-          window.history.replaceState({}, '', '/client');
+          navigate('/client', { replace: true });
           try {
             sessionStorage.removeItem('veredicta.pilot_activation_token');
           } catch {}
@@ -163,9 +163,9 @@ export default function ClientDashboard() {
     
     // Limpar URL após processar
     if (paymentSuccess || hasFreeBonus) {
-      window.history.replaceState({}, '', '/client');
+      navigate('/client', { replace: true });
     }
-  }, [user?.uid, user?.role, navigate]);
+  }, [user?.uid, user?.role, navigate, location.search]);
 
   // Detectar plano (para adaptar textos do modal em Concierge)
   useEffect(() => {

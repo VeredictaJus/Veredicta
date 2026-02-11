@@ -28,6 +28,7 @@ export default function PilotActivations() {
   const [creating, setCreating] = useState(false);
   const [rows, setRows] = useState<TokenRow[]>([]);
   const [search, setSearch] = useState('');
+  const [lastLink, setLastLink] = useState<string>('');
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -66,10 +67,20 @@ export default function PilotActivations() {
         p_admin_uid: user.uid,
       });
       if (error) throw error;
-      const token = (data as any)?.token as string | undefined;
+      const token =
+        (Array.isArray(data) ? (data as any[])?.[0]?.token : (data as any)?.token) as string | undefined;
       if (!token) throw new Error('Token não retornado.');
-      await navigator.clipboard.writeText(buildShareUrl(token));
-      toast.success('Link gerado e copiado.');
+      const link = buildShareUrl(token);
+      setLastLink(link);
+
+      // Clipboard pode falhar por permissão/política do navegador.
+      // Se falhar, ainda assim mostramos o link para cópia manual.
+      try {
+        await navigator.clipboard.writeText(link);
+        toast.success('Link gerado e copiado.');
+      } catch {
+        toast.success('Link gerado. Copie manualmente abaixo.');
+      }
       await load();
     } catch (err: any) {
       console.error(err);
@@ -117,6 +128,26 @@ export default function PilotActivations() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
+          {lastLink ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">Último link gerado</div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input value={lastLink} readOnly />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigator.clipboard.writeText(lastLink).then(
+                    () => toast.success('Link copiado.'),
+                    () => toast.error('Não foi possível copiar.')
+                  )}
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="ml-2">Copiar</span>
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="grid grid-cols-12 bg-muted/40 text-xs font-medium text-muted-foreground px-4 py-2">

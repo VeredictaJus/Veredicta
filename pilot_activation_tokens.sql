@@ -36,7 +36,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM public.user_profiles up
-    WHERE up.firebase_uid = p_admin_uid
+    WHERE upper(up.firebase_uid) = upper(p_admin_uid)
       AND up.role = 'admin'
       AND coalesce(up.is_active, true) = true
   ) THEN

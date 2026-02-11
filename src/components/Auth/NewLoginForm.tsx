@@ -401,7 +401,7 @@ export default function NewLoginForm() {
               variant="outline"
               onClick={handleGoogleClient}
               disabled={loading}
-              className="w-full border-gray-300 text-gray-900 hover:bg-gray-50"
+              className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
             >
               {loading ? (
                 <>

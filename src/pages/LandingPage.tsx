@@ -823,46 +823,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Como funciona a experiência */}
-      <section className="py-20 bg-white text-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Como funciona a experiência na Veredicta
-            </h2>
-            <p className="text-xl text-gray-600">
-              Clareza, previsibilidade e qualidade do pedido à entrega
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
-              <p className="text-base font-semibold text-gray-900 text-center">
-                Redação jurídica com checklist técnico
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
-              <p className="text-base font-semibold text-gray-900 text-center">
-                Acompanhamento do pedido à entrega
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
-              <p className="text-base font-semibold text-gray-900 text-center">
-                Comunicação clara e centralizada
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex items-center justify-center text-center min-h-[72px]">
-              <p className="text-base font-semibold text-gray-900 text-center">
-                Prazos definidos previamente
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4 text-center">

@@ -357,12 +357,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Mais peças. Menos horas. Com inteligência humana.
+              Alta demanda não precisa significar sobrecarga.
             </h1>
             <p className="text-xl text-orange-100 mb-8 max-w-3xl mx-auto">
-              Delegue a redação jurídica a especialistas humanos e foque no que só o advogado pode fazer.
-              <br />
-              Produza mais, com qualidade técnica e previsibilidade — sem contratar, sem treinar, sem sobrecarregar seu escritório.
+              A Veredicta estrutura e executa a produção de peças jurídicas com especialistas humanos, permitindo que escritórios cresçam com previsibilidade, controle e padrão técnico.
             </p>
             
             {/* Para quem é a Veredicta */}
@@ -373,34 +371,38 @@ export default function LandingPage() {
               </h2>
 
               <p className="text-slate-200 mb-4">
-                A Veredicta é para escritórios que já têm demanda, mas não querem crescer no caos.
+                A Veredicta é ideal para escritórios que já operam com volume — e precisam de estrutura para crescer.
               </p>
 
               <ul className="space-y-2 mb-5">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
-                  <span className="text-slate-200">Escritórios pequenos com alto volume</span>
+                  <span className="text-slate-200">Equipes com 3 ou mais advogados</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
-                  <span className="text-slate-200">Escritórios médios e grandes</span>
+                  <span className="text-slate-200">Volume recorrente de produção jurídica</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
-                  <span className="text-slate-200">Contencioso recorrente e prazos apertados</span>
+                  <span className="text-slate-200">Demandas repetitivas e prazos frequentes</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-orange-400 mt-0.5" />
+                  <span className="text-slate-200">Interesse em crescer com previsibilidade e controle</span>
                 </li>
               </ul>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <p className="text-white font-semibold">
-                  Se escrever peças está consumindo o tempo do advogado, você está no lugar certo.
+                  Se a produção de peças está limitando o crescimento do seu escritório, você está no lugar certo.
                 </p>
 
                 <Button
                   className="bg-orange-500 hover:bg-orange-600 text-white font-semibold whitespace-nowrap"
-                  onClick={() => navigate('/auth/register')}
+                  onClick={() => navigate('/solicitar-demonstracao')}
                 >
-                  Começar Agora
+                  Solicitar Avaliação Estratégica
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>

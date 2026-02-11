@@ -437,38 +437,38 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                Por que a Veredicta não é automação jurídica
+                Execução humana com responsabilidade técnica.
               </h2>
               <p className="text-lg text-gray-600">
-                Aqui você delega a redação com segurança: contexto, técnica e responsabilidade — com inteligência humana aplicada à rotina jurídica.
+                Produção jurídica estruturada com contexto, técnica e responsabilidade profissional.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">O que não é</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Nosso padrão de execução</h3>
                 <ul className="space-y-3 text-gray-700">
-                  <li className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
-                    <span>Não é IA</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                    <span>Produção realizada por especialistas humanos</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
-                    <span>Não é banco de modelos</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                    <span>Sem geração automática não supervisionada</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
-                    <span>Não é automação genérica</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                    <span>Sem banco genérico de modelos</span>
                   </li>
-                  <li className="flex gap-3">
-                    <span className="mt-2 h-2 w-2 rounded-full bg-gray-400 flex-shrink-0" />
-                    <span>Não é texto sem responsabilidade jurídica</span>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-orange-500 mt-0.5" />
+                    <span>Redação com responsabilidade técnica</span>
                   </li>
                 </ul>
               </div>
 
               <div className="bg-white rounded-2xl border border-orange-200 p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">O que é</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Como funciona na prática</h3>
                 <p className="text-gray-700 mb-4">
                   Inteligência humana aplicada à rotina jurídica.
                 </p>

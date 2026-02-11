@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Home,
   Users,
+  Link2,
   FileText,
   DollarSign,
   BarChart3,
@@ -24,6 +25,7 @@ type Item = {
 const navItems: Item[] = [
   { to: '/admin',            label: 'Dashboard',   icon: Home, exact: true },
   { to: '/admin/users',      label: 'Usuários',    icon: Users },
+  { to: '/admin/ativacoes',  label: 'Ativações',   icon: Link2 },
   { to: '/admin/writer-approval', label: 'Aprovação de Redatores', icon: UserCheck },
   { to: '/admin/peticoes',   label: 'Petições',    icon: FileText },
   { to: '/admin/pagamentos', label: 'Pagamentos',  icon: DollarSign },

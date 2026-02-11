@@ -18,6 +18,7 @@ export interface Petition {
   files_count: number;
   status: 'pending' | 'available' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'delivered' | 'rejected' | 'approved' | 'revision' | 'pending_review';
   assigned_writer_id?: string;
+  is_pilot?: boolean;
   requires_labor_calculation?: boolean;
   calculation_id?: string;
   created_at: string;
@@ -236,7 +237,7 @@ export class DatabaseService {
     // Allow only valid columns for 'petitions' table
     const allowed: (keyof Petition)[] = [
       'client_id', 'title', 'description', 'type', 'status', 'priority',
-      'price', 'deadline', 'assigned_writer_id'
+      'price', 'deadline', 'assigned_writer_id', 'is_pilot'
     ];
     
     // Campos extras que podem existir no banco mas não no tipo Petition
@@ -282,10 +283,29 @@ export class DatabaseService {
 
     if (error) {
       console.error('Error creating petition:', error);
+
+      // Compat: se a coluna is_pilot ainda não existe no banco, tentar novamente sem ela
+      const msg = (error as any)?.message || '';
+      const missingPilotColumn =
+        (error as any)?.code === '42703' ||
+        /column .*is_pilot.* does not exist/i.test(msg);
+      if (missingPilotColumn && 'is_pilot' in normalized) {
+        try {
+          const { is_pilot, ...withoutPilot } = normalized;
+          const retry = await supabase
+            .from('petitions')
+            .insert(withoutPilot)
+            .select()
+            .single();
+          if (!retry.error) return retry.data as any;
+        } catch {}
+      }
+
       // Fallback via RPC com SECURITY DEFINER (quando RLS bloqueia 42501)
       if ((error as any).code === '42501') {
         try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc('create_petition_public', {
+          // Tentar assinatura nova (com is_pilot) e, se não existir, cair para a antiga.
+          const baseArgs: any = {
             p_client_id: normalized.client_id,
             p_title: normalized.title,
             p_description: normalized.description,
@@ -295,8 +315,30 @@ export class DatabaseService {
             p_price: normalized.price ?? 0,
             p_deadline: normalized.deadline,
             p_assigned_writer_id: normalized.assigned_writer_id ?? null,
-            p_files: normalized.files ?? []
-          });
+            p_files: normalized.files ?? [],
+          };
+
+          let rpcData: any = null;
+          let rpcError: any = null;
+
+          // 1) tenta com p_is_pilot
+          const withPilot = { ...baseArgs, p_is_pilot: Boolean((normalized as any).is_pilot) };
+          const attempt1 = await supabase.rpc('create_petition_public', withPilot);
+          rpcData = attempt1.data;
+          rpcError = attempt1.error;
+
+          // 2) se falhou por assinatura/args, tenta sem p_is_pilot
+          const rpcMsg = String(rpcError?.message || '');
+          const signatureMismatch =
+            rpcError &&
+            (/could not find the function/i.test(rpcMsg) ||
+              /function .* does not exist/i.test(rpcMsg) ||
+              /No function matches the given name and argument types/i.test(rpcMsg));
+          if (signatureMismatch) {
+            const attempt2 = await supabase.rpc('create_petition_public', baseArgs);
+            rpcData = attempt2.data;
+            rpcError = attempt2.error;
+          }
 
           if (rpcError) {
             console.error('RPC create_petition_public failed:', rpcError);

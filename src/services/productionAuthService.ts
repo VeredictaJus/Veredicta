@@ -1,5 +1,12 @@
 // src/services/productionAuthService.ts
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
+import {
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  getAuth,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { EmailService } from './emailService'
 import { supabase } from '@/lib/supabaseClient' // Usar o cliente principal
@@ -70,6 +77,43 @@ class ProductionAuthService {
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no login:', error)
+      throw new Error(this.translateError(error.message))
+    }
+  }
+
+  /**
+   * Login com Google (restrito a CLIENTE).
+   * Cria perfil mínimo no Supabase na primeira autenticação.
+   */
+  async loginWithGoogleClient(): Promise<AuthUser> {
+    try {
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+
+      const { user: fbUser } = await signInWithPopup(auth, provider)
+      if (!fbUser) throw new Error('Falha na autenticação Google')
+
+      const email = fbUser.email || ''
+      if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
+
+      const profile = await this.getOrCreateProfile(fbUser.uid, email, 'client')
+      if (profile.role !== 'client') {
+        // Segurança: não permitir login Google em contas não-client
+        await signOut(auth).catch(() => {})
+        throw new Error('Acesso com Google disponível apenas para clientes.')
+      }
+
+      const authUser: AuthUser = {
+        uid: fbUser.uid,
+        email: profile.email,
+        role: profile.role,
+        profile,
+      }
+
+      this.currentUser = authUser
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no login com Google:', error)
       throw new Error(this.translateError(error.message))
     }
   }

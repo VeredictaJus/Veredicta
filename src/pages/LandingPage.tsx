@@ -233,7 +233,8 @@ export default function LandingPage() {
         'Execução por especialista dedicado',
         'Revisão técnica antes da entrega',
         'Atendimento estruturado por fluxo',
-        'Confidencialidade garantida (NDA)'
+        'Confidencialidade garantida (NDA)',
+        'Ciclo: 30 dias'
       ]
     },
     {
@@ -280,7 +281,7 @@ export default function LandingPage() {
         'Consulta direta com redator via plataforma',
         '3 peças bônus na renovação',
         'Acesso antecipado a novos recursos',
-        'Validade: 90 dias'
+        'Ciclo: 90 dias'
       ]
     }
   ];

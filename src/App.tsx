@@ -44,6 +44,7 @@ import Seguranca from '@/pages/Seguranca'
 import Status from '@/pages/Status'
 import Contato from '@/pages/Contato'
 import SolicitarDemonstracao from '@/pages/SolicitarDemonstracao'
+import AtivacaoPecaPiloto from '@/pages/AtivacaoPecaPiloto'
 
 /* ==== Artigos ==== */
 import ComoSolicitarPrimeiraPeticao from '@/pages/artigos/ComoSolicitarPrimeiraPeticao'
@@ -87,6 +88,7 @@ import Revisoes from '@/pages/admin/Revisoes'
 import ChatSuport from '@/pages/admin/ChatSuport'
 import ChatReports from '@/pages/admin/ChatReports'
 import WriterApproval from '@/pages/admin/WriterApproval'
+import PilotActivations from '@/pages/admin/PilotActivations'
 
 /* ==== Users ==== */
 import UsersPage from '@/pages/users/UsersPage'
@@ -228,6 +230,7 @@ function AppRoutesContent() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
+            <Route path="ativacoes" element={<PilotActivations />} />
             <Route path="peticoes" element={<AdminPetitions />} />
             <Route path="pagamentos" element={<AdminPayments />} />
             <Route path="relatorios" element={<Reports />} />
@@ -250,6 +253,7 @@ function AppRoutesContent() {
           <Route path="/test-email" element={<TestEmail />} />
           {/* Páginas públicas - acessíveis mesmo logado */}
           <Route path="/manual-redator" element={<ManualRedator />} />
+          <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
           <Route path="/termos" element={<Termos />} />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route path="/funcionalidades" element={<Funcionalidades />} />
@@ -287,6 +291,7 @@ function AppRoutesContent() {
           <Route path="/rejected" element={<Rejected />} />
           {/* Páginas públicas - acessíveis sem login */}
           <Route path="/manual-redator" element={<ManualRedator />} />
+          <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
           <Route path="/termos" element={<Termos />} />
           <Route path="/privacidade" element={<Privacidade />} />
           <Route path="/funcionalidades" element={<Funcionalidades />} />

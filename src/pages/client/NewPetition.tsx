@@ -22,6 +22,7 @@ import { UserSettingsService } from '@/services/userSettingsService';
 import { DatabaseService } from '@/services/databaseService';
 import { PlanNotificationService } from '@/services/planNotificationService';
 import { calculateBusinessDeadlineFromToday } from '@/utils/businessDays';
+import { isClientProfileComplete } from '@/utils/profileCompletion';
 
 // Areas do Direito
 const areasDireito = [
@@ -257,6 +258,58 @@ export default function NewPetition() {
     }
   }, [location]);
 
+  // Verificar se a petição piloto (free) já foi aprovada; se sim, exigir perfil completo para criar novas petições
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const state = location.state as any;
+    const isEditMode = state?.editMode && state?.petitionData;
+    if (isEditMode) return; // não bloquear edição
+
+    let alive = true;
+    (async () => {
+      try {
+        const { data: approvedPilot, error } = await supabase
+          .from('petitions')
+          .select('id')
+          .eq('client_id', user.uid)
+          .eq('is_pilot', true)
+          .eq('status', 'approved')
+          .limit(1)
+          .maybeSingle();
+
+        if (!alive) return;
+
+        // Se a coluna ainda não existir no banco, não bloquear (fail-open)
+        const msg = String((error as any)?.message || '');
+        const missingPilotColumn =
+          (error as any)?.code === '42703' || /column .*is_pilot.* does not exist/i.test(msg);
+        if (missingPilotColumn) return;
+
+        if (error) {
+          // Em caso de erro, não bloquear para evitar travar o usuário
+          return;
+        }
+
+        if (!approvedPilot?.id) return;
+
+        const settings = await UserSettingsService.getUserSettings(user.uid);
+        if (!alive) return;
+
+        if (!isClientProfileComplete(settings)) {
+          toast.error('Para continuar, complete seu cadastro (CPF/CNPJ, telefone e nome/empresa).');
+          navigate('/client/settings');
+        }
+      } finally {
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
+
   // Carregar plano do usuário
   useEffect(() => {
     const loadUserPlan = async () => {
@@ -363,6 +416,34 @@ export default function NewPetition() {
     setSubmitting(true);
     
     try {
+      // Gate: após aprovar a petição piloto (free), exigir perfil completo para criar novas petições
+      if (!isEditMode) {
+        try {
+          const { data: approvedPilot, error } = await supabase
+            .from('petitions')
+            .select('id')
+            .eq('client_id', user.uid)
+            .eq('is_pilot', true)
+            .eq('status', 'approved')
+            .limit(1)
+            .maybeSingle();
+
+          const msg = String((error as any)?.message || '');
+          const missingPilotColumn =
+            (error as any)?.code === '42703' || /column .*is_pilot.* does not exist/i.test(msg);
+          if (!missingPilotColumn && !error && approvedPilot?.id) {
+            const settings = await UserSettingsService.getUserSettings(user.uid);
+            if (!isClientProfileComplete(settings)) {
+              toast.error('Complete seu cadastro (CPF/CNPJ, telefone e nome/empresa) para continuar.');
+              navigate('/client/settings');
+              return;
+            }
+          }
+        } catch {
+          // fail-open
+        }
+      }
+
       // Pular validação de limite se estiver editando
       if (!isEditMode) {
         // Validate user limits
@@ -399,6 +480,8 @@ export default function NewPetition() {
         area: selectedArea, // Salvar área do direito
         type: selectedPetitionType?.name || selectedType,
         status: 'pending' as const, // valid status in table
+        // Petição piloto = petição Free (marcar na criação)
+        is_pilot: !isEditMode && String(userPlan || '').toLowerCase() === 'free',
         // normaliza prioridade para os valores aceitos pelo banco
         priority: (() => {
           const p = formData.priority.toLowerCase();

@@ -26,6 +26,7 @@ interface NewAuthContextType {
   user: AuthUser | null
   loading: boolean
   login: (email: string, password: string, roleHint?: UserRole) => Promise<void>
+  loginWithGoogleClient: () => Promise<AuthUser>
   register: (data: RegisterData) => Promise<AuthUser>
   logout: () => Promise<void>
   forgotPassword: (email: string) => Promise<void>
@@ -44,6 +45,7 @@ export const useNewAuth = () => {
       user: null,
       loading: true,
       login: async () => { throw new Error('Auth não inicializado') },
+      loginWithGoogleClient: async () => { throw new Error('Auth não inicializado') },
       register: async () => { throw new Error('Auth não inicializado') },
       logout: async () => { throw new Error('Auth não inicializado') },
       forgotPassword: async () => { throw new Error('Auth não inicializado') },
@@ -198,6 +200,20 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const loginWithGoogleClient = async () => {
+    setLoading(true)
+    try {
+      const authUser = await authService.loginWithGoogleClient()
+      setUser(authUser)
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no login com Google:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const register = async (data: RegisterData) => {
     setLoading(true)
     try {
@@ -285,6 +301,7 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     login,
+    loginWithGoogleClient,
     register,
     logout,
     forgotPassword,

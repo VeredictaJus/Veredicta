@@ -32,6 +32,7 @@ import { UserSettingsService } from '@/services/userSettingsService';
 import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
+import { isClientProfileComplete } from '@/utils/profileCompletion';
 
 const BUCKET = 'petitions_correction_writer';
 
@@ -89,6 +90,7 @@ interface Petition {
   correction_count?: number;
   correction_requested_at?: string;
   has_rating?: boolean;
+  is_pilot?: boolean;
 }
 
 const statusConfig = {
@@ -469,7 +471,8 @@ export default function MyPetitions() {
               files: petition.files || [],
               correction_count: petition.correction_count || 0,
               correction_requested_at: petition.correction_requested_at,
-              has_rating: petition.has_rating || false
+              has_rating: petition.has_rating || false,
+              is_pilot: Boolean(petition.is_pilot)
             };
           });
           
@@ -740,6 +743,19 @@ export default function MyPetitions() {
         }
 
         toast.success('Petição aprovada com sucesso!');
+
+        // Se for petição piloto (free), após aprovar torna obrigatório completar cadastro
+        if (petition.is_pilot) {
+          try {
+            const settings = await UserSettingsService.getUserSettings(user.uid);
+            if (!isClientProfileComplete(settings)) {
+              toast.error('Agora é necessário completar seu cadastro para continuar (CPF/CNPJ, telefone e nome/empresa).');
+              navigate('/client/settings');
+            }
+          } catch {
+            // fail-open
+          }
+        }
         return;
       }
     }
@@ -2067,6 +2083,21 @@ export default function MyPetitions() {
                 : p
             ));
             toast.success('Petição aprovada e avaliação enviada com sucesso!');
+
+            // Se for petição piloto (free), após aprovar torna obrigatório completar cadastro
+            if (selectedPetitionForRating.is_pilot && user?.uid) {
+              (async () => {
+                try {
+                  const settings = await UserSettingsService.getUserSettings(user.uid);
+                  if (!isClientProfileComplete(settings)) {
+                    toast.error('Agora é necessário completar seu cadastro para continuar (CPF/CNPJ, telefone e nome/empresa).');
+                    navigate('/client/settings');
+                  }
+                } catch {
+                  // fail-open
+                }
+              })();
+            }
           }}
         />
       )}

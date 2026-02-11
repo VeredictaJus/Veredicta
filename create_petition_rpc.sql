@@ -1,5 +1,7 @@
--- Função RPC para criar petições na tabela petitions (mesma tabela que a lista busca)
-create or replace function public.create_petition_public(
+-- Função RPC para criar petições na tabela `public.petitions`
+-- Canonical signature: IDs em TEXT (Firebase UID) + flag is_pilot
+
+CREATE OR REPLACE FUNCTION public.create_petition_public(
   p_client_id text,
   p_title text,
   p_description text,
@@ -9,18 +11,18 @@ create or replace function public.create_petition_public(
   p_price numeric default 0,
   p_deadline timestamp with time zone default now(),
   p_assigned_writer_id text default null,
-  p_files text[] default '{}'
+  p_files text[] default '{}',
+  p_is_pilot boolean default false
 )
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  new_petition json;
-begin
-  -- Inserir na tabela petitions (mesma tabela que a lista busca)
-  insert into petitions (
+RETURNS public.petitions
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  new_petition public.petitions;
+BEGIN
+  INSERT INTO public.petitions (
     client_id,
     title,
     description,
@@ -30,26 +32,29 @@ begin
     price,
     deadline,
     assigned_writer_id,
-    files
-  ) values (
-    p_client_id::uuid,
+    files,
+    is_pilot
+  ) VALUES (
+    p_client_id,
     p_title,
     p_description,
     p_type,
-    p_status,
-    p_priority,
+    lower(coalesce(p_status, 'pending')),
+    lower(coalesce(p_priority, 'normal')),
     p_price,
     p_deadline,
-    p_assigned_writer_id::uuid,
-    p_files
-  ) returning to_json(petitions.*) into new_petition;
-  
-  return new_petition;
-end;
+    p_assigned_writer_id,
+    p_files,
+    p_is_pilot
+  )
+  RETURNING * INTO new_petition;
+
+  RETURN new_petition;
+END;
 $$;
 
 -- Dar permissão para anon e authenticated
-grant execute on function public.create_petition_public(text, text, text, text, text, text, numeric, timestamp with time zone, text, text[]) to anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_petition_public(text, text, text, text, text, text, numeric, timestamp with time zone, text, text[], boolean) TO anon, authenticated;
 
 
 

@@ -1,18 +1,19 @@
 // src/components/auth/NewLoginForm.tsx
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Eye, EyeOff } from 'lucide-react'
+import { Chrome, Loader2, Mail, Eye, EyeOff } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
 
 export default function NewLoginForm() {
-  const { login } = useNewAuth()
+  const navigate = useNavigate()
+  const { login, loginWithGoogleClient } = useNewAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -66,6 +67,21 @@ export default function NewLoginForm() {
     } catch (err: any) {
       console.error('Login error:', err)
       setError(mapError(err?.message || ''))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleClient = async () => {
+    if (loading) return
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogleClient()
+      navigate('/client', { replace: true })
+    } catch (err: any) {
+      console.error('Google login error:', err)
+      setError(err?.message || 'Erro no login com Google')
     } finally {
       setLoading(false)
     }
@@ -379,6 +395,26 @@ export default function NewLoginForm() {
                 </Button>
               </div>
             </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleClient}
+              disabled={loading}
+              className="w-full border-gray-300 text-gray-900 hover:bg-gray-50"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                <>
+                  <Chrome className="mr-2 h-4 w-4" />
+                  Entrar com Google (Cliente)
+                </>
+              )}
+            </Button>
 
             <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700 text-white" disabled={loading}>
               {loading ? (

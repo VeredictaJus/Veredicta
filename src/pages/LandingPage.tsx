@@ -55,41 +55,27 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Função para lidar com assinatura de planos
-  const handleSubscribe = async (planName: string) => {
-    console.log('🔍 LandingPage.tsx - handleSubscribe CHAMADO com planName:', planName);
-    try {
-      // Mapear nomes dos planos para identificadores
-      const planMap: { [key: string]: string } = {
-        'Free': 'free',
-        'Start': 'start',
-        'Pro': 'pro', 
-        'Elite': 'elite'
-      };
+  const WHATSAPP_PHONE_NUMBER = '5544997271991'; // (44) 99727-1991 sem caracteres especiais
 
-      const planId = planMap[planName];
-      if (!planId) {
-        toast.error('Plano não encontrado');
-        return;
-      }
+  // CTA dos planos na landing: WhatsApp com mensagem
+  const handleSubscribe = (planName: string) => {
+    const messages: Record<string, string> = {
+      Start:
+        'Olá, gostaria de entender melhor o Plano Start e como estruturar a produção do meu escritório.',
+      Pro:
+        'Olá, tenho interesse no Plano Pro e gostaria de avaliar se ele é o mais adequado para o volume do meu escritório.',
+      Elite:
+        'Olá, gostaria de conversar sobre o Plano Elite e entender a estrutura avançada de produção.',
+    };
 
-      if (planId === 'free') {
-        // FREE: cadastro normal
-        navigate('/auth/register');
-      } else {
-        // Planos pagos: cadastro com plano desejado
-        const encodedPlan = encodeURIComponent(planId);
-        const url = `/auth/register?plan=${encodedPlan}`;
-        console.log('🔍 LandingPage.tsx - Navegando para:', url);
-        console.log('🔍 LandingPage.tsx - planId:', planId);
-        console.log('🔍 LandingPage.tsx - encodedPlan:', encodedPlan);
-        navigate(url);
-      }
-      
-    } catch (error) {
-      console.error('Erro ao processar assinatura:', error);
-      toast.error('Erro ao processar pagamento. Tente novamente.');
+    const message = messages[planName];
+    if (!message) {
+      toast.error('Plano não encontrado');
+      return;
     }
+
+    const url = `https://wa.me/${WHATSAPP_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const features = [
@@ -231,77 +217,70 @@ export default function LandingPage() {
 
   const plans = [
     {
-      name: 'Free',
-      displayName: 'Free',
-      price: 'Gratuito',
-      period: '',
-      petitions: '1 petição',
-      creditPrice: '',
-      badge: 'Gratuito',
-      badgeColor: 'bg-green-500',
-      warning: 'Uma vez por CPF ou CNPJ',
-      features: [
-        '1 petição gratuita',
-        'Entrega em 3-5 dias úteis',
-        '1 revisão gratuita',
-        'Consulta com redator e chat incluso',
-        'Confidencialidade garantida (NDA)'
-      ]
-    },
-    {
       name: 'Start',
-      displayName: 'Start',
+      displayName: 'Start – Estrutura Inicial de Produção',
       price: 'R$ 520',
       period: '/mês',
-      petitions: '4 petições',
-      creditPrice: 'R$ 130,00',
+      tagline: 'Ideal para escritórios em fase de organização da capacidade produtiva.',
+      warning: undefined,
+      creditPrice: '',
+      savings: undefined,
+      ctaLabel: 'Solicitar Proposta',
+      whatsAppMessage:
+        'Olá, gostaria de entender melhor o Plano Start e como estruturar a produção do meu escritório.',
       features: [
-        '4 petições incluídas',
-        'Até 3 dias úteis por entrega',
-        '1 revisão gratuita no pacote',
-        'Consulta com redator e chat incluso',
-        'Validade: 30 dias',
+        'Até 4 peças por ciclo',
+        'Execução por especialista dedicado',
+        'Revisão técnica antes da entrega',
+        'Atendimento estruturado por fluxo',
         'Confidencialidade garantida (NDA)'
       ]
     },
     {
       name: 'Pro',
-      displayName: 'Pro',
+      displayName: 'Pro – Capacidade Produtiva Recorrente',
       price: 'R$ 1.680',
       period: 'a cada 60 dias',
-      petitions: '14 petições',
-      creditPrice: 'R$ 120,00',
-      badge: 'Mais Popular',
+      tagline: 'Indicado para escritórios com volume contínuo e prazos frequentes.',
+      badge: 'Mais Contratado',
       badgeColor: 'bg-blue-500',
-      savings: 'Economia de R$ 10,00 por petição',
+      warning: undefined,
+      creditPrice: '',
+      savings: undefined,
+      ctaLabel: 'Solicitar Proposta',
+      whatsAppMessage:
+        'Olá, tenho interesse no Plano Pro e gostaria de avaliar se ele é o mais adequado para o volume do meu escritório.',
       features: [
-        '14 petições incluídas',
-        'Entregas em até 2 dias úteis',
-        '1 revisão gratuita por petição',
-        'Consulta com redator e chat incluso',
-        '+1 petição bônus na renovação',
-        'Validade: 60 dias',
-        'Confidencialidade garantida (NDA)'
+        '14 peças por ciclo',
+        'Execução por especialistas por área',
+        'Revisão técnica individual por peça',
+        'Atendimento estruturado e acompanhamento',
+        'Prioridade operacional',
+        '1 peça bônus na renovação',
+        'Validade: 60 dias'
       ]
     },
     {
       name: 'Elite',
-      displayName: 'Elite',
+      displayName: 'Elite – Estrutura Avançada de Produção',
       price: 'R$ 7.000',
       period: 'a cada 90 dias',
-      petitions: '70 petições',
-      creditPrice: 'R$ 100,00',
-      savings: 'Melhor custo-benefício: R$ 100,00 por petição',
+      tagline:
+        'Para escritórios com alta demanda recorrente e necessidade de prioridade máxima.',
+      warning: undefined,
+      creditPrice: '',
+      savings: undefined,
+      ctaLabel: 'Falar com Especialista',
+      whatsAppMessage:
+        'Olá, gostaria de conversar sobre o Plano Elite e entender a estrutura avançada de produção.',
       features: [
-        '70 petições incluídas',
-        'Entrega em até 1 dia útil (prioridade máxima)',
-        '1 revisão gratuita por petição',
-        'Revisão extra por advogado sênior (opcional)',
+        '70 peças por ciclo',
+        'Entrega prioritária (até 1 dia útil conforme demanda)',
+        'Revisão técnica especializada',
         'Consulta direta com redator via plataforma',
-        '+3 petições bônus na renovação',
+        '3 peças bônus na renovação',
         'Acesso antecipado a novos recursos',
-        'Validade: 90 dias',
-        'Confidencialidade garantida (NDA)'
+        'Validade: 90 dias'
       ]
     }
   ];
@@ -767,14 +746,14 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-4">
-              Planos e Preços
+              Modelos de Contratação por Capacidade Produtiva
             </h2>
             <p className="text-xl text-gray-300">
-              Escolha o plano ideal para o seu escritório. Todos os planos incluem acesso completo à plataforma e redatores especializados.
+              Escolha a estrutura de capacidade produtiva mais adequada ao momento do seu escritório.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {plans.map((plan, index) => (
               <Card 
                 key={index} 
@@ -793,6 +772,11 @@ export default function LandingPage() {
                       <div className="text-gray-300 text-sm mt-1">{plan.period}</div>
                     )}
                   </div>
+                  {plan.tagline && (
+                    <p className="mt-4 text-gray-300 text-sm leading-relaxed">
+                      {plan.tagline}
+                    </p>
+                  )}
                   {plan.warning && (
                     <div className="mt-2 p-2 bg-yellow-100 rounded-lg">
                       <div className="flex items-center justify-center">
@@ -827,12 +811,9 @@ export default function LandingPage() {
                   
                   <Button 
                     className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                    onClick={() => {
-                      console.log('🔍 BOTÃO CLICADO! Plan:', plan.name);
-                      handleSubscribe(plan.name);
-                    }}
+                    onClick={() => handleSubscribe(plan.name)}
                   >
-                    Assinar Plano
+                    {plan.ctaLabel || 'Solicitar Proposta'}
                   </Button>
                 </CardContent>
               </Card>

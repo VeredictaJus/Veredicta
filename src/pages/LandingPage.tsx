@@ -486,11 +486,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Todas as Áreas do Direito
+              Atuação especializada por área
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Nossa plataforma conecta você com redatores especializados em todas as áreas jurídicas, 
-              garantindo expertise específica para cada tipo de petição.
+              Produção jurídica executada por especialistas com experiência prática nas principais áreas de atuação do contencioso recorrente.
             </p>
           </div>
           
@@ -530,30 +529,29 @@ export default function LandingPage() {
           {/* Destaque adicional */}
           <div className="mt-16 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-center border border-orange-500/20 shadow-xl">
             <h3 className="text-2xl font-bold text-white mb-4">
-              Não encontrou sua área?
+              Estrutura adaptada à sua área de atuação
             </h3>
             <p className="text-slate-200 text-lg mb-6">
-              Trabalhamos com todas as especialidades jurídicas. Entre em contato e 
-              encontraremos o redator especializado para seu caso específico.
+              Estruturamos produção jurídica conforme a área de atuação do seu escritório, com redatores especializados e padrão técnico definido.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="flex items-center text-slate-100">
                 <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
-                  <Globe className="h-6 w-6 text-orange-300" />
+                  <CheckCircle className="h-6 w-6 text-orange-300" />
                 </div>
-                <span className="font-medium">Cobertura Nacional</span>
+                <span className="font-medium">Atuação nacional estruturada</span>
               </div>
               <div className="flex items-center text-slate-100">
                 <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
-                  <Users className="h-6 w-6 text-orange-300" />
+                  <CheckCircle className="h-6 w-6 text-orange-300" />
                 </div>
-                <span className="font-medium">Redatores Especializados</span>
+                <span className="font-medium">Especialistas por área</span>
               </div>
               <div className="flex items-center text-slate-100">
                 <div className="bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full p-2 mr-3">
-                  <Clock className="h-6 w-6 text-orange-300" />
+                  <CheckCircle className="h-6 w-6 text-orange-300" />
                 </div>
-                <span className="font-medium">Prazos Garantidos</span>
+                <span className="font-medium">Prazos previamente definidos</span>
               </div>
             </div>
           </div>

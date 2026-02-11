@@ -7,7 +7,6 @@ import { GoogleAuthProvider, getRedirectResult, signInWithRedirect, signOut } fr
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { auth } from '@/lib/firebase';
-import { supabase } from '@/lib/supabaseClient';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 
 const BULLETS = [
@@ -24,67 +23,14 @@ export default function AtivacaoPecaPiloto() {
   const navigate = useNavigate();
   const { user } = useNewAuth();
   const [loading, setLoading] = useState(false);
-  const redeemingRef = useRef(false);
+  const redirectHandledRef = useRef(false);
 
   const activationLinkToken = useMemo(() => String(token || '').trim(), [token]);
 
-  const redeem = async (pToken: string, firebaseUid: string) => {
-    if (redeemingRef.current) return;
-    redeemingRef.current = true;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.rpc('redeem_pilot_activation_token', {
-        p_token: pToken,
-        p_firebase_uid: firebaseUid,
-      });
-
-      if (error) {
-        console.error('redeem_pilot_activation_token error:', error);
-        toast.error(error.message || 'Não foi possível concluir a ativação.');
-        return;
-      }
-
-      const ok = (data as any)?.success !== false;
-      if (!ok) {
-        toast.error((data as any)?.message || 'Não foi possível concluir a ativação.');
-        return;
-      }
-
-      try {
-        sessionStorage.removeItem(SESSION_TOKEN_KEY);
-      } catch {}
-
-      toast.success('Peça piloto ativada com sucesso.');
-      navigate('/client?free_bonus=true', { replace: true });
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || 'Erro ao ativar a peça piloto.');
-    } finally {
-      setLoading(false);
-      redeemingRef.current = false;
-    }
-  };
-
+  // Fallback: quando o retorno do Google não traz getRedirectResult (ou auth.currentUser ainda não está pronto),
+  // redirecionar assim que o contexto carregar o usuário.
   useEffect(() => {
-    // Finaliza (ou reporta erro) do fluxo de redirect do Google.
-    // A sessão real é restaurada via onAuthStateChanged no NewAuthContext.
-    (async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (err: any) {
-        console.error('Google redirect error:', err);
-        toast.error(err?.message || 'Não foi possível concluir o login com Google.');
-        try {
-          sessionStorage.removeItem(SESSION_TOKEN_KEY);
-        } catch {}
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Se já estiver logado (ex.: voltou do redirect), tenta resgatar automaticamente
-  useEffect(() => {
+    if (redirectHandledRef.current) return;
     if (!user?.uid) return;
 
     let pToken = activationLinkToken;
@@ -99,7 +45,6 @@ export default function AtivacaoPecaPiloto() {
 
     if (user.role !== 'client') {
       toast.error('A ativação está disponível apenas para clientes.');
-      // Segurança: evitar deixar token “pendurado” e sair da sessão.
       try {
         sessionStorage.removeItem(SESSION_TOKEN_KEY);
       } catch {}
@@ -107,9 +52,44 @@ export default function AtivacaoPecaPiloto() {
       return;
     }
 
-    redeem(pToken, user.uid);
+    redirectHandledRef.current = true;
+    navigate(`/client?activate_token=${encodeURIComponent(pToken)}`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid, user?.role, activationLinkToken]);
+
+  useEffect(() => {
+    // Finaliza (ou reporta erro) do fluxo de redirect do Google.
+    // A sessão real é restaurada via onAuthStateChanged no NewAuthContext.
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+
+        // Se voltou do Google com sucesso, entrar direto no dashboard
+        const fbUser = result?.user || auth.currentUser;
+        if (fbUser?.uid && !redirectHandledRef.current) {
+          redirectHandledRef.current = true;
+          let pToken = '';
+          try {
+            pToken = String(sessionStorage.getItem(SESSION_TOKEN_KEY) || '').trim();
+          } catch {}
+          if (!pToken) pToken = activationLinkToken;
+
+          if (pToken) {
+            navigate(`/client?activate_token=${encodeURIComponent(pToken)}`, { replace: true });
+          } else {
+            navigate('/client', { replace: true });
+          }
+        }
+      } catch (err: any) {
+        console.error('Google redirect error:', err);
+        toast.error(err?.message || 'Não foi possível concluir o login com Google.');
+        try {
+          sessionStorage.removeItem(SESSION_TOKEN_KEY);
+        } catch {}
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleActivate = async () => {
     if (!activationLinkToken) {
@@ -117,13 +97,13 @@ export default function AtivacaoPecaPiloto() {
       return;
     }
 
-    // Se já estiver logado, resgata sem passar por login novamente
+    // Se já estiver logado, entra direto no dashboard (resgate ocorre lá)
     if (user?.uid) {
       if (user.role !== 'client') {
         toast.error('A ativação está disponível apenas para clientes.');
         return;
       }
-      await redeem(activationLinkToken, user.uid);
+      navigate(`/client?activate_token=${encodeURIComponent(activationLinkToken)}`, { replace: true });
       return;
     }
 

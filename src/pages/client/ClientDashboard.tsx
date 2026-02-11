@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient'
 import { DatabaseService } from '@/services/databaseService'
 import { useNewAuth } from '@/contexts/NewAuthContext';
@@ -59,6 +59,7 @@ export default function ClientDashboard() {
   const [isPetitionsExpanded, setIsPetitionsExpanded] = useState(false);
   const navigate = useNavigate();
   const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
+  const activationHandledRef = useRef(false);
 
   // ✅ CORREÇÃO CRÍTICA: Garantir que apenas clientes possam acessar este componente
   // Verifica o role do usuário ao montar o componente
@@ -93,6 +94,7 @@ export default function ClientDashboard() {
 
     // Verificar retorno do Stripe e atualizar plano automaticamente
     const urlParams = new URLSearchParams(window.location.search);
+    const activateToken = urlParams.get('activate_token');
     // Aceitar ambos os formatos: payment=success OU success=true
     const paymentSuccess = urlParams.get('payment') === 'success' || urlParams.get('success') === 'true';
     const sessionId = urlParams.get('session_id');
@@ -113,6 +115,42 @@ export default function ClientDashboard() {
       return;
     }
     
+    // 0) Ativação da peça piloto via token (link de brinde)
+    if (activateToken && user?.uid && !activationHandledRef.current) {
+      activationHandledRef.current = true;
+      (async () => {
+        try {
+          const { data, error } = await supabase.rpc('redeem_pilot_activation_token', {
+            p_token: String(activateToken || '').trim(),
+            p_firebase_uid: user.uid,
+          });
+
+          if (error) {
+            console.error('redeem_pilot_activation_token error:', error);
+            toast.error(error.message || 'Não foi possível concluir a ativação.');
+          } else {
+            const ok = (data as any)?.success !== false;
+            if (!ok) {
+              toast.error((data as any)?.message || 'Não foi possível concluir a ativação.');
+            } else {
+              toast.success('Peça piloto ativada com sucesso.');
+              setShowWelcomeModal(true);
+            }
+          }
+        } catch (err: any) {
+          console.error(err);
+          toast.error(err?.message || 'Não foi possível concluir a ativação.');
+        } finally {
+          // Limpar URL (evita reprocessar se o usuário atualizar)
+          window.history.replaceState({}, '', '/client');
+          try {
+            sessionStorage.removeItem('veredicta.pilot_activation_token');
+          } catch {}
+        }
+      })();
+      return;
+    }
+
     // Atualizar plano se tiver plan na URL (mesmo sem session_id)
     // Só processar se o user_id corresponder OU se não houver user_id na URL (compatibilidade)
     if (paymentSuccess && plan && user?.uid && (!userIdFromUrl || userIdFromUrl === user.uid)) {

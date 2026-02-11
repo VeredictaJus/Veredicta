@@ -95,22 +95,22 @@ export default function LandingPage() {
   const features = [
     {
       icon: FileText,
-      title: 'Petições profissionais',
+      title: 'Produção técnica especializada',
       description: 'Redação jurídica humana, especializada e contextualizada.'
     },
     {
       icon: Shield,
-      title: 'Revisão especializada',
+      title: 'Revisão técnica antes da entrega',
       description: 'Todas as peças passam por conferência técnica antes da entrega.'
     },
     {
       icon: Scale,
-      title: 'Jurisprudência adequada',
+      title: 'Fundamentação alinhada aos entendimentos atuais',
       description: 'Fundamentação alinhada aos entendimentos atuais dos tribunais.'
     },
     {
       icon: Clock,
-      title: 'Prazos garantidos',
+      title: 'Prazos definidos e previsíveis',
       description: 'Produção com SLA e previsibilidade operacional.'
     }
   ];
@@ -205,26 +205,26 @@ export default function LandingPage() {
   const howItWorks = [
     {
       step: '1',
-      title: 'Solicite',
-      description: 'Descreva sua necessidade jurídica com detalhes',
+      title: 'Envio estruturado da demanda',
+      description: 'Detalhamento técnico conforme área e estratégia do escritório.',
       icon: FileText
     },
     {
       step: '2', 
-      title: 'Redator Especializado',
-      description: 'Profissional qualificado aceita sua demanda',
+      title: 'Execução por especialista dedicado',
+      description: 'Produção conforme padrão técnico definido.',
       icon: Users
     },
     {
       step: '3',
-      title: 'Correção Especializada',
-      description: 'Corretor especializado revisa e aprimora a petição',
+      title: 'Revisão técnica e validação',
+      description: 'Conferência de coerência jurídica, fundamentação e adequação.',
       icon: CheckCircle
     },
     {
       step: '4',
-      title: 'Receba',
-      description: 'Petição pronta e aprovada em sua conta',
+      title: 'Entrega validada e pronta para protocolo',
+      description: 'Peça organizada conforme padrão do seu escritório.',
       icon: Trophy
     }
   ];
@@ -587,7 +587,7 @@ export default function LandingPage() {
               Por que escolher a Veredicta?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Plataforma completa que conecta demanda e oferta no mercado jurídico
+              Estrutura produtiva organizada para escritórios com alta demanda recorrente.
             </p>
           </div>
           
@@ -630,7 +630,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center gap-3">
               <Briefcase className="h-8 w-8 text-orange-600" />
-              O que você ganha na prática
+              Impacto direto na operação do seu escritório
             </h2>
           </div>
 
@@ -643,9 +643,9 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Tempo</h3>
               </div>
               <ul className="space-y-2 text-gray-700">
-                <li>Reduza horas operacionais por semana</li>
-                <li>Pare de virar noite escrevendo peças</li>
-                <li>Libere o advogado para estratégia, audiência e cliente</li>
+                <li>✔ Redução de sobrecarga operacional</li>
+                <li>✔ Mais tempo estratégico para sócios</li>
+                <li>✔ Foco em crescimento e relacionamento com cliente</li>
               </ul>
             </div>
 
@@ -657,9 +657,8 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Volume</h3>
               </div>
               <ul className="space-y-2 text-gray-700">
-                <li>Dê conta de picos de demanda sem contratar</li>
-                <li>Escale produção conforme sua necessidade</li>
-                <li>Produção contínua, sem gargalos internos</li>
+                <li>✔ Capacidade produtiva sob demanda</li>
+                <li>✔ Absorção de picos sem ampliar equipe</li>
               </ul>
             </div>
 
@@ -671,23 +670,9 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Qualidade técnica</h3>
               </div>
               <ul className="space-y-2 text-gray-700">
-                <li>Redação humana e contextualizada</li>
-                <li>Fundamentação jurídica consistente</li>
-                <li>Linguagem adequada ao seu tipo de demanda</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
-                  <BookOpen className="h-6 w-6 text-orange-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Jurisprudência adequada</h3>
-              </div>
-              <ul className="space-y-2 text-gray-700">
-                <li>Pesquisa e aplicação de jurisprudência relevante ao caso</li>
-                <li>Alinhamento com entendimentos atuais dos tribunais</li>
-                <li>Peças mais robustas e seguras para revisão e protocolo</li>
+                <li>✔ Padrão técnico consistente</li>
+                <li>✔ Linguagem adequada ao perfil do caso</li>
+                <li>✔ Fundamentação alinhada à jurisprudência</li>
               </ul>
             </div>
 
@@ -699,9 +684,9 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Previsibilidade</h3>
               </div>
               <ul className="space-y-2 text-gray-700">
-                <li>Custos claros e controlados</li>
-                <li>Sem risco trabalhista</li>
-                <li>Sem curva de aprendizado ou treinamento</li>
+                <li>✔ Custo previsível</li>
+                <li>✔ Sem risco trabalhista</li>
+                <li>✔ Sem curva de aprendizado interna</li>
               </ul>
             </div>
 
@@ -713,10 +698,9 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-gray-900">Por que isso importa?</h3>
               </div>
               <ul className="space-y-2 text-gray-700">
-                <li>Eleva o ticket percebido</li>
-                <li>Reduz retrabalho</li>
-                <li>Fala com advogados mais experientes</li>
-                <li>Afasta comparação com IA e modelos prontos</li>
+                <li>✔ Fortalece posicionamento do escritório</li>
+                <li>✔ Eleva percepção de valor do cliente final</li>
+                <li>✔ Reduz retrabalho interno</li>
               </ul>
             </div>
           </div>
@@ -728,10 +712,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              Como Funciona
+              Modelo de Produção Estruturado
             </h2>
             <p className="text-xl text-slate-600">
-              Continue no controle. Nós tiramos o peso da operação
+              Você mantém o controle estratégico enquanto estruturamos a produção jurídica com padrão técnico e previsibilidade.
             </p>
           </div>
 

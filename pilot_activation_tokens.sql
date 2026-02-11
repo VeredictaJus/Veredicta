@@ -120,6 +120,10 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_redeemed_at timestamptz;
+  v_revoked_at timestamptz;
+  v_existing_plan text;
 BEGIN
   IF p_token IS NULL OR length(trim(p_token)) = 0 THEN
     RETURN jsonb_build_object('success', false, 'message', 'Token inválido.');
@@ -129,24 +133,21 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'message', 'Usuário inválido.');
   END IF;
 
-  -- marcar como resgatado (uso único)
-  UPDATE public.pilot_activation_tokens
-  SET
-    redeemed_at = timezone('utc'::text, now()),
-    redeemed_by = p_firebase_uid
-  WHERE token = p_token
-    AND redeemed_at IS NULL
-    AND revoked_at IS NULL;
+  -- Lock do token (uso único). Só marcamos como resgatado ao final, após concluir a ativação.
+  SELECT pat.redeemed_at, pat.revoked_at
+    INTO v_redeemed_at, v_revoked_at
+  FROM public.pilot_activation_tokens pat
+  WHERE pat.token = p_token
+  FOR UPDATE;
 
   IF NOT FOUND THEN
-    -- pode ser inexistente, revogado ou já usado
-    IF EXISTS (SELECT 1 FROM public.pilot_activation_tokens WHERE token = p_token AND revoked_at IS NOT NULL) THEN
-      RETURN jsonb_build_object('success', false, 'message', 'Este protocolo foi revogado.');
-    END IF;
-    IF EXISTS (SELECT 1 FROM public.pilot_activation_tokens WHERE token = p_token AND redeemed_at IS NOT NULL) THEN
-      RETURN jsonb_build_object('success', false, 'message', 'Este protocolo já foi utilizado.');
-    END IF;
     RETURN jsonb_build_object('success', false, 'message', 'Protocolo não encontrado.');
+  END IF;
+  IF v_revoked_at IS NOT NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Este protocolo foi revogado.');
+  END IF;
+  IF v_redeemed_at IS NOT NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Este protocolo já foi utilizado.');
   END IF;
 
   -- se já tiver bônus ativo, não duplicar
@@ -158,28 +159,95 @@ BEGIN
       AND coalesce(us.is_bonus, false) = true
       AND lower(coalesce(us.status, '')) = 'active'
   ) THEN
+    UPDATE public.pilot_activation_tokens
+    SET redeemed_at = timezone('utc'::text, now()),
+        redeemed_by = p_firebase_uid
+    WHERE token = p_token;
     RETURN jsonb_build_object('success', true, 'message', 'Bônus já estava ativo.');
   END IF;
 
-  -- criar o bônus free (sem expiração: usamos um next_billing_date bem longo)
-  INSERT INTO public.user_subscriptions (
-    user_id,
-    plan_code,
-    status,
-    next_billing_date,
-    is_bonus,
-    created_at,
-    updated_at
-  )
-  VALUES (
-    p_firebase_uid,
-    'free',
-    'active',
-    timezone('utc'::text, now()) + interval '365 days',
-    true,
-    timezone('utc'::text, now()),
-    timezone('utc'::text, now())
-  );
+  -- Se já existe assinatura active, não podemos inserir outra (constraint user_subscriptions_user_id_status_key).
+  SELECT lower(coalesce(us.plan_code, ''))
+    INTO v_existing_plan
+  FROM public.user_subscriptions us
+  WHERE us.user_id = p_firebase_uid
+    AND lower(coalesce(us.status, '')) = 'active'
+  ORDER BY us.updated_at DESC NULLS LAST, us.created_at DESC NULLS LAST
+  LIMIT 1;
+
+  IF v_existing_plan IS NOT NULL AND v_existing_plan <> '' THEN
+    -- Já existe uma assinatura ativa.
+    IF v_existing_plan = 'free' THEN
+      -- Converter a assinatura free atual para bônus (quando aplicável)
+      BEGIN
+        UPDATE public.user_subscriptions
+        SET is_bonus = true,
+            next_billing_date = timezone('utc'::text, now()) + interval '365 days',
+            updated_at = timezone('utc'::text, now())
+        WHERE user_id = p_firebase_uid
+          AND lower(coalesce(status, '')) = 'active';
+      EXCEPTION WHEN undefined_column THEN
+        -- Compat: se coluna is_bonus ainda não existir
+        UPDATE public.user_subscriptions
+        SET next_billing_date = timezone('utc'::text, now()) + interval '365 days',
+            updated_at = timezone('utc'::text, now())
+        WHERE user_id = p_firebase_uid
+          AND lower(coalesce(status, '')) = 'active';
+      END;
+    END IF;
+
+    UPDATE public.pilot_activation_tokens
+    SET redeemed_at = timezone('utc'::text, now()),
+        redeemed_by = p_firebase_uid
+    WHERE token = p_token;
+
+    RETURN jsonb_build_object('success', true);
+  END IF;
+
+  -- Não existe assinatura ativa → criar o bônus free
+  BEGIN
+    INSERT INTO public.user_subscriptions (
+      user_id,
+      plan_code,
+      status,
+      next_billing_date,
+      is_bonus,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      p_firebase_uid,
+      'free',
+      'active',
+      timezone('utc'::text, now()) + interval '365 days',
+      true,
+      timezone('utc'::text, now()),
+      timezone('utc'::text, now())
+    );
+  EXCEPTION WHEN undefined_column THEN
+    -- Compat: se coluna is_bonus ainda não existir
+    INSERT INTO public.user_subscriptions (
+      user_id,
+      plan_code,
+      status,
+      next_billing_date,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      p_firebase_uid,
+      'free',
+      'active',
+      timezone('utc'::text, now()) + interval '365 days',
+      timezone('utc'::text, now()),
+      timezone('utc'::text, now())
+    );
+  END;
+
+  UPDATE public.pilot_activation_tokens
+  SET redeemed_at = timezone('utc'::text, now()),
+      redeemed_by = p_firebase_uid
+  WHERE token = p_token;
 
   RETURN jsonb_build_object('success', true);
 END;

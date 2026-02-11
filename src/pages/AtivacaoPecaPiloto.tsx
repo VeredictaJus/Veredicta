@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CheckCircle2, Lock, Loader2 } from 'lucide-react';
+import { GoogleAuthProvider, getRedirectResult, signInWithRedirect, signOut } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { auth } from '@/lib/firebase';
 import { supabase } from '@/lib/supabaseClient';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 
@@ -15,32 +17,26 @@ const BULLETS = [
   'Fluxo produtivo aplicado ao seu escritório',
 ];
 
+const SESSION_TOKEN_KEY = 'veredicta.pilot_activation_token';
+
 export default function AtivacaoPecaPiloto() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user, loginWithGoogleClient } = useNewAuth();
+  const { user } = useNewAuth();
   const [loading, setLoading] = useState(false);
+  const redeemingRef = useRef(false);
 
   const activationLinkToken = useMemo(() => String(token || '').trim(), [token]);
 
-  const handleActivate = async () => {
-    if (!activationLinkToken) {
-      toast.error('Link inválido. Verifique o protocolo de ativação.');
-      return;
-    }
+  const redeem = async (pToken: string, firebaseUid: string) => {
+    if (redeemingRef.current) return;
+    redeemingRef.current = true;
 
     setLoading(true);
     try {
-      const authUser = user ?? (await loginWithGoogleClient());
-
-      if (authUser.role !== 'client') {
-        toast.error('A ativação está disponível apenas para clientes.');
-        return;
-      }
-
       const { data, error } = await supabase.rpc('redeem_pilot_activation_token', {
-        p_token: activationLinkToken,
-        p_firebase_uid: authUser.uid,
+        p_token: pToken,
+        p_firebase_uid: firebaseUid,
       });
 
       if (error) {
@@ -55,12 +51,96 @@ export default function AtivacaoPecaPiloto() {
         return;
       }
 
+      try {
+        sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      } catch {}
+
       toast.success('Peça piloto ativada com sucesso.');
       navigate('/client?free_bonus=true', { replace: true });
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || 'Erro ao ativar a peça piloto.');
     } finally {
+      setLoading(false);
+      redeemingRef.current = false;
+    }
+  };
+
+  useEffect(() => {
+    // Finaliza (ou reporta erro) do fluxo de redirect do Google.
+    // A sessão real é restaurada via onAuthStateChanged no NewAuthContext.
+    (async () => {
+      try {
+        await getRedirectResult(auth);
+      } catch (err: any) {
+        console.error('Google redirect error:', err);
+        toast.error(err?.message || 'Não foi possível concluir o login com Google.');
+        try {
+          sessionStorage.removeItem(SESSION_TOKEN_KEY);
+        } catch {}
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Se já estiver logado (ex.: voltou do redirect), tenta resgatar automaticamente
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    let pToken = activationLinkToken;
+    if (!pToken) {
+      try {
+        pToken = String(sessionStorage.getItem(SESSION_TOKEN_KEY) || '').trim();
+      } catch {
+        pToken = '';
+      }
+    }
+    if (!pToken) return;
+
+    if (user.role !== 'client') {
+      toast.error('A ativação está disponível apenas para clientes.');
+      // Segurança: evitar deixar token “pendurado” e sair da sessão.
+      try {
+        sessionStorage.removeItem(SESSION_TOKEN_KEY);
+      } catch {}
+      signOut(auth).catch(() => {});
+      return;
+    }
+
+    redeem(pToken, user.uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, user?.role, activationLinkToken]);
+
+  const handleActivate = async () => {
+    if (!activationLinkToken) {
+      toast.error('Link inválido. Verifique o protocolo de ativação.');
+      return;
+    }
+
+    // Se já estiver logado, resgata sem passar por login novamente
+    if (user?.uid) {
+      if (user.role !== 'client') {
+        toast.error('A ativação está disponível apenas para clientes.');
+        return;
+      }
+      await redeem(activationLinkToken, user.uid);
+      return;
+    }
+
+    // Login Google na MESMA aba (redirect)
+    setLoading(true);
+    try {
+      try {
+        sessionStorage.setItem(SESSION_TOKEN_KEY, activationLinkToken);
+      } catch {}
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      await signInWithRedirect(auth, provider);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || 'Erro ao iniciar login com Google.');
       setLoading(false);
     }
   };

@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CheckCircle2, Lock, Loader2 } from 'lucide-react';
-import { GoogleAuthProvider, getRedirectResult, signInWithRedirect, signOut } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  getRedirectResult,
+  setPersistence,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,6 +124,13 @@ export default function AtivacaoPecaPiloto() {
 
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
+
+      // Garantir persistência após voltar do Google
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch {
+        await setPersistence(auth, browserSessionPersistence);
+      }
 
       await signInWithRedirect(auth, provider);
     } catch (err: any) {

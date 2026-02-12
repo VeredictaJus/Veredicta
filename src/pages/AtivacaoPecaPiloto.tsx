@@ -1,20 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CheckCircle2, Lock, Loader2 } from 'lucide-react';
-import {
-  GoogleAuthProvider,
-  browserLocalPersistence,
-  browserSessionPersistence,
-  getRedirectResult,
-  setPersistence,
-  signInWithRedirect,
-  signOut,
-} from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { auth } from '@/lib/firebase';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 
 const BULLETS = [
@@ -24,80 +14,13 @@ const BULLETS = [
   'Fluxo produtivo aplicado ao seu escritório',
 ];
 
-const SESSION_TOKEN_KEY = 'veredicta.pilot_activation_token';
-
 export default function AtivacaoPecaPiloto() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user } = useNewAuth();
+  const { user, loginWithGoogleClient } = useNewAuth();
   const [loading, setLoading] = useState(false);
-  const redirectHandledRef = useRef(false);
 
   const activationLinkToken = useMemo(() => String(token || '').trim(), [token]);
-
-  // Fallback: quando o retorno do Google não traz getRedirectResult (ou auth.currentUser ainda não está pronto),
-  // redirecionar assim que o contexto carregar o usuário.
-  useEffect(() => {
-    if (redirectHandledRef.current) return;
-    if (!user?.uid) return;
-
-    let pToken = activationLinkToken;
-    if (!pToken) {
-      try {
-        pToken = String(sessionStorage.getItem(SESSION_TOKEN_KEY) || '').trim();
-      } catch {
-        pToken = '';
-      }
-    }
-    if (!pToken) return;
-
-    if (user.role !== 'client') {
-      toast.error('A ativação está disponível apenas para clientes.');
-      try {
-        sessionStorage.removeItem(SESSION_TOKEN_KEY);
-      } catch {}
-      signOut(auth).catch(() => {});
-      return;
-    }
-
-    redirectHandledRef.current = true;
-    navigate(`/client?activate_token=${encodeURIComponent(pToken)}`, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, user?.role, activationLinkToken]);
-
-  useEffect(() => {
-    // Finaliza (ou reporta erro) do fluxo de redirect do Google.
-    // A sessão real é restaurada via onAuthStateChanged no NewAuthContext.
-    (async () => {
-      try {
-        const result = await getRedirectResult(auth);
-
-        // Se voltou do Google com sucesso, entrar direto no dashboard
-        const fbUser = result?.user || auth.currentUser;
-        if (fbUser?.uid && !redirectHandledRef.current) {
-          redirectHandledRef.current = true;
-          let pToken = '';
-          try {
-            pToken = String(sessionStorage.getItem(SESSION_TOKEN_KEY) || '').trim();
-          } catch {}
-          if (!pToken) pToken = activationLinkToken;
-
-          if (pToken) {
-            navigate(`/client?activate_token=${encodeURIComponent(pToken)}`, { replace: true });
-          } else {
-            navigate('/client', { replace: true });
-          }
-        }
-      } catch (err: any) {
-        console.error('Google redirect error:', err);
-        toast.error(err?.message || 'Não foi possível concluir o login com Google.');
-        try {
-          sessionStorage.removeItem(SESSION_TOKEN_KEY);
-        } catch {}
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleActivate = async () => {
     if (!activationLinkToken) {
@@ -115,27 +38,19 @@ export default function AtivacaoPecaPiloto() {
       return;
     }
 
-    // Login Google na MESMA aba (redirect)
+    // Login Google via POPUP (mais confiável que redirect)
     setLoading(true);
     try {
-      try {
-        sessionStorage.setItem(SESSION_TOKEN_KEY, activationLinkToken);
-      } catch {}
-
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-
-      // Garantir persistência após voltar do Google
-      try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch {
-        await setPersistence(auth, browserSessionPersistence);
+      const authUser = await loginWithGoogleClient();
+      if (authUser.role !== 'client') {
+        toast.error('A ativação está disponível apenas para clientes.');
+        return;
       }
-
-      await signInWithRedirect(auth, provider);
+      navigate(`/client?activate_token=${encodeURIComponent(activationLinkToken)}`, { replace: true });
     } catch (err: any) {
       console.error(err);
       toast.error(err?.message || 'Erro ao iniciar login com Google.');
+    } finally {
       setLoading(false);
     }
   };

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, ArrowLeft, Building, Users, FileText, Upload, ChevronDown, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Building, Users, FileText, Upload, ChevronDown, CheckCircle2, AlertCircle, Loader2, Chrome } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { toast } from 'sonner';
 // Logo do Supabase Storage
@@ -95,7 +95,7 @@ const LAW_AREAS: { value: string; label: string }[] = [
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, getClient } = useNewAuth();
+  const { register, getClient, loginWithGoogleClient } = useNewAuth();
   
   // Detectar plano desejado da URL usando useSearchParams (funciona com hash routing)
   const [searchParams] = useSearchParams();
@@ -142,6 +142,42 @@ export default function Register() {
     oabNumber: '',
     specializations: ''
   });
+
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleRegister = async () => {
+    if (userType !== 'client') {
+      toast.error('Cadastro com Google disponível apenas para Clientes.');
+      return;
+    }
+    if (!acceptedTerms) {
+      toast.error('Você precisa aceitar os Termos de Serviço e a Política de Privacidade.');
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const authUser = await loginWithGoogleClient();
+      if (authUser?.role && authUser.role !== 'client') {
+        toast.error('Cadastro com Google disponível apenas para Clientes.');
+        return;
+      }
+
+      if (desiredPlan) {
+        toast.success('✅ Conta criada! Redirecionando para pagamento...');
+        setTimeout(() => {
+          navigate(`/client/checkout?plan=${desiredPlan}&new_user=true`);
+        }, 500);
+        return;
+      }
+
+      navigate('/client', { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || 'Não foi possível cadastrar com Google.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 // Função para validar o formulário
 const validateForm = async () => {
   const newErrors: FormErrors = {};
@@ -787,6 +823,28 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                 </button>
               </div>
             </div>
+
+            {userType === 'client' ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGoogleRegister}
+                disabled={googleLoading}
+                className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
+              >
+                {googleLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Conectando...
+                  </>
+                ) : (
+                  <>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Cadastrar-se com Google
+                  </>
+                )}
+              </Button>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Client Form */}

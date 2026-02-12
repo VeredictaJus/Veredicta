@@ -13,7 +13,7 @@ import Logo from '@/components/ui/Logo'
 
 export default function NewLoginForm() {
   const navigate = useNavigate()
-  const { login, loginWithGoogleClient } = useNewAuth()
+  const { login, loginWithGoogleClientExistingOnly } = useNewAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -77,7 +77,7 @@ export default function NewLoginForm() {
     setError('')
     setLoading(true)
     try {
-      await loginWithGoogleClient()
+      await loginWithGoogleClientExistingOnly()
       navigate('/client', { replace: true })
     } catch (err: any) {
       console.error('Google login error:', err)

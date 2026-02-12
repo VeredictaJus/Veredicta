@@ -27,6 +27,8 @@ interface NewAuthContextType {
   loading: boolean
   login: (email: string, password: string, roleHint?: UserRole) => Promise<void>
   loginWithGoogleClient: () => Promise<AuthUser>
+  loginWithGoogleClientExistingOnly: () => Promise<AuthUser>
+  registerWithGoogleClient: () => Promise<AuthUser>
   register: (data: RegisterData) => Promise<AuthUser>
   logout: () => Promise<void>
   forgotPassword: (email: string) => Promise<void>
@@ -46,6 +48,8 @@ export const useNewAuth = () => {
       loading: true,
       login: async () => { throw new Error('Auth não inicializado') },
       loginWithGoogleClient: async () => { throw new Error('Auth não inicializado') },
+      loginWithGoogleClientExistingOnly: async () => { throw new Error('Auth não inicializado') },
+      registerWithGoogleClient: async () => { throw new Error('Auth não inicializado') },
       register: async () => { throw new Error('Auth não inicializado') },
       logout: async () => { throw new Error('Auth não inicializado') },
       forgotPassword: async () => { throw new Error('Auth não inicializado') },
@@ -214,6 +218,34 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const loginWithGoogleClientExistingOnly = async () => {
+    setLoading(true)
+    try {
+      const authUser = await authService.loginWithGoogleClientExistingOnly()
+      setUser(authUser)
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no login com Google (somente existente):', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const registerWithGoogleClient = async () => {
+    setLoading(true)
+    try {
+      const authUser = await authService.registerWithGoogleClient()
+      setUser(authUser)
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no cadastro com Google:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const register = async (data: RegisterData) => {
     setLoading(true)
     try {
@@ -302,6 +334,8 @@ export function NewAuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     loginWithGoogleClient,
+    loginWithGoogleClientExistingOnly,
+    registerWithGoogleClient,
     register,
     logout,
     forgotPassword,

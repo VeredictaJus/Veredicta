@@ -95,7 +95,7 @@ const LAW_AREAS: { value: string; label: string }[] = [
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register, getClient, loginWithGoogleClient } = useNewAuth();
+  const { register, getClient, registerWithGoogleClient } = useNewAuth();
   
   // Detectar plano desejado da URL usando useSearchParams (funciona com hash routing)
   const [searchParams] = useSearchParams();
@@ -157,7 +157,7 @@ export default function Register() {
 
     setGoogleLoading(true);
     try {
-      const authUser = await loginWithGoogleClient();
+      const authUser = await registerWithGoogleClient();
       if (authUser?.role && authUser.role !== 'client') {
         toast.error('Cadastro com Google disponível apenas para Clientes.');
         return;
@@ -824,28 +824,6 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               </div>
             </div>
 
-            {userType === 'client' ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogleRegister}
-                disabled={googleLoading}
-                className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
-              >
-                {googleLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Conectando...
-                  </>
-                ) : (
-                  <>
-                    <Chrome className="mr-2 h-4 w-4" />
-                    Cadastrar-se com Google
-                  </>
-                )}
-              </Button>
-            ) : null}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Client Form */}
               {userType === 'client' && (
@@ -1483,6 +1461,28 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               >
                 {`Criar conta como ${userType === 'client' ? 'Cliente' : 'Redator'}`}
               </Button>
+
+              {userType === 'client' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGoogleRegister}
+                  disabled={googleLoading}
+                  className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  {googleLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <Chrome className="mr-2 h-4 w-4" />
+                      Cadastrar-se com Google
+                    </>
+                  )}
+                </Button>
+              ) : null}
             </form>
 
             {/* Login Link */}

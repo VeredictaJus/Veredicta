@@ -83,7 +83,7 @@ class ProductionAuthService {
 
   /**
    * Login com Google (restrito a CLIENTE).
-   * Cria perfil mínimo no Supabase na primeira autenticação.
+   * Se não existir perfil no Supabase, cria um perfil mínimo (comportamento legado / onboarding).
    */
   async loginWithGoogleClient(): Promise<AuthUser> {
     try {
@@ -114,6 +114,121 @@ class ProductionAuthService {
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no login com Google:', error)
+      throw new Error(this.translateError(error.message))
+    }
+  }
+
+  private async findExistingProfile(firebaseUid: string): Promise<UserProfile | null> {
+    try {
+      const supabaseClient = getSupabaseClient()
+      if (!supabaseClient) return null
+
+      // Preferência: buscar direto na tabela (não cria nada)
+      try {
+        const { data, error } = await supabaseClient
+          .from('user_profiles')
+          .select('*')
+          .eq('firebase_uid', firebaseUid)
+          .maybeSingle()
+
+        if (!error && data) return data as UserProfile
+      } catch {
+        // continuar para fallback RPC
+      }
+
+      // Fallback: RPC (SECURITY DEFINER) quando RLS/406 atrapalhar o select
+      try {
+        const { data, error } = await supabaseClient.rpc('get_user_profile', { p_firebase_uid: firebaseUid })
+        if (!error && data) return data as UserProfile
+      } catch {
+        // ignore
+      }
+
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Cadastro com Google (CLIENTE).
+   * Deve criar conta "do zero": se já existir perfil, bloqueia e pede para fazer login.
+   */
+  async registerWithGoogleClient(): Promise<AuthUser> {
+    try {
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+
+      const { user: fbUser } = await signInWithPopup(auth, provider)
+      if (!fbUser) throw new Error('Falha na autenticação Google')
+
+      const email = fbUser.email || ''
+      if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
+
+      const existing = await this.findExistingProfile(fbUser.uid)
+      if (existing) {
+        await signOut(auth).catch(() => {})
+        throw new Error('Esta conta já está cadastrada. Faça login.')
+      }
+
+      const profile = await this.createProfile(fbUser.uid, email, 'client')
+      if (profile.role !== 'client') {
+        await signOut(auth).catch(() => {})
+        throw new Error('Cadastro com Google disponível apenas para clientes.')
+      }
+
+      const authUser: AuthUser = {
+        uid: fbUser.uid,
+        email: profile.email,
+        role: profile.role,
+        profile,
+      }
+
+      this.currentUser = authUser
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no cadastro com Google:', error)
+      throw new Error(this.translateError(error.message))
+    }
+  }
+
+  /**
+   * Login com Google (CLIENTE) - apenas para contas já cadastradas.
+   * Se não existir perfil, bloqueia e orienta o cadastro.
+   */
+  async loginWithGoogleClientExistingOnly(): Promise<AuthUser> {
+    try {
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+
+      const { user: fbUser } = await signInWithPopup(auth, provider)
+      if (!fbUser) throw new Error('Falha na autenticação Google')
+
+      const email = fbUser.email || ''
+      if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
+
+      const existing = await this.findExistingProfile(fbUser.uid)
+      if (!existing) {
+        await signOut(auth).catch(() => {})
+        throw new Error('Conta não encontrada. Crie sua conta primeiro.')
+      }
+
+      if (existing.role !== 'client') {
+        await signOut(auth).catch(() => {})
+        throw new Error('Acesso com Google disponível apenas para clientes.')
+      }
+
+      const authUser: AuthUser = {
+        uid: fbUser.uid,
+        email: existing.email || email,
+        role: existing.role,
+        profile: existing,
+      }
+
+      this.currentUser = authUser
+      return authUser
+    } catch (error: any) {
+      console.error('❌ Erro no login com Google (somente existente):', error)
       throw new Error(this.translateError(error.message))
     }
   }

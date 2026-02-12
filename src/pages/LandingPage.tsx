@@ -952,6 +952,7 @@ export default function LandingPage() {
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; {getCurrentYear()} Veredicta. Todos os direitos reservados.</p>
+            <p className="mt-1 text-xs text-gray-500">CNPJ: 61.992.118/0001-38</p>
           </div>
         </div>
       </footer>

@@ -12,6 +12,10 @@ import * as API_007 from "@api/root/src/api/stripe/create-checkout-session.ts";
 import * as API_008 from "@api/root/src/api/stripe/verify-payment.ts";
 import * as API_009 from "@api/root/src/api/stripe/webhook.ts";
 import * as API_010 from "@api/root/src/api/test.ts";
+import * as API_011 from "@api/root/src/api/users/activate-concierge.ts";
+import * as API_012 from "@api/root/src/api/users/disable-concierge.ts";
+import * as API_013 from "@api/root/src/api/users/invite-concierge.ts";
+import * as API_014 from "@api/root/src/api/users/list-firebase.ts";
 
 // Public RESTful API Methods and Paths
 // This section describes the available HTTP methods and their corresponding endpoints (paths).
@@ -92,6 +96,34 @@ import * as API_010 from "@api/root/src/api/test.ts";
 // PATCH  /api/test                              src/api/test.ts?fn=PATCH
 // PUT    /api/test                              src/api/test.ts?fn=PUT
 // DELETE /api/test                              src/api/test.ts?fn=DELETE
+// USE    /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=default
+// USE    /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=USE
+// GET    /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=GET
+// POST   /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=POST
+// PATCH  /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=PATCH
+// PUT    /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=PUT
+// DELETE /api/users/activate-concierge          src/api/users/activate-concierge.ts?fn=DELETE
+// USE    /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=default
+// USE    /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=USE
+// GET    /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=GET
+// POST   /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=POST
+// PATCH  /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=PATCH
+// PUT    /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=PUT
+// DELETE /api/users/disable-concierge           src/api/users/disable-concierge.ts?fn=DELETE
+// USE    /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=default
+// USE    /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=USE
+// GET    /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=GET
+// POST   /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=POST
+// PATCH  /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=PATCH
+// PUT    /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=PUT
+// DELETE /api/users/invite-concierge            src/api/users/invite-concierge.ts?fn=DELETE
+// USE    /api/users/list-firebase               src/api/users/list-firebase.ts?fn=default
+// USE    /api/users/list-firebase               src/api/users/list-firebase.ts?fn=USE
+// GET    /api/users/list-firebase               src/api/users/list-firebase.ts?fn=GET
+// POST   /api/users/list-firebase               src/api/users/list-firebase.ts?fn=POST
+// PATCH  /api/users/list-firebase               src/api/users/list-firebase.ts?fn=PATCH
+// PUT    /api/users/list-firebase               src/api/users/list-firebase.ts?fn=PUT
+// DELETE /api/users/list-firebase               src/api/users/list-firebase.ts?fn=DELETE
 
 const internal  = [
   API_000.default  && { cb: API_000.default , method: "use"    , route: "/auth/email-confirmation-link"   , url: "/api/auth/email-confirmation-link"   , source: "src/api/auth/email-confirmation-link.ts?fn=default"   },
@@ -170,7 +202,35 @@ const internal  = [
   API_010.POST     && { cb: API_010.POST    , method: "post"   , route: "/test"                           , url: "/api/test"                           , source: "src/api/test.ts?fn=POST"                              },
   API_010.PATCH    && { cb: API_010.PATCH   , method: "patch"  , route: "/test"                           , url: "/api/test"                           , source: "src/api/test.ts?fn=PATCH"                             },
   API_010.PUT      && { cb: API_010.PUT     , method: "put"    , route: "/test"                           , url: "/api/test"                           , source: "src/api/test.ts?fn=PUT"                               },
-  API_010.DELETE   && { cb: API_010.DELETE  , method: "delete" , route: "/test"                           , url: "/api/test"                           , source: "src/api/test.ts?fn=DELETE"                            }
+  API_010.DELETE   && { cb: API_010.DELETE  , method: "delete" , route: "/test"                           , url: "/api/test"                           , source: "src/api/test.ts?fn=DELETE"                            },
+  API_011.default  && { cb: API_011.default , method: "use"    , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=default"       },
+  API_011.USE      && { cb: API_011.USE     , method: "use"    , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=USE"           },
+  API_011.GET      && { cb: API_011.GET     , method: "get"    , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=GET"           },
+  API_011.POST     && { cb: API_011.POST    , method: "post"   , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=POST"          },
+  API_011.PATCH    && { cb: API_011.PATCH   , method: "patch"  , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=PATCH"         },
+  API_011.PUT      && { cb: API_011.PUT     , method: "put"    , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=PUT"           },
+  API_011.DELETE   && { cb: API_011.DELETE  , method: "delete" , route: "/users/activate-concierge"       , url: "/api/users/activate-concierge"       , source: "src/api/users/activate-concierge.ts?fn=DELETE"        },
+  API_012.default  && { cb: API_012.default , method: "use"    , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=default"        },
+  API_012.USE      && { cb: API_012.USE     , method: "use"    , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=USE"            },
+  API_012.GET      && { cb: API_012.GET     , method: "get"    , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=GET"            },
+  API_012.POST     && { cb: API_012.POST    , method: "post"   , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=POST"           },
+  API_012.PATCH    && { cb: API_012.PATCH   , method: "patch"  , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=PATCH"          },
+  API_012.PUT      && { cb: API_012.PUT     , method: "put"    , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=PUT"            },
+  API_012.DELETE   && { cb: API_012.DELETE  , method: "delete" , route: "/users/disable-concierge"        , url: "/api/users/disable-concierge"        , source: "src/api/users/disable-concierge.ts?fn=DELETE"         },
+  API_013.default  && { cb: API_013.default , method: "use"    , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=default"         },
+  API_013.USE      && { cb: API_013.USE     , method: "use"    , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=USE"             },
+  API_013.GET      && { cb: API_013.GET     , method: "get"    , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=GET"             },
+  API_013.POST     && { cb: API_013.POST    , method: "post"   , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=POST"            },
+  API_013.PATCH    && { cb: API_013.PATCH   , method: "patch"  , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=PATCH"           },
+  API_013.PUT      && { cb: API_013.PUT     , method: "put"    , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=PUT"             },
+  API_013.DELETE   && { cb: API_013.DELETE  , method: "delete" , route: "/users/invite-concierge"         , url: "/api/users/invite-concierge"         , source: "src/api/users/invite-concierge.ts?fn=DELETE"          },
+  API_014.default  && { cb: API_014.default , method: "use"    , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=default"            },
+  API_014.USE      && { cb: API_014.USE     , method: "use"    , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=USE"                },
+  API_014.GET      && { cb: API_014.GET     , method: "get"    , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=GET"                },
+  API_014.POST     && { cb: API_014.POST    , method: "post"   , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=POST"               },
+  API_014.PATCH    && { cb: API_014.PATCH   , method: "patch"  , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=PATCH"              },
+  API_014.PUT      && { cb: API_014.PUT     , method: "put"    , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=PUT"                },
+  API_014.DELETE   && { cb: API_014.DELETE  , method: "delete" , route: "/users/list-firebase"            , url: "/api/users/list-firebase"            , source: "src/api/users/list-firebase.ts?fn=DELETE"             }
 ].filter(it => it);
 
 export const routers = internal.map((it) => {

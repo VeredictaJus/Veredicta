@@ -750,7 +750,11 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-slate-950 text-white">
+      <section className="relative overflow-hidden py-20 bg-slate-950 text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(249,115,22,0.14),transparent_60%)]"
+        />
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
@@ -854,7 +858,11 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-slate-950">
+      <section className="relative overflow-hidden py-20 bg-slate-950">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.12),transparent_55%)]"
+        />
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
             Uma nova forma de escalar a produção jurídica
@@ -885,21 +893,21 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-slate-950 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="flex flex-col items-center text-center">
               <div className="flex items-center justify-center space-x-3 mb-4">
                 <Logo size="lg" clickable={false} textColor="light" />
               </div>
-              <p className="text-gray-400 max-w-xs">
+              <p className="text-slate-400 max-w-xs">
                 Inteligência humana aplicada à rotina jurídica.
               </p>
             </div>
             
             <div className="flex flex-col items-center text-center">
               <h4 className="font-semibold mb-4">Produto</h4>
-              <ul className="space-y-2 text-gray-400 flex flex-col items-center">
+              <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
                     onClick={() => navigate('/funcionalidades')} 
@@ -929,7 +937,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col items-center text-center">
               <h4 className="font-semibold mb-4">Suporte</h4>
-              <ul className="space-y-2 text-gray-400 flex flex-col items-center">
+              <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
                     onClick={() => navigate('/central-ajuda')} 
@@ -959,7 +967,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col items-center text-center">
               <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-gray-400 flex flex-col items-center">
+              <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
                     onClick={() => navigate('/termos')} 
@@ -980,9 +988,9 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <div className="mt-10 border-t border-white/10 bg-slate-900/20 -mx-4 px-4 pt-8 text-center text-slate-400">
             <p>&copy; {getCurrentYear()} Veredicta. Todos os direitos reservados.</p>
-            <p className="mt-1 text-xs text-gray-500">CNPJ: 61.992.118/0001-38</p>
+            <p className="mt-1 text-xs text-slate-500">CNPJ: 61.992.118/0001-38</p>
           </div>
         </div>
       </footer>

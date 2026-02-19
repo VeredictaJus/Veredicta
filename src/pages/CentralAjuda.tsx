@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
-  HelpCircle, 
   FileText, 
   Calculator, 
   MessageSquare, 
@@ -16,6 +15,8 @@ import {
   Shield
 } from 'lucide-react';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import MarketingHero from '@/components/Marketing/MarketingHero';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_SECTION_ALT_CLASS, MARKETING_SECTION_CLASS } from '@/styles/marketing';
 
 export default function CentralAjuda() {
   const navigate = useNavigate();
@@ -101,59 +102,58 @@ export default function CentralAjuda() {
 
   return (
     <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-orange-600 to-orange-800 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <HelpCircle className="w-16 h-16 mx-auto mb-6 text-orange-200" />
-          <h1 className="text-5xl font-bold mb-6">
-            Central de
-            <br />
-            <span className="text-orange-200">Ajuda</span>
-          </h1>
-          <p className="text-xl text-orange-100 mb-8 max-w-3xl mx-auto">
-            Encontre respostas para suas dúvidas e aprenda a usar todas as funcionalidades da Veredicta.
-          </p>
-          
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Digite sua dúvida aqui..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 text-lg bg-white/5 text-white placeholder:text-slate-400 rounded-xl border border-white/10"
-            />
-          </div>
+      <MarketingHero
+        eyebrow="Central de Ajuda"
+        title={
+          <>
+            Central de <br />
+            <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
+              Ajuda
+            </span>
+          </>
+        }
+        subtitle="Encontre respostas para suas dúvidas e aprenda a usar todas as funcionalidades da Veredicta."
+      >
+        <div className="max-w-2xl mx-auto relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Input
+            type="text"
+            placeholder="Digite sua dúvida aqui..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-4 text-lg bg-white/5 text-white placeholder:text-slate-400 rounded-2xl border border-white/10 shadow-xl"
+          />
         </div>
-      </section>
+      </MarketingHero>
 
       {/* Categories */}
-      <section className="py-16 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mb-4">
               Categorias de Ajuda
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
               Explore os tópicos organizados por categoria
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {categories.map((category, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index} className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
                 <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 rounded-full ${category.color} flex items-center justify-center mx-auto mb-4`}>
-                    <category.icon className="w-8 h-8" />
+                  <div className="w-16 h-16 rounded-full bg-orange-500/15 ring-1 ring-orange-400/30 flex items-center justify-center mx-auto mb-4">
+                    <category.icon className="w-8 h-8 text-orange-300" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  <h3 className="text-xl font-semibold text-white mb-2">
                     {category.title}
                   </h3>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-slate-300 mb-4">
                     {category.description}
                   </p>
+                  <div className="text-sm text-slate-400">
+                    {category.articles} artigos
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -162,120 +162,120 @@ export default function CentralAjuda() {
       </section>
 
       {/* Popular Articles */}
-      <section className="py-16 bg-gray-50">
+      <section className={MARKETING_SECTION_ALT_CLASS}>
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">
+              <h2 className="text-3xl font-semibold tracking-tight text-white mb-8">
                 Artigos Populares
               </h2>
               <div className="space-y-4">
                 <Card 
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'cursor-pointer'].join(' ')}
                   onClick={() => navigate('/artigos/como-solicitar-primeira-peticao')}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           Como solicitar minha primeira petição?
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs mr-2">
+                        <div className="flex items-center text-sm text-slate-400">
+                          <span className="px-2 py-1 bg-orange-500/15 text-orange-200 border border-orange-500/25 rounded-md text-xs mr-2">
                             Petições
                           </span>
                           <span>1.2k visualizações</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card 
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'cursor-pointer'].join(' ')}
                   onClick={() => navigate('/artigos/prazo-entrega-peticoes')}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           Prazo de entrega das petições
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs mr-2">
+                        <div className="flex items-center text-sm text-slate-400">
+                          <span className="px-2 py-1 bg-orange-500/15 text-orange-200 border border-orange-500/25 rounded-md text-xs mr-2">
                             Petições
                           </span>
                           <span>890 visualizações</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card 
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'cursor-pointer'].join(' ')}
                   onClick={() => navigate('/artigos/como-usar-calculadora-trabalhista')}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           Como usar a calculadora trabalhista?
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs mr-2">
+                        <div className="flex items-center text-sm text-slate-400">
+                          <span className="px-2 py-1 bg-orange-500/15 text-orange-200 border border-orange-500/25 rounded-md text-xs mr-2">
                             Calculadora
                           </span>
                           <span>756 visualizações</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card 
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'cursor-pointer'].join(' ')}
                   onClick={() => navigate('/artigos/sistema-correcoes-revisoes')}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           Sistema de correções e revisões
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs mr-2">
+                        <div className="flex items-center text-sm text-slate-400">
+                          <span className="px-2 py-1 bg-orange-500/15 text-orange-200 border border-orange-500/25 rounded-md text-xs mr-2">
                             Petições
                           </span>
                           <span>623 visualizações</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card 
-                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'cursor-pointer'].join(' ')}
                   onClick={() => navigate('/artigos/comunicar-com-redator')}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-1">
+                        <h3 className="font-semibold text-white mb-1">
                           Como me comunicar com o redator?
                         </h3>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs mr-2">
+                        <div className="flex items-center text-sm text-slate-400">
+                          <span className="px-2 py-1 bg-orange-500/15 text-orange-200 border border-orange-500/25 rounded-md text-xs mr-2">
                             Chat
                           </span>
                           <span>567 visualizações</span>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
                     </div>
                   </CardContent>
                 </Card>
@@ -283,17 +283,17 @@ export default function CentralAjuda() {
             </div>
 
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">
+              <h2 className="text-3xl font-semibold tracking-tight text-white mb-8">
                 Respostas Rápidas
               </h2>
               <div className="space-y-4">
                 {quickAnswers.map((qa, index) => (
-                  <Card key={index}>
+                  <Card key={index} className={MARKETING_CARD_CLASS}>
                     <CardContent className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">
+                      <h3 className="font-semibold text-white mb-2">
                         {qa.question}
                       </h3>
-                      <p className="text-gray-600 text-sm">
+                      <p className="text-slate-300 text-sm">
                         {qa.answer}
                       </p>
                     </CardContent>
@@ -306,30 +306,30 @@ export default function CentralAjuda() {
       </section>
 
       {/* Quick Actions */}
-      <section className="py-16 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mb-4">
               Ações Rápidas
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-slate-300">
               Acesse rapidamente as principais funcionalidades
             </p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'text-center'].join(' ')}>
               <CardContent className="p-6">
-                <BookOpen className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <BookOpen className="w-12 h-12 text-orange-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
                   Guia do Iniciante
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-slate-300 mb-4">
                   Aprenda o básico para começar a usar a plataforma
                 </p>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent"
                   onClick={() => navigate('/guia-iniciante')}
                 >
                   Ver Guia
@@ -337,18 +337,18 @@ export default function CentralAjuda() {
               </CardContent>
             </Card>
 
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'text-center'].join(' ')}>
               <CardContent className="p-6">
-                <Clock className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <Clock className="w-12 h-12 text-orange-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
                   Status do Sistema
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-slate-300 mb-4">
                   Verifique o status dos nossos serviços
                 </p>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent"
                   onClick={() => navigate('/status')}
                 >
                   Ver Status
@@ -356,18 +356,18 @@ export default function CentralAjuda() {
               </CardContent>
             </Card>
 
-            <Card className="text-center hover:shadow-lg transition-shadow">
+            <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'text-center'].join(' ')}>
               <CardContent className="p-6">
-                <Shield className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <Shield className="w-12 h-12 text-orange-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
                   Segurança
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-slate-300 mb-4">
                   Informações sobre segurança e privacidade
                 </p>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent"
                   onClick={() => navigate('/seguranca')}
                 >
                   Saber Mais
@@ -379,12 +379,13 @@ export default function CentralAjuda() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-orange-600 to-orange-800 text-white">
+      <section className={MARKETING_SECTION_ALT_CLASS}>
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">
+          <div className="max-w-4xl mx-auto rounded-2xl border border-white/10 bg-white/5 p-8 shadow-xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-white mb-3">
             Não encontrou o que procurava?
           </h2>
-          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-300 mb-8 max-w-2xl mx-auto">
             Nossa equipe de suporte está pronta para ajudar você
           </p>
           
@@ -392,18 +393,20 @@ export default function CentralAjuda() {
             <Button 
               size="lg" 
               variant="secondary"
-              className="bg-white text-orange-600 hover:bg-orange-50"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white border-0"
               onClick={() => navigate('/contato')}
             >
               Entrar em Contato
             </Button>
             <Button 
               size="lg" 
-              className="bg-white text-orange-600 hover:bg-orange-100 border-0 font-semibold"
-              onClick={() => navigate('/auth/register')}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 bg-transparent font-semibold"
+              onClick={() => navigate('/solicitar-demonstracao')}
             >
-              Criar Conta
+              Solicitar demonstração
             </Button>
+          </div>
           </div>
         </div>
       </section>

@@ -1,26 +1,21 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale } from 'lucide-react';
 import { getCurrentYear } from '@/utils/dateUtils';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import MarketingHero from '@/components/Marketing/MarketingHero';
+import { MARKETING_SECTION_CLASS } from '@/styles/marketing';
 
 export default function Termos() {
   return (
     <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
-      <section className="border-b border-white/10 bg-slate-900/30">
-        <div className="container mx-auto px-4 py-12 max-w-4xl text-center">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/15 border border-orange-500/25">
-            <Scale className="h-7 w-7 text-orange-300" />
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-white mb-3">Termos de Serviço</h1>
-          <p className="text-lg text-slate-300">
-            Última atualização: 18 de Julho de {getCurrentYear()}
-          </p>
-        </div>
-      </section>
+      <MarketingHero
+        eyebrow="Legal"
+        title="Termos de Serviço"
+        subtitle={<>Última atualização: 18 de Julho de {getCurrentYear()}</>}
+      />
 
       {/* Content */}
-      <section className="py-16">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="space-y-8">
             <Card>

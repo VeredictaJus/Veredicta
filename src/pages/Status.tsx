@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Activity, CheckCircle, AlertTriangle, XCircle, Clock, Server, Database, MessageSquare, Calculator, CreditCard, FileText, Instagram } from 'lucide-react';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS } from '@/styles/marketing';
 
 export default function Status() {
   const navigate = useNavigate();
@@ -103,17 +104,17 @@ export default function Status() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'operational':
-        return <Badge className="bg-green-100 text-green-800">Operacional</Badge>;
+        return <Badge className="bg-emerald-500/15 text-emerald-200 border border-emerald-500/25">Operacional</Badge>;
       case 'degraded':
-        return <Badge className="bg-yellow-100 text-yellow-800">Degradado</Badge>;
+        return <Badge className="bg-yellow-500/15 text-yellow-200 border border-yellow-500/25">Degradado</Badge>;
       case 'outage':
-        return <Badge className="bg-red-100 text-red-800">Indisponível</Badge>;
+        return <Badge className="bg-red-500/15 text-red-200 border border-red-500/25">Indisponível</Badge>;
       case 'scheduled':
-        return <Badge className="bg-blue-100 text-blue-800">Programado</Badge>;
+        return <Badge className="bg-blue-500/15 text-blue-200 border border-blue-500/25">Programado</Badge>;
       case 'resolved':
-        return <Badge className="bg-gray-100 text-gray-800">Resolvido</Badge>;
+        return <Badge className="bg-white/10 text-slate-200 border border-white/10">Resolvido</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">Desconhecido</Badge>;
+        return <Badge className="bg-white/10 text-slate-200 border border-white/10">Desconhecido</Badge>;
     }
   };
 
@@ -154,15 +155,20 @@ export default function Status() {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Overall Status */}
-          <Card className="mb-8">
+          <Card className={[MARKETING_CARD_CLASS, 'mb-8'].join(' ')}>
             <CardContent className="p-8">
               <div className="text-center">
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                  overallStatus === 'operational' ? 'bg-green-100' : 'bg-yellow-100'
-                }`}>
+                <div
+                  className={[
+                    'w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ring-1',
+                    overallStatus === 'operational'
+                      ? 'bg-emerald-500/15 ring-emerald-500/25'
+                      : 'bg-yellow-500/15 ring-yellow-500/25',
+                  ].join(' ')}
+                >
                   {overallStatus === 'operational' ? 
-                    <CheckCircle className="w-8 h-8 text-green-500" /> : 
-                    <AlertTriangle className="w-8 h-8 text-yellow-500" />
+                    <CheckCircle className="w-8 h-8 text-emerald-300" /> : 
+                    <AlertTriangle className="w-8 h-8 text-yellow-300" />
                   }
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -181,12 +187,12 @@ export default function Status() {
             <h2 className="text-2xl font-bold text-gray-900">Status dos Serviços</h2>
             
             {services.map((service, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow">
+              <Card key={index} className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="p-2 bg-gray-100 rounded-lg">
-                        <service.icon className="w-6 h-6 text-gray-600" />
+                      <div className="p-2 bg-white/5 border border-white/10 rounded-xl">
+                        <service.icon className="w-6 h-6 text-orange-300" />
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">{service.name}</h3>
@@ -212,7 +218,7 @@ export default function Status() {
           </div>
 
           {/* Metrics */}
-          <Card className="mb-8">
+          <Card className={[MARKETING_CARD_CLASS, 'mb-8'].join(' ')}>
             <CardHeader>
               <CardTitle className="text-2xl text-gray-900">Métricas de Performance</CardTitle>
             </CardHeader>
@@ -239,7 +245,7 @@ export default function Status() {
           </Card>
 
           {/* Incident History */}
-          <Card className="mb-8">
+          <Card className={[MARKETING_CARD_CLASS, 'mb-8'].join(' ')}>
             <CardHeader>
               <CardTitle className="text-2xl text-gray-900">Histórico de Incidentes</CardTitle>
               <CardDescription>
@@ -249,7 +255,7 @@ export default function Status() {
             <CardContent>
               <div className="space-y-4">
                 {incidents.map((incident, index) => (
-                  <div key={index} className="border-l-4 border-gray-200 pl-4 py-3">
+                  <div key={index} className="border-l-2 border-white/10 pl-4 py-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
@@ -271,7 +277,7 @@ export default function Status() {
           </Card>
 
           {/* Subscribe to Updates */}
-          <Card>
+          <Card className={MARKETING_CARD_CLASS}>
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Receba Atualizações de Status
@@ -283,7 +289,7 @@ export default function Status() {
               <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
                 <Button 
                   size="lg" 
-                  className="bg-orange-600 hover:bg-orange-700"
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white"
                   onClick={() => navigate('/contato')}
                 >
                   Receber Notificações
@@ -292,7 +298,7 @@ export default function Status() {
                   size="lg" 
                   variant="outline"
                   onClick={() => window.open('https://www.instagram.com/veredictajus/', '_blank')}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 border-white/20 text-white hover:bg-white/10 bg-transparent"
                 >
                   <Instagram className="w-4 h-4" />
                   Seguir no Instagram

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -38,6 +37,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import MarketingHero from '@/components/Marketing/MarketingHero';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_SECTION_ALT_CLASS, MARKETING_SECTION_CLASS } from '@/styles/marketing';
 
 export default function Funcionalidades() {
   const navigate = useNavigate();
@@ -257,90 +258,93 @@ export default function Funcionalidades() {
     <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-orange-600 via-orange-700 to-orange-800 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <Badge className="mb-4 bg-orange-500 text-white border-0 px-4 py-1">
-            Plataforma Completa
-          </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            Funcionalidades
+      <MarketingHero
+        eyebrow="Plataforma"
+        title={
+          <>
+            Funcionalidades <br />
+            <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
+              Completas
+            </span>
+          </>
+        }
+        subtitle={
+          <>
+            Descubra as ferramentas que estruturam a produção jurídica do seu escritório.
             <br />
-            <span className="text-orange-200">Completas</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-orange-100 mb-8 max-w-3xl mx-auto">
-            Descubra todas as ferramentas que fazem da Veredicta a plataforma mais completa 
-            e inovadora para redação jurídica do Brasil.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button 
-              size="lg" 
-              className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg font-semibold"
-              onClick={() => navigate('/auth/register')}
-            >
-              Começar Agora
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="border-2 border-white bg-transparent text-white hover:bg-white hover:text-orange-600 px-8 py-6 text-lg font-semibold shadow-lg"
-              onClick={() => navigate('/precos')}
-            >
-              Ver Planos e Preços
-            </Button>
-          </div>
+            Tudo com padrão técnico, previsibilidade e controle.
+          </>
+        }
+      >
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.18)] px-8 py-6 text-lg font-semibold"
+            onClick={() => navigate('/auth/register')}
+          >
+            Começar agora
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10 bg-transparent px-8 py-6 text-lg font-semibold"
+            onClick={() => navigate('/precos')}
+          >
+            Ver planos e preços
+          </Button>
         </div>
-      </section>
+      </MarketingHero>
 
       {/* Main Features Grid */}
-      <section className="py-20 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Funcionalidades Principais
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
               Tudo que você precisa para gerenciar suas petições jurídicas de forma profissional e eficiente.
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {mainFeatures.map((feature, index) => (
-              <Card key={index} className="hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200">
+              <Card key={index} className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
                 <CardHeader>
-                  <div className="w-16 h-16 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                    <feature.icon className="w-8 h-8 text-orange-600" />
+                  <div className="w-16 h-16 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-2xl flex items-center justify-center mb-4">
+                    <feature.icon className="w-8 h-8 text-orange-300" />
                   </div>
-                  <CardTitle className="text-2xl mb-2">{feature.title}</CardTitle>
-                  <CardDescription className="text-gray-600 text-base">
+                  <CardTitle className="text-2xl mb-2 text-white">{feature.title}</CardTitle>
+                  <CardDescription className="text-slate-300 text-base">
                     {feature.description}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                        <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                      <h4 className="font-semibold text-white mb-2 flex items-center">
+                        <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
                         Benefícios
                       </h4>
                       <ul className="space-y-2">
                         {feature.benefits.map((benefit, idx) => (
-                          <li key={idx} className="flex items-start text-sm text-gray-600">
-                            <CheckCircle className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                          <li key={idx} className="flex items-start text-sm text-slate-300">
+                            <CheckCircle className="w-4 h-4 text-emerald-400 mr-2 mt-0.5 flex-shrink-0" />
                             <span>{benefit}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div className="pt-4 border-t">
-                      <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                        <Zap className="w-4 h-4 text-orange-500 mr-2" />
+                    <div className="pt-4 border-t border-white/10">
+                      <h4 className="font-semibold text-white mb-2 flex items-center">
+                        <Zap className="w-4 h-4 text-orange-300 mr-2" />
                         Recursos
                       </h4>
                       <ul className="space-y-2">
                         {feature.details.map((detail, idx) => (
-                          <li key={idx} className="flex items-start text-sm text-gray-600">
-                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mr-2 mt-1.5 flex-shrink-0" />
+                          <li key={idx} className="flex items-start text-sm text-slate-300">
+                            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mr-2 mt-1.5 flex-shrink-0" />
                             <span>{detail}</span>
                           </li>
                         ))}
@@ -355,13 +359,13 @@ export default function Funcionalidades() {
       </section>
 
       {/* Workflow Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
+      <section className={MARKETING_SECTION_ALT_CLASS}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Como Funciona
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
               Processo simples e eficiente em apenas 4 passos
             </p>
           </div>
@@ -369,14 +373,14 @@ export default function Funcionalidades() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {workflowSteps.map((step, index) => (
               <div key={index} className="relative">
-                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                  <div className="flex items-center justify-center w-16 h-16 bg-orange-600 text-white rounded-full text-2xl font-bold mb-4 mx-auto">
+                <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-6'].join(' ')}>
+                  <div className="flex items-center justify-center w-16 h-16 bg-orange-500/15 ring-1 ring-orange-400/30 text-white rounded-full text-2xl font-bold mb-4 mx-auto">
                     {step.step}
                   </div>
                   <div className="text-center mb-4">
-                    <step.icon className="w-12 h-12 text-orange-600 mx-auto mb-3" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
-                    <p className="text-gray-600">{step.description}</p>
+                    <step.icon className="w-12 h-12 text-orange-300 mx-auto mb-3" />
+                    <h3 className="text-xl font-semibold text-white mb-2">{step.title}</h3>
+                    <p className="text-slate-300">{step.description}</p>
                   </div>
                 </div>
                 {index < workflowSteps.length - 1 && (
@@ -391,29 +395,26 @@ export default function Funcionalidades() {
       </section>
 
       {/* Additional Features */}
-      <section className="py-20 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Recursos Adicionais
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
               Mais funcionalidades para tornar sua experiência ainda melhor
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {additionalFeatures.map((feature, index) => (
-              <Card key={index} className="hover:shadow-lg transition-all duration-300 bg-white border-gray-200">
-                <CardContent className="p-6 bg-white">
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-                    style={feature.style}
-                  >
-                    <feature.icon className="w-6 h-6" style={{ color: feature.style.color }} />
+              <Card key={index} className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-orange-500/15 ring-1 ring-orange-400/30">
+                    <feature.icon className="w-6 h-6 text-orange-300" />
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-sm text-gray-600">{feature.description}</p>
+                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                  <p className="text-sm text-slate-300">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -422,35 +423,35 @@ export default function Funcionalidades() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-gradient-to-br from-orange-50 to-orange-100">
+      <section className={MARKETING_SECTION_ALT_CLASS}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Por que escolher a Veredicta?
             </h2>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
-              <Award className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Qualidade Garantida</h3>
-              <p className="text-gray-600">
+            <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-8 text-center'].join(' ')}>
+              <Award className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+              <h3 className="text-2xl font-semibold text-white mb-3">Qualidade Garantida</h3>
+              <p className="text-slate-300">
                 Redatores certificados e aprovados, com processo rigoroso de seleção e avaliação contínua.
               </p>
             </div>
             
-            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
-              <TrendingUp className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Eficiência Máxima</h3>
-              <p className="text-gray-600">
+            <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-8 text-center'].join(' ')}>
+              <TrendingUp className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+              <h3 className="text-2xl font-semibold text-white mb-3">Eficiência Máxima</h3>
+              <p className="text-slate-300">
                 Processo automatizado que reduz tempo de espera e aumenta a produtividade do seu escritório.
               </p>
             </div>
             
-            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
-              <Lock className="w-16 h-16 text-orange-600 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Segurança Total</h3>
-              <p className="text-gray-600">
+            <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-8 text-center'].join(' ')}>
+              <Lock className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+              <h3 className="text-2xl font-semibold text-white mb-3">Segurança Total</h3>
+              <p className="text-slate-300">
                 Seus dados protegidos com criptografia de ponta a ponta e conformidade total com LGPD.
               </p>
             </div>
@@ -459,31 +460,32 @@ export default function Funcionalidades() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-orange-600 via-orange-700 to-orange-800 text-white">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Pronto para Começar?
+      <section className="relative overflow-hidden py-20 bg-slate-950">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(249,115,22,0.14),transparent_60%)]" />
+        <div className="container mx-auto px-4 text-center max-w-4xl relative">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
+            Pronto para estruturar sua produção?
           </h2>
-          <p className="text-xl md:text-2xl text-orange-100 mb-8">
-            Junte-se à comunidade de advogados e redatores que já transformaram sua prática jurídica
+          <p className="text-xl text-slate-300 mb-8">
+            Junte-se a escritórios que operam com previsibilidade e padrão técnico na produção de peças.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button 
               size="lg" 
-              className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg font-semibold shadow-lg"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white px-8 py-6 text-lg font-semibold shadow-[0_10px_30px_rgba(249,115,22,0.18)]"
               onClick={() => navigate('/auth/register')}
             >
-              Cadastrar-se Gratuitamente
+              Cadastrar-se
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="border-2 border-white bg-transparent text-white hover:bg-white hover:text-orange-600 px-8 py-6 text-lg font-semibold shadow-lg"
-              onClick={() => navigate('/auth/login')}
+              className="border-white/20 text-white hover:bg-white/10 bg-transparent px-8 py-6 text-lg font-semibold"
+              onClick={() => navigate('/solicitar-demonstracao')}
             >
-              Já tenho conta
+              Solicitar demonstração
             </Button>
           </div>
         </div>

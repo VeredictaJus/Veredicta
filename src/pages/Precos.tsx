@@ -5,9 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, X, Star, ArrowRight, Zap, Crown, AlertTriangle } from 'lucide-react';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import MarketingHero from '@/components/Marketing/MarketingHero';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_BADGE_CLASS, MARKETING_SECTION_ALT_CLASS, MARKETING_SECTION_CLASS } from '@/styles/marketing';
 
 export default function Precos() {
   const navigate = useNavigate();
+  const proHighlight = 'ring-1 ring-orange-500/30 shadow-[0_20px_60px_rgba(249,115,22,0.12)]';
 
   const plans = [
     {
@@ -21,9 +24,9 @@ export default function Precos() {
       petitions: '1 petição',
       creditPrice: '',
       icon: AlertTriangle,
-      color: 'bg-gray-100 text-gray-700',
+      color: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/25',
       badge: 'Gratuito',
-      badgeColor: 'bg-green-500',
+      badgeColor: MARKETING_BADGE_CLASS,
       warning: 'Uma vez por CPF ou CNPJ',
       popular: false,
       features: [
@@ -50,7 +53,7 @@ export default function Precos() {
       petitions: '4 petições',
       creditPrice: 'R$ 130,00 por petição',
       icon: Zap,
-      color: 'bg-blue-100 text-blue-700',
+      color: 'bg-blue-500/15 text-blue-200 ring-1 ring-blue-500/25',
       badge: null,
       badgeColor: null,
       popular: false,
@@ -79,9 +82,9 @@ export default function Precos() {
       creditPrice: 'R$ 120,00 por petição',
       savings: 'Economia de R$ 10,00 por petição',
       icon: Star,
-      color: 'bg-purple-100 text-purple-700',
+      color: 'bg-orange-500/15 text-orange-200 ring-1 ring-orange-500/25',
       badge: 'Mais Popular',
-      badgeColor: 'bg-orange-500',
+      badgeColor: MARKETING_BADGE_CLASS,
       popular: true,
       features: [
         { name: '14 petições incluídas', included: true },
@@ -109,7 +112,7 @@ export default function Precos() {
       creditPrice: 'R$ 100,00 por petição',
       savings: 'Economia de R$ 30,00 por petição',
       icon: Crown,
-      color: 'bg-orange-100 text-orange-700',
+      color: 'bg-purple-500/15 text-purple-200 ring-1 ring-purple-500/25',
       badge: null,
       badgeColor: null,
       popular: false,
@@ -160,27 +163,27 @@ export default function Precos() {
 
   return (
     <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-orange-600 via-orange-700 to-orange-800 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <Badge className="mb-4 bg-orange-500 text-white border-0 px-4 py-1">
-            Planos Flexíveis
-          </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            Planos e
+      <MarketingHero
+        eyebrow="Planos Flexíveis"
+        title={
+          <>
+            Planos e <br />
+            <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
+              Preços
+            </span>
+          </>
+        }
+        subtitle={
+          <>
+            Escolha o plano ideal para suas necessidades jurídicas.
             <br />
-            <span className="text-orange-200">Preços</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-orange-100 mb-8 max-w-3xl mx-auto">
-            Escolha o plano ideal para suas necessidades jurídicas. 
             Sem compromisso, cancele quando quiser.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {/* Pricing Plans */}
-      <section className="py-20 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {plans.map((plan, index) => {
@@ -188,62 +191,68 @@ export default function Precos() {
               return (
                 <Card 
                   key={index} 
-                  className={`relative bg-white border-2 hover:shadow-xl transition-all duration-300 overflow-visible ${
-                    plan.popular 
-                      ? 'border-orange-500 shadow-xl scale-105' 
-                      : 'border-gray-200 shadow-lg'
-                  }`}
+                  className={[
+                    'relative h-full flex flex-col',
+                    MARKETING_CARD_CLASS,
+                    MARKETING_CARD_HOVER_CLASS,
+                    plan.popular ? proHighlight : '',
+                  ].join(' ')}
                 >
                   {plan.badge && (
-                    <Badge className={`absolute -top-4 left-1/2 transform -translate-x-1/2 z-10 ${plan.badgeColor} text-white px-4 py-1.5 shadow-lg whitespace-nowrap`}>
+                    <Badge
+                      className={[
+                        'absolute -top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-1.5 shadow-lg whitespace-nowrap',
+                        plan.badgeColor || MARKETING_BADGE_CLASS,
+                      ].join(' ')}
+                    >
                       {plan.badge}
-                  </Badge>
-                )}
+                    </Badge>
+                  )}
                   
-                  <CardHeader className={`text-center pb-6 ${plan.badge ? 'pt-12' : 'pt-8'}`}>
-                    <div className={`w-16 h-16 ${plan.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                  <CardHeader className={['text-center pb-6', plan.badge ? 'pt-12' : 'pt-8'].join(' ')}>
+                    <div className={['w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4', plan.color].join(' ')}>
                       <IconComponent className="w-8 h-8" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">{plan.displayName}</CardTitle>
-                  <div className="mt-4">
-                      <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                      {plan.period && <span className="text-gray-600 ml-1">{plan.period}</span>}
-                  </div>
+                    <CardTitle className="text-2xl font-semibold text-white">{plan.displayName}</CardTitle>
+                    <div className="mt-4">
+                      <span className="text-4xl font-semibold tracking-tight tabular-nums text-white">{plan.price}</span>
+                      {plan.period && <div className="text-slate-400 text-sm mt-1">{plan.period}</div>}
+                    </div>
                     {plan.creditPrice && (
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-sm text-slate-300 mt-2">
                         {plan.creditPrice}
                       </p>
                     )}
                     {plan.savings && (
-                      <Badge className="mt-2 bg-green-100 text-green-700 border-0">
+                      <Badge className="mt-3 bg-emerald-500/15 text-emerald-200 border border-emerald-500/25">
                         {plan.savings}
                       </Badge>
                     )}
                     {plan.warning && (
-                      <p className="text-xs text-orange-600 mt-2 font-medium">
-                        ⚠️ {plan.warning}
+                      <p className="text-xs text-orange-200/90 mt-3 font-medium">
+                        {plan.warning}
                       </p>
                     )}
-                    <CardDescription className="text-base mt-3 text-gray-600">
+                    <CardDescription className="text-base mt-4 text-slate-300">
                     {plan.description}
                   </CardDescription>
                     <div className="mt-3">
-                      <Badge variant="outline" className="text-sm">
+                      <Badge variant="outline" className="text-sm border-white/15 text-slate-200 bg-white/5">
                         {plan.petitions}
                       </Badge>
                     </div>
                 </CardHeader>
                   
-                  <CardContent className="bg-white">
+                  <CardContent className="flex flex-1 flex-col">
                     <ul className="space-y-3 mb-8 min-h-[300px]">
                     {plan.features.map((feature, featureIndex) => (
                         <li key={featureIndex} className="flex items-start">
                         {feature.included ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                            <CheckCircle className="h-5 w-5 text-emerald-400 mr-3 flex-shrink-0 mt-0.5" />
                         ) : (
-                            <X className="h-5 w-5 text-gray-300 mr-3 flex-shrink-0 mt-0.5" />
+                            <X className="h-5 w-5 text-slate-500 mr-3 flex-shrink-0 mt-0.5" />
                         )}
-                          <span className={feature.included ? "text-gray-700 text-sm" : "text-gray-400 text-sm line-through"}>
+                          <span className={feature.included ? "text-slate-200 text-sm" : "text-slate-500 text-sm line-through"}>
                           {feature.name}
                         </span>
                       </li>
@@ -251,11 +260,10 @@ export default function Precos() {
                   </ul>
                   
                   <Button 
-                      className={`w-full ${
-                        plan.popular 
-                          ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                          : 'bg-gray-900 hover:bg-gray-800 text-white'
-                      }`}
+                      className={[
+                        'w-full',
+                        plan.popular ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white' : 'bg-white/10 hover:bg-white/15 text-white border border-white/10',
+                      ].join(' ')}
                       size="lg"
                       onClick={plan.onClick}
                   >
@@ -271,116 +279,116 @@ export default function Precos() {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-20 bg-gray-50">
+      <section className={MARKETING_SECTION_ALT_CLASS}>
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Compare os Planos
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
               Veja em detalhes o que cada plano oferece
             </p>
           </div>
           
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="rounded-2xl shadow-xl overflow-hidden border border-white/10 bg-white/5">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-900 text-white">
+                <thead className="bg-white/5 text-white">
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Recurso</th>
                     <th className="px-6 py-4 text-center font-semibold">Free</th>
                     <th className="px-6 py-4 text-center font-semibold">Start</th>
-                    <th className="px-6 py-4 text-center font-semibold bg-orange-600">Pro</th>
+                    <th className="px-6 py-4 text-center font-semibold bg-orange-500/10">Pro</th>
                     <th className="px-6 py-4 text-center font-semibold">Elite</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-white/10 text-slate-200">
                   <tr>
-                    <td className="px-6 py-4 font-medium text-gray-900">Petições por mês</td>
+                    <td className="px-6 py-4 font-medium text-white">Petições por mês</td>
                     <td className="px-6 py-4 text-center">1</td>
                     <td className="px-6 py-4 text-center">4</td>
-                    <td className="px-6 py-4 text-center bg-orange-50">14</td>
+                    <td className="px-6 py-4 text-center bg-orange-500/10">14</td>
                     <td className="px-6 py-4 text-center">70</td>
                   </tr>
-                  <tr className="bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Prazo de entrega</td>
+                  <tr className="bg-white/5">
+                    <td className="px-6 py-4 font-medium text-white">Prazo de entrega</td>
                     <td className="px-6 py-4 text-center">3-5 dias úteis</td>
                     <td className="px-6 py-4 text-center">Até 3 dias úteis</td>
-                    <td className="px-6 py-4 text-center bg-orange-50">Até 2 dias úteis</td>
+                    <td className="px-6 py-4 text-center bg-orange-500/10">Até 2 dias úteis</td>
                     <td className="px-6 py-4 text-center">Até 1 dia útil</td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-medium text-gray-900">Revisões gratuitas</td>
+                    <td className="px-6 py-4 font-medium text-white">Revisões gratuitas</td>
                     <td className="px-6 py-4 text-center">1</td>
                     <td className="px-6 py-4 text-center">1 no pacote</td>
-                    <td className="px-6 py-4 text-center bg-orange-50">1 por petição</td>
+                    <td className="px-6 py-4 text-center bg-orange-500/10">1 por petição</td>
                     <td className="px-6 py-4 text-center">1 por petição + extra</td>
                   </tr>
-                  <tr className="bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Chat com redator</td>
+                  <tr className="bg-white/5">
+                    <td className="px-6 py-4 font-medium text-white">Chat com redator</td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
-                    <td className="px-6 py-4 text-center bg-orange-50">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                    <td className="px-6 py-4 text-center bg-orange-500/10">
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-medium text-gray-900">Calculadora trabalhista</td>
+                    <td className="px-6 py-4 font-medium text-white">Calculadora trabalhista</td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
-                    <td className="px-6 py-4 text-center bg-orange-50">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                    <td className="px-6 py-4 text-center bg-orange-500/10">
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                   </tr>
-                  <tr className="bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Suporte prioritário</td>
+                  <tr className="bg-white/5">
+                    <td className="px-6 py-4 font-medium text-white">Suporte prioritário</td>
                     <td className="px-6 py-4 text-center">
-                      <X className="h-5 w-5 text-gray-300 mx-auto" />
+                      <X className="h-5 w-5 text-slate-500 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <X className="h-5 w-5 text-gray-300 mx-auto" />
+                      <X className="h-5 w-5 text-slate-500 mx-auto" />
                     </td>
-                    <td className="px-6 py-4 text-center bg-orange-50">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                    <td className="px-6 py-4 text-center bg-orange-500/10">
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-6 py-4 font-medium text-gray-900">Gestor de conta dedicado</td>
+                    <td className="px-6 py-4 font-medium text-white">Gestor de conta dedicado</td>
                     <td className="px-6 py-4 text-center">
-                      <X className="h-5 w-5 text-gray-300 mx-auto" />
+                      <X className="h-5 w-5 text-slate-500 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <X className="h-5 w-5 text-gray-300 mx-auto" />
+                      <X className="h-5 w-5 text-slate-500 mx-auto" />
                     </td>
-                    <td className="px-6 py-4 text-center bg-orange-50">
-                      <X className="h-5 w-5 text-gray-300 mx-auto" />
+                    <td className="px-6 py-4 text-center bg-orange-500/10">
+                      <X className="h-5 w-5 text-slate-500 mx-auto" />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                      <CheckCircle className="h-5 w-5 text-emerald-400 mx-auto" />
                     </td>
                   </tr>
-                  <tr className="bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">Validade</td>
+                  <tr className="bg-white/5">
+                    <td className="px-6 py-4 font-medium text-white">Validade</td>
                     <td className="px-6 py-4 text-center">7 dias</td>
                     <td className="px-6 py-4 text-center">30 dias</td>
-                    <td className="px-6 py-4 text-center bg-orange-50">60 dias</td>
+                    <td className="px-6 py-4 text-center bg-orange-500/10">60 dias</td>
                     <td className="px-6 py-4 text-center">90 dias</td>
                   </tr>
                 </tbody>
@@ -391,25 +399,25 @@ export default function Precos() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="text-center mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
               Perguntas Frequentes
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
               Tire suas dúvidas sobre nossos planos e serviços
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             {faqs.map((faq, index) => (
-              <Card key={index} className="shadow-sm hover:shadow-md transition-shadow bg-white border-gray-200">
+              <Card key={index} className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-gray-900 mb-3 text-lg">
+                  <h3 className="font-semibold text-white mb-3 text-lg">
                     {faq.question}
                   </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-slate-300 text-sm leading-relaxed">
                     {faq.answer}
                   </p>
                 </CardContent>
@@ -420,31 +428,32 @@ export default function Precos() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-orange-600 via-orange-700 to-orange-800 text-white">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Pronto para Começar?
+      <section className="relative overflow-hidden py-20 bg-slate-950">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(249,115,22,0.14),transparent_60%)]" />
+        <div className="container mx-auto px-4 text-center max-w-4xl relative">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
+            Pronto para estruturar sua produção?
           </h2>
-          <p className="text-xl md:text-2xl text-orange-100 mb-8">
-            Escolha seu plano e comece a transformar sua prática jurídica hoje mesmo
+          <p className="text-xl text-slate-300 mb-8">
+            Escolha um plano e comece a operar com previsibilidade e padrão técnico.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button 
-              size="lg" 
-              className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-6 text-lg font-semibold shadow-lg"
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.18)] px-8 py-6 text-lg font-semibold"
               onClick={() => navigate('/auth/register')}
             >
-              Cadastrar-se Gratuitamente
+              Cadastrar-se
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
-              className="border-2 border-white bg-transparent text-white hover:bg-white hover:text-orange-600 px-8 py-6 text-lg font-semibold shadow-lg"
-              onClick={() => navigate('/auth/login')}
+              className="border-white/20 text-white hover:bg-white/10 bg-transparent px-8 py-6 text-lg font-semibold"
+              onClick={() => navigate('/solicitar-demonstracao')}
             >
-              Já tenho conta
+              Solicitar demonstração
             </Button>
           </div>
         </div>

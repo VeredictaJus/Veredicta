@@ -36,6 +36,8 @@ export default function LandingPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
   const promoVideoUrl =
     'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/copy_2E0B46BB-B907-4FFA-B7D8-31F3115A343B.mp4';
+  const interactiveCardClass =
+    'transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.07] hover:shadow-[0_16px_50px_rgba(0,0,0,0.35)] hover:border-orange-500/30';
 
   const WHATSAPP_PHONE_NUMBER = '5544997271991'; // (44) 99727-1991 sem caracteres especiais
 
@@ -471,9 +473,17 @@ export default function LandingPage() {
             {legalAreas.map((area, index) => {
               const IconComponent = area.icon;
               return (
-                <div key={index} className="bg-white/5 rounded-xl shadow-xl border border-white/10 p-6 hover:border-orange-500/30 transition-colors duration-300">
+                <div
+                  key={index}
+                  className={['group bg-white/5 rounded-xl shadow-xl border border-white/10 p-6', interactiveCardClass].join(' ')}
+                >
                   <div className="text-center mb-4">
-                    <div className={`w-16 h-16 rounded-full ${area.color} flex items-center justify-center mb-3 mx-auto`}>
+                    <div
+                      className={[
+                        `w-16 h-16 rounded-full ${area.color} flex items-center justify-center mb-3 mx-auto`,
+                        'transition-transform duration-300 group-hover:scale-[1.03]'
+                      ].join(' ')}
+                    >
                       <IconComponent className="h-8 w-8" />
                     </div>
                     <h3 className="font-semibold text-white text-lg">
@@ -532,19 +542,19 @@ export default function LandingPage() {
 
           {/* Destaques */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="text-base font-semibold text-white">
                 Atendimento estruturado por fluxo
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="text-base font-semibold text-white">
                 Prazos definidos previamente
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl">
+            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="text-base font-semibold text-white">
                 Redação jurídica revisada antes da entrega
               </div>
@@ -567,8 +577,11 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="bg-white/5 text-center border border-white/10 shadow-xl hover:border-orange-500/30 transition-colors rounded-2xl p-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full mb-4">
+              <div
+                key={index}
+                className={['group bg-white/5 text-center border border-white/10 shadow-xl rounded-2xl p-6', interactiveCardClass].join(' ')}
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full mb-4 transition-transform duration-300 group-hover:scale-[1.03]">
                   <feature.icon className="h-8 w-8 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">
@@ -609,9 +622,9 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Clock className="h-6 w-6 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Tempo</h3>
@@ -623,9 +636,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <FileText className="h-6 w-6 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Volume</h3>
@@ -636,9 +649,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Scale className="h-6 w-6 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Qualidade técnica</h3>
@@ -650,9 +663,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <BarChart3 className="h-6 w-6 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Previsibilidade</h3>
@@ -664,9 +677,9 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center">
+                <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Target className="h-6 w-6 text-orange-300" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Por que isso importa?</h3>

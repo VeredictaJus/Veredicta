@@ -630,9 +630,18 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white">Tempo</h3>
               </div>
               <ul className="space-y-2 text-slate-200">
-                <li>✔ Redução de sobrecarga operacional</li>
-                <li>✔ Mais tempo estratégico para sócios</li>
-                <li>✔ Foco em crescimento e relacionamento com cliente</li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Redução de sobrecarga operacional</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Mais tempo estratégico para sócios</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Foco em crescimento e relacionamento com cliente</span>
+                </li>
               </ul>
             </div>
 
@@ -644,8 +653,14 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white">Volume</h3>
               </div>
               <ul className="space-y-2 text-slate-200">
-                <li>✔ Capacidade produtiva sob demanda</li>
-                <li>✔ Absorção de picos sem ampliar equipe</li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Capacidade produtiva sob demanda</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Absorção de picos sem ampliar equipe</span>
+                </li>
               </ul>
             </div>
 
@@ -657,9 +672,18 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white">Qualidade técnica</h3>
               </div>
               <ul className="space-y-2 text-slate-200">
-                <li>✔ Padrão técnico consistente</li>
-                <li>✔ Linguagem adequada ao perfil do caso</li>
-                <li>✔ Fundamentação alinhada à jurisprudência</li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Padrão técnico consistente</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Linguagem adequada ao perfil do caso</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Fundamentação alinhada à jurisprudência</span>
+                </li>
               </ul>
             </div>
 
@@ -671,9 +695,18 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white">Previsibilidade</h3>
               </div>
               <ul className="space-y-2 text-slate-200">
-                <li>✔ Custo previsível</li>
-                <li>✔ Sem risco trabalhista</li>
-                <li>✔ Sem curva de aprendizado interna</li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Custo previsível</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Sem risco trabalhista</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Sem curva de aprendizado interna</span>
+                </li>
               </ul>
             </div>
 
@@ -685,9 +718,18 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold text-white">Por que isso importa?</h3>
               </div>
               <ul className="space-y-2 text-slate-200">
-                <li>✔ Fortalece posicionamento do escritório</li>
-                <li>✔ Eleva percepção de valor do cliente final</li>
-                <li>✔ Reduz retrabalho interno</li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Fortalece posicionamento do escritório</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Eleva percepção de valor do cliente final</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span>Reduz retrabalho interno</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -987,8 +1029,10 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          
-          <div className="mt-10 border-t border-white/10 bg-slate-900/20 -mx-4 px-4 pt-8 text-center text-slate-400">
+        </div>
+
+        <div className="mt-10 border-t border-white/10 bg-slate-900/20">
+          <div className="container mx-auto px-4 py-8 text-center text-slate-400">
             <p>&copy; {getCurrentYear()} Veredicta. Todos os direitos reservados.</p>
             <p className="mt-1 text-xs text-slate-500">CNPJ: 61.992.118/0001-38</p>
           </div>

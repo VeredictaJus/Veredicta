@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,27 +15,11 @@ import {
   Clock,
   Shield
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function CentralAjuda() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Forçar modo claro na página de central de ajuda
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    
-    // Restaurar tema original ao desmontar
-    return () => {
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
 
   const categories = [
     {
@@ -116,30 +100,7 @@ export default function CentralAjuda() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-gray-900 shadow-sm border-b border-gray-800">
-        <div className="container mx-auto px-4 py-4 max-w-screen-2xl">
-          <div className="flex flex-nowrap items-center justify-between w-full gap-2">
-            <Logo textColor="light" className="shrink-0" />
-            <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/auth/login')}
-                className="text-white hover:bg-gray-800 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth/register')}
-                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-orange-600 to-orange-800 text-white py-20">
@@ -162,7 +123,7 @@ export default function CentralAjuda() {
               placeholder="Digite sua dúvida aqui..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 text-lg bg-white text-gray-900 rounded-lg border-0"
+              className="w-full pl-12 pr-4 py-4 text-lg bg-white/5 text-white placeholder:text-slate-400 rounded-xl border border-white/10"
             />
           </div>
         </div>

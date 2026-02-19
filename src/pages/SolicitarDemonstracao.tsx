@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Logo from '@/components/ui/Logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react'
 import { EmailService } from '@/services/emailService'
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage'
 
 type VolumeOption = 'ate_20' | '21_50' | '51_100' | 'mais_100'
 const WHATSAPP_PHONE_NUMBER = '5544997271991' // (44) 99727-1991 sem caracteres especiais
@@ -113,20 +113,6 @@ function buildDemoWhatsAppUrl(params: {
 export default function SolicitarDemonstracao() {
   const navigate = useNavigate()
   const utm = useMemo(() => parseUtmParams(), [])
-
-  // Forçar modo claro na página
-  useEffect(() => {
-    const root = document.documentElement
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light'
-
-    root.classList.remove('dark')
-    root.classList.add('light')
-
-    return () => {
-      root.classList.remove('light')
-      if (originalTheme === 'dark') root.classList.add('dark')
-    }
-  }, [])
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -234,32 +220,7 @@ export default function SolicitarDemonstracao() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {/* Header */}
-      <header className="bg-slate-900 shadow-lg">
-        <div className="w-full px-6 lg:px-12 xl:px-16 py-4">
-          <div className="flex flex-nowrap items-center justify-between w-full gap-2">
-            <div className="flex items-center shrink-0 cursor-pointer" onClick={() => navigate('/')}>
-              <Logo size="xl" clickable={false} textColor="light" />
-            </div>
-            <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
-              <Button
-                variant="outline"
-                className="bg-white text-slate-900 border-gray-300 hover:bg-gray-100 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-                onClick={() => navigate('/auth/login')}
-              >
-                Entrar
-              </Button>
-              <Button
-                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-                onClick={() => navigate('/auth/register')}
-              >
-                Cadastrar-se
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
 
       {/* Hero */}
       <section className="bg-gradient-to-r from-orange-600 to-orange-800">

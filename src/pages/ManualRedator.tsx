@@ -15,8 +15,8 @@ import {
   Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import logoImage from '@/assets/images/veredicta-logo.png';
 import { getCurrentYear } from '@/utils/dateUtils';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function ManualRedator() {
   const navigate = useNavigate();
@@ -262,29 +262,29 @@ export default function ManualRedator() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <img src={logoImage} alt="Veredicta" className="h-8 w-auto" />
-              <div className="flex items-center space-x-2">
-                <BookOpen className="h-6 w-6 text-orange-600" />
-                <h1 className="text-2xl font-bold text-gray-900">Manual do Redator</h1>
-              </div>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-10 max-w-screen-2xl">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="mb-6 text-slate-300 hover:text-white hover:bg-white/10"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-orange-500/15 border border-orange-500/25 rounded-xl">
+              <BookOpen className="h-8 w-8 text-orange-300" />
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Voltar</span>
-            </Button>
+            <div>
+              <h1 className="text-4xl font-semibold tracking-tight text-white">Manual do Redator</h1>
+              <p className="text-lg text-slate-300 mt-2">Guia de regras, prazos e boas práticas na Veredicta.</p>
+            </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
       <main className="container mx-auto px-4 py-12">

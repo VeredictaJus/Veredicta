@@ -1,88 +1,33 @@
-import React, { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { Scale, ArrowLeft } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { Scale } from 'lucide-react';
 import { getCurrentYear } from '@/utils/dateUtils';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function Termos() {
-  const navigate = useNavigate();
-
-  // Forçar modo claro na página
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    root.classList.add('light');
-    
-    // Forçar variáveis CSS para modo claro
-    root.style.setProperty('--background', '0 0% 100%');
-    root.style.setProperty('--card', '0 0% 100%');
-    root.style.setProperty('--card-foreground', '222.2 84% 4.9%');
-    root.style.setProperty('--foreground', '222.2 84% 4.9%');
-    
-    // Restaurar tema original ao desmontar
-    return () => {
-      root.style.removeProperty('--background');
-      root.style.removeProperty('--card');
-      root.style.removeProperty('--card-foreground');
-      root.style.removeProperty('--foreground');
-      root.classList.remove('light');
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Header - Modo Noturno */}
-      <header className="bg-slate-900 shadow-lg border-b border-slate-800">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          {/* Logo e Botão Voltar */}
-          <div className="flex flex-nowrap items-center justify-between w-full gap-4 mb-6">
-            <Logo textColor="light" size="lg" className="shrink-0" />
-            <div className="flex flex-nowrap items-center gap-2 shrink-0">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Voltar</span>
-              </Button>
-            </div>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-12 max-w-4xl text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/15 border border-orange-500/25">
+            <Scale className="h-7 w-7 text-orange-300" />
           </div>
-
-          {/* Título e Informações */}
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="p-4 bg-orange-600 rounded-lg">
-                <Scale className="w-12 h-12 text-white" />
-          </div>
-        </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-            Termos de Serviço
-          </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <h1 className="text-4xl font-semibold tracking-tight text-white mb-3">Termos de Serviço</h1>
+          <p className="text-lg text-slate-300">
             Última atualização: 18 de Julho de {getCurrentYear()}
           </p>
-          </div>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="space-y-8">
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">1. Aceitação dos Termos</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Ao acessar e usar a plataforma Veredicta, você concorda em cumprir e ficar vinculado aos seguintes termos e condições de uso. Se você não concordar com qualquer parte destes termos, não deve usar nossos serviços.
                 </p>
@@ -92,11 +37,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">2. Descrição dos Serviços</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>A Veredicta oferece:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Plataforma de conexão entre clientes e redatores jurídicos</li>
@@ -108,11 +53,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">3. Cadastro e Conta de Usuário</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Para usar nossos serviços, você deve criar uma conta fornecendo informações precisas e completas. Você é responsável por manter a confidencialidade de suas credenciais de acesso.
                 </p>
@@ -125,11 +70,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">4. Processo de Aprovação de Redatores</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Todos os redatores devem passar por um processo de aprovação que inclui:
                 </p>
@@ -149,11 +94,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">5. Prazos e Penalidades</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   O cumprimento de prazos é fundamental na plataforma:
                 </p>
@@ -166,11 +111,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">6. Pagamentos e Reembolsos</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Os pagamentos são processados através da plataforma:
                 </p>
@@ -183,22 +128,22 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">7. Propriedade Intelectual</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   O cliente detém a propriedade intelectual das petições elaboradas através da plataforma. A Veredicta atua apenas como intermediária na prestação do serviço.
                 </p>
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">8. Limitação de Responsabilidade</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   A Veredicta não se responsabiliza por:
                 </p>
@@ -211,11 +156,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">9. Confidencialidade e Sigilo Profissional</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   A Veredicta compromete-se a manter absoluto sigilo e confidencialidade sobre todas as informações, documentos e dados compartilhados através da plataforma, em conformidade com o Código de Ética e Disciplina da OAB e demais normas aplicáveis.
                 </p>
@@ -233,11 +178,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">10. LGPD e Proteção de Dados</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   A Veredicta está comprometida com a proteção dos dados pessoais de seus usuários, em total conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).
                 </p>
@@ -263,11 +208,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">11. Uso Adequado da Plataforma</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Os usuários comprometem-se a utilizar a plataforma de forma adequada, ética e em conformidade com a legislação vigente.
                 </p>
@@ -293,11 +238,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">12. Suspensão e Encerramento de Conta</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   A Veredicta reserva-se o direito de suspender ou encerrar contas de usuários que violem estes Termos de Serviço ou que pratiquem condutas inadequadas.
                 </p>
@@ -325,11 +270,11 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">13. Foro e Lei Aplicável</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Estes Termos de Serviço são regidos pela legislação brasileira, em especial pelo Código de Defesa do Consumidor (Lei nº 8.078/1990), quando aplicável, e pela Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
                 </p>
@@ -342,22 +287,22 @@ export default function Termos() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">14. Modificações dos Termos</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Reservamos o direito de modificar estes termos a qualquer momento. As alterações entrarão em vigor imediatamente após a publicação na plataforma. O uso continuado dos serviços constitui aceitação dos novos termos.
                 </p>
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">15. Contato</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Para dúvidas sobre estes termos, entre em contato:
                 </p>

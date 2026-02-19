@@ -1,88 +1,33 @@
-import React, { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { Shield, ArrowLeft } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { Shield } from 'lucide-react';
 import { getCurrentYear } from '@/utils/dateUtils';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function Privacidade() {
-  const navigate = useNavigate();
-
-  // Forçar modo claro na página
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    root.classList.add('light');
-    
-    // Forçar variáveis CSS para modo claro
-    root.style.setProperty('--background', '0 0% 100%');
-    root.style.setProperty('--card', '0 0% 100%');
-    root.style.setProperty('--card-foreground', '222.2 84% 4.9%');
-    root.style.setProperty('--foreground', '222.2 84% 4.9%');
-    
-    // Restaurar tema original ao desmontar
-    return () => {
-      root.style.removeProperty('--background');
-      root.style.removeProperty('--card');
-      root.style.removeProperty('--card-foreground');
-      root.style.removeProperty('--foreground');
-      root.classList.remove('light');
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Header - Modo Noturno */}
-      <header className="bg-slate-900 shadow-lg border-b border-slate-800">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          {/* Logo e Botão Voltar */}
-          <div className="flex flex-nowrap items-center justify-between w-full gap-4 mb-6">
-            <Logo textColor="light" size="lg" className="shrink-0" />
-            <div className="flex flex-nowrap items-center gap-2 shrink-0">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/')}
-                className="text-gray-300 hover:text-white hover:bg-gray-800 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Voltar</span>
-              </Button>
-            </div>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-12 max-w-4xl text-center">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl bg-orange-500/15 border border-orange-500/25">
+            <Shield className="h-7 w-7 text-orange-300" />
           </div>
-
-          {/* Título e Informações */}
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="p-4 bg-orange-600 rounded-lg">
-                <Shield className="w-12 h-12 text-white" />
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Política de Privacidade
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Última atualização: 18 de Julho de {getCurrentYear()}
-            </p>
-          </div>
+          <h1 className="text-4xl font-semibold tracking-tight text-white mb-3">Política de Privacidade</h1>
+          <p className="text-lg text-slate-300">
+            Última atualização: 18 de Julho de {getCurrentYear()}
+          </p>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="space-y-8">
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">1. Informações que Coletamos</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <h4 className="font-semibold">1.1 Informações Pessoais:</h4>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Nome completo e dados de identificação</li>
@@ -101,11 +46,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">2. Como Usamos suas Informações</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Utilizamos suas informações para:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Fornecer e melhorar nossos serviços</li>
@@ -118,11 +63,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">3. Compartilhamento de Informações</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Compartilhamos suas informações apenas quando:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Necessário para prestação do serviço (redator-cliente)</li>
@@ -137,11 +82,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">4. Segurança dos Dados</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Implementamos medidas de segurança robustas:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Criptografia SSL/TLS para transmissão de dados</li>
@@ -154,11 +99,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">5. Seus Direitos (LGPD)</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Você tem direito a:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li><strong>Acesso:</strong> Saber quais dados pessoais tratamos</li>
@@ -176,11 +121,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">6. Retenção de Dados</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Mantemos seus dados pelo tempo necessário para:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Prestação do serviço contratado</li>
@@ -195,11 +140,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">7. Cookies e Tecnologias Similares</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>Utilizamos cookies para:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Manter sua sessão ativa</li>
@@ -214,11 +159,11 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">8. Transferência Internacional</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Seus dados são processados principalmente no Brasil. Quando necessário transferir dados internacionalmente, garantimos proteção adequada através de:
                 </p>
@@ -230,22 +175,22 @@ export default function Privacidade() {
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">9. Alterações nesta Política</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Podemos atualizar esta política periodicamente. Mudanças significativas serão comunicadas através da plataforma ou por email. A data da última atualização está sempre indicada no início do documento.
                 </p>
               </CardContent>
             </Card>
 
-            <Card style={{ backgroundColor: '#ffffff' }}>
+            <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">10. Contato</CardTitle>
               </CardHeader>
-              <CardContent className="prose max-w-none" style={{ backgroundColor: '#ffffff' }}>
+              <CardContent className="prose prose-invert max-w-none">
                 <p>
                   Para dúvidas sobre privacidade e proteção de dados:
                 </p>

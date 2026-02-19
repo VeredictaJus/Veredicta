@@ -1,107 +1,51 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Eye, FileText, Upload, Send, CheckCircle, AlertCircle } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function ComoSolicitarPrimeiraPeticao() {
   const navigate = useNavigate();
 
-  // Forçar modo claro na página
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    root.classList.add('light');
-    
-    // Forçar variáveis CSS para modo claro
-    root.style.setProperty('--background', '0 0% 100%');
-    root.style.setProperty('--card', '0 0% 100%');
-    root.style.setProperty('--card-foreground', '222.2 84% 4.9%');
-    root.style.setProperty('--foreground', '222.2 84% 4.9%');
-    
-    // Restaurar tema original ao desmontar
-    return () => {
-      root.style.removeProperty('--background');
-      root.style.removeProperty('--card');
-      root.style.removeProperty('--card-foreground');
-      root.style.removeProperty('--foreground');
-      root.classList.remove('light');
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Header - Modo Noturno */}
-      <header className="bg-slate-900 shadow-lg border-b border-slate-800">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          {/* Logo e Botões de Login */}
-          <div className="flex flex-nowrap items-center justify-between w-full gap-4 mb-6">
-            <Logo textColor="light" size="lg" className="shrink-0" />
-            <div className="flex flex-nowrap items-center gap-2 shrink-0">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/auth/login')}
-                className="bg-transparent text-white border-gray-600 hover:bg-gray-800 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth/register')}
-                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </div>
-
-          {/* Botão Voltar */}
-          <Button 
-            variant="ghost" 
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-10 max-w-screen-2xl">
+          <Button
+            variant="ghost"
             onClick={() => navigate('/central-ajuda')}
-            className="mb-4 text-gray-300 hover:text-white hover:bg-gray-800"
+            className="mb-6 text-slate-300 hover:text-white hover:bg-white/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Central de Ajuda
           </Button>
-          
-          {/* Badge e Informações */}
-          <div className="flex items-center gap-4 mb-4">
-            <Badge className="bg-orange-600 text-white">
-              Petições
-            </Badge>
-            <div className="flex items-center text-gray-300 text-sm">
+
+          <div className="flex items-center gap-4 mb-5">
+            <Badge className="bg-orange-500/15 text-orange-200 border border-orange-500/30">Petições</Badge>
+            <div className="flex items-center text-slate-300 text-sm">
               <Eye className="w-4 h-4 mr-1" />
               1.2k visualizações
             </div>
-            <div className="flex items-center text-gray-300 text-sm">
+            <div className="flex items-center text-slate-300 text-sm">
               <Clock className="w-4 h-4 mr-1" />
               8 min de leitura
             </div>
           </div>
-          
-          {/* Título e Subtítulo */}
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Como solicitar minha primeira petição?
-          </h1>
-          <p className="text-xl text-gray-300 max-w-3xl font-medium">
+
+          <h1 className="text-4xl font-semibold tracking-tight text-white mb-2">Como solicitar minha primeira petição?</h1>
+          <p className="text-lg text-slate-300 max-w-3xl">
             Guia completo para advogados iniciarem na plataforma Veredicta com confiança e eficiência.
           </p>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8" style={{ backgroundColor: '#ffffff' }}>
+      <main className="container mx-auto px-4 py-10">
         <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg border-0" style={{ backgroundColor: '#ffffff' }}>
-            <CardContent className="p-8" style={{ backgroundColor: '#ffffff', padding: '2rem' }}>
+          <Card className="shadow-lg border-0">
+            <CardContent className="p-8">
               {/* Introduction */}
               <section className="mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">Introdução</h2>

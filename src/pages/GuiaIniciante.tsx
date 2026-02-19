@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, CheckCircle, FileText, Users, MessageSquare, Calculator, Settings } from 'lucide-react';
-import logoImage from '@/assets/images/veredicta-logo.png';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function GuiaIniciante() {
   const navigate = useNavigate();
@@ -86,61 +86,29 @@ export default function GuiaIniciante() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 max-w-screen-2xl">
-          <div className="flex flex-nowrap items-center justify-between w-full gap-2">
-            <div className="flex items-center cursor-pointer shrink-0" onClick={() => navigate('/')}>
-              <img src={logoImage} alt="Veredicta" className="h-6 sm:h-8 w-auto mr-2 sm:mr-3" />
-              <span className="text-lg sm:text-xl font-bold text-gray-900 whitespace-nowrap">Veredicta</span>
-            </div>
-            <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/auth/login')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth/register')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-6">
-          <Button 
-            variant="ghost" 
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-10 max-w-screen-2xl">
+          <Button
+            variant="ghost"
             onClick={() => navigate('/central-ajuda')}
-            className="mb-4"
+            className="mb-6 text-slate-300 hover:text-white hover:bg-white/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Central de Ajuda
           </Button>
-          
-          <div className="flex items-center gap-6 mb-4">
-            <div className="p-4 bg-orange-100 rounded-lg">
-              <BookOpen className="w-8 h-8 text-orange-600" />
+
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-orange-500/15 border border-orange-500/25 rounded-xl">
+              <BookOpen className="w-8 h-8 text-orange-300" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">
-                Guia do Iniciante
-              </h1>
-              <p className="text-xl text-gray-600 mt-1">
-                Aprenda o básico para começar a usar a plataforma
-              </p>
+              <h1 className="text-4xl font-semibold tracking-tight text-white">Guia do Iniciante</h1>
+              <p className="text-lg text-slate-300 mt-2">Aprenda o básico para começar a usar a plataforma</p>
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
       <main className="container mx-auto px-4 py-8">

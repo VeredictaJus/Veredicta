@@ -22,6 +22,7 @@ import TestEmail from '@/pages/TestEmail'
 import WriterLayout from '@/components/Layout/WriterLayout'
 import AdminLayout from '@/components/Layout/AdminLayout'
 import ClientLayout from '@/components/Layout/ClientLayout'
+import PublicLayout from '@/components/Layout/PublicLayout'
 
 import ProtectedRoute from '@/components/Auth/ProtectedRoute'
 import NewLoginForm from '@/components/Auth/NewLoginForm'
@@ -252,25 +253,27 @@ function AppRoutesContent() {
           <Route path="/rejected" element={<Rejected />} />
           <Route path="/test-email" element={<TestEmail />} />
           {/* Páginas públicas - acessíveis mesmo logado */}
-          <Route path="/manual-redator" element={<ManualRedator />} />
           <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
-          <Route path="/termos" element={<Termos />} />
-          <Route path="/privacidade" element={<Privacidade />} />
-          <Route path="/funcionalidades" element={<Funcionalidades />} />
-          <Route path="/precos" element={<Precos />} />
-          <Route path="/calculadora" element={<CalculadoraPreview />} />
-          <Route path="/central-ajuda" element={<CentralAjuda />} />
-          <Route path="/guia-iniciante" element={<GuiaIniciante />} />
-          <Route path="/seguranca" element={<Seguranca />} />
-          <Route path="/status" element={<Status />} />
-          <Route path="/contato" element={<Contato />} />
-          <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
-          {/* Artigos */}
-          <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
-          <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />
-          <Route path="/artigos/como-usar-calculadora-trabalhista" element={<ComoUsarCalculadoraTrabalhista />} />
-          <Route path="/artigos/sistema-correcoes-revisoes" element={<SistemaCorrecoesRevisoes />} />
-          <Route path="/artigos/comunicar-com-redator" element={<ComunicarComRedator />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/manual-redator" element={<ManualRedator />} />
+            <Route path="/termos" element={<Termos />} />
+            <Route path="/privacidade" element={<Privacidade />} />
+            <Route path="/funcionalidades" element={<Funcionalidades />} />
+            <Route path="/precos" element={<Precos />} />
+            <Route path="/calculadora" element={<CalculadoraPreview />} />
+            <Route path="/central-ajuda" element={<CentralAjuda />} />
+            <Route path="/guia-iniciante" element={<GuiaIniciante />} />
+            <Route path="/seguranca" element={<Seguranca />} />
+            <Route path="/status" element={<Status />} />
+            <Route path="/contato" element={<Contato />} />
+            <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
+            {/* Artigos */}
+            <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
+            <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />
+            <Route path="/artigos/como-usar-calculadora-trabalhista" element={<ComoUsarCalculadoraTrabalhista />} />
+            <Route path="/artigos/sistema-correcoes-revisoes" element={<SistemaCorrecoesRevisoes />} />
+            <Route path="/artigos/comunicar-com-redator" element={<ComunicarComRedator />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       )
@@ -290,25 +293,27 @@ function AppRoutesContent() {
           <Route path="/pending-approval" element={<PendingApproval />} />
           <Route path="/rejected" element={<Rejected />} />
           {/* Páginas públicas - acessíveis sem login */}
-          <Route path="/manual-redator" element={<ManualRedator />} />
           <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
-          <Route path="/termos" element={<Termos />} />
-          <Route path="/privacidade" element={<Privacidade />} />
-          <Route path="/funcionalidades" element={<Funcionalidades />} />
-          <Route path="/precos" element={<Precos />} />
-          <Route path="/calculadora" element={<CalculadoraPreview />} />
-          <Route path="/central-ajuda" element={<CentralAjuda />} />
-          <Route path="/guia-iniciante" element={<GuiaIniciante />} />
-          <Route path="/seguranca" element={<Seguranca />} />
-          <Route path="/status" element={<Status />} />
-          <Route path="/contato" element={<Contato />} />
-          <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
-          {/* Artigos */}
-          <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
-          <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />
-          <Route path="/artigos/como-usar-calculadora-trabalhista" element={<ComoUsarCalculadoraTrabalhista />} />
-          <Route path="/artigos/sistema-correcoes-revisoes" element={<SistemaCorrecoesRevisoes />} />
-          <Route path="/artigos/comunicar-com-redator" element={<ComunicarComRedator />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/manual-redator" element={<ManualRedator />} />
+            <Route path="/termos" element={<Termos />} />
+            <Route path="/privacidade" element={<Privacidade />} />
+            <Route path="/funcionalidades" element={<Funcionalidades />} />
+            <Route path="/precos" element={<Precos />} />
+            <Route path="/calculadora" element={<CalculadoraPreview />} />
+            <Route path="/central-ajuda" element={<CentralAjuda />} />
+            <Route path="/guia-iniciante" element={<GuiaIniciante />} />
+            <Route path="/seguranca" element={<Seguranca />} />
+            <Route path="/status" element={<Status />} />
+            <Route path="/contato" element={<Contato />} />
+            <Route path="/solicitar-demonstracao" element={<SolicitarDemonstracao />} />
+            {/* Artigos */}
+            <Route path="/artigos/como-solicitar-primeira-peticao" element={<ComoSolicitarPrimeiraPeticao />} />
+            <Route path="/artigos/prazo-entrega-peticoes" element={<PrazoEntregaPeticoes />} />
+            <Route path="/artigos/como-usar-calculadora-trabalhista" element={<ComoUsarCalculadoraTrabalhista />} />
+            <Route path="/artigos/sistema-correcoes-revisoes" element={<SistemaCorrecoesRevisoes />} />
+            <Route path="/artigos/comunicar-com-redator" element={<ComunicarComRedator />} />
+          </Route>
           <Route path="*" element={<Navigate to="/auth/login" replace />} />
         </Routes>
         <WhatsAppButton />

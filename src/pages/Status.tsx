@@ -1,41 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Activity, CheckCircle, AlertTriangle, XCircle, Clock, Server, Database, MessageSquare, Calculator, CreditCard, FileText, Instagram } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function Status() {
   const navigate = useNavigate();
-
-  // Forçar modo claro na página
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    root.classList.add('light');
-    
-    // Forçar variáveis CSS para modo claro
-    root.style.setProperty('--background', '0 0% 100%');
-    root.style.setProperty('--card', '0 0% 100%');
-    root.style.setProperty('--card-foreground', '222.2 84% 4.9%');
-    root.style.setProperty('--foreground', '222.2 84% 4.9%');
-    
-    // Restaurar tema original ao desmontar
-    return () => {
-      root.style.removeProperty('--background');
-      root.style.removeProperty('--card');
-      root.style.removeProperty('--card-foreground');
-      root.style.removeProperty('--foreground');
-      root.classList.remove('light');
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
 
   const services = [
     {
@@ -148,69 +120,42 @@ export default function Status() {
   const overallStatus = services.every(service => service.status === 'operational') ? 'operational' : 'degraded';
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
-      {/* Header - Modo Noturno */}
-      <header className="bg-slate-900 shadow-lg border-b border-slate-800">
-        <div className="container mx-auto px-4 py-6 max-w-screen-2xl">
-          {/* Logo e Botões de Login */}
-          <div className="flex flex-nowrap items-center justify-between w-full gap-4 mb-6">
-            <Logo textColor="light" size="lg" className="shrink-0" />
-            <div className="flex flex-nowrap items-center gap-2 shrink-0">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/auth/login')}
-                className="bg-transparent text-white border-gray-600 hover:bg-gray-800 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth/register')}
-                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </div>
-
-          {/* Botão Voltar */}
-          <Button 
-            variant="ghost" 
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <section className="border-b border-white/10 bg-slate-900/30">
+        <div className="container mx-auto px-4 py-10 max-w-screen-2xl">
+          <Button
+            variant="ghost"
             onClick={() => navigate('/central-ajuda')}
-            className="mb-4 text-gray-300 hover:text-white hover:bg-gray-800"
+            className="mb-6 text-slate-300 hover:text-white hover:bg-white/10"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para Central de Ajuda
           </Button>
-          
-          {/* Título e Status */}
-          <div className="flex items-center gap-6 mb-4">
-            <div className="p-4 bg-orange-600 rounded-lg">
-              <Activity className="w-8 h-8 text-white" />
+
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-orange-500/15 border border-orange-500/25 rounded-xl">
+              <Activity className="w-8 h-8 text-orange-300" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-white">
-                Status do Sistema
-              </h1>
-              <p className="text-xl text-gray-300 mt-1">
-                Monitoramento em tempo real dos nossos serviços
-              </p>
-              <div className="flex items-center mt-2">
+              <h1 className="text-4xl font-semibold tracking-tight text-white">Status do Sistema</h1>
+              <p className="text-lg text-slate-300 mt-2">Monitoramento em tempo real dos nossos serviços</p>
+              <div className="flex items-center mt-3">
                 {getStatusIcon(overallStatus)}
-                <span className={`ml-2 font-medium ${overallStatus === 'operational' ? 'text-green-400' : 'text-yellow-400'}`}>
+                <span className={`ml-2 font-medium ${overallStatus === 'operational' ? 'text-emerald-300' : 'text-yellow-300'}`}>
                   {overallStatus === 'operational' ? 'Todos os sistemas operacionais' : 'Alguns sistemas com problemas'}
                 </span>
               </div>
             </div>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Overall Status */}
-          <Card className="mb-8" style={{ backgroundColor: '#ffffff' }}>
-            <CardContent className="p-8" style={{ backgroundColor: '#ffffff' }}>
+          <Card className="mb-8">
+            <CardContent className="p-8">
               <div className="text-center">
                 <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
                   overallStatus === 'operational' ? 'bg-green-100' : 'bg-yellow-100'
@@ -236,8 +181,8 @@ export default function Status() {
             <h2 className="text-2xl font-bold text-gray-900">Status dos Serviços</h2>
             
             {services.map((service, index) => (
-              <Card key={index} className="hover:shadow-md transition-shadow" style={{ backgroundColor: '#ffffff' }}>
-                <CardContent className="p-6" style={{ backgroundColor: '#ffffff' }}>
+              <Card key={index} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="p-2 bg-gray-100 rounded-lg">
@@ -267,11 +212,11 @@ export default function Status() {
           </div>
 
           {/* Metrics */}
-          <Card className="mb-8" style={{ backgroundColor: '#ffffff' }}>
+          <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-2xl text-gray-900">Métricas de Performance</CardTitle>
             </CardHeader>
-            <CardContent style={{ backgroundColor: '#ffffff' }}>
+            <CardContent>
               <div className="grid md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-green-600 mb-1">99.8%</div>
@@ -294,14 +239,14 @@ export default function Status() {
           </Card>
 
           {/* Incident History */}
-          <Card className="mb-8" style={{ backgroundColor: '#ffffff' }}>
+          <Card className="mb-8">
             <CardHeader>
               <CardTitle className="text-2xl text-gray-900">Histórico de Incidentes</CardTitle>
               <CardDescription>
                 Últimos eventos e manutenções programadas
               </CardDescription>
             </CardHeader>
-            <CardContent style={{ backgroundColor: '#ffffff' }}>
+            <CardContent>
               <div className="space-y-4">
                 {incidents.map((incident, index) => (
                   <div key={index} className="border-l-4 border-gray-200 pl-4 py-3">
@@ -326,8 +271,8 @@ export default function Status() {
           </Card>
 
           {/* Subscribe to Updates */}
-          <Card style={{ backgroundColor: '#ffffff' }}>
-            <CardContent className="p-8 text-center" style={{ backgroundColor: '#ffffff' }}>
+          <Card>
+            <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
                 Receba Atualizações de Status
               </h2>

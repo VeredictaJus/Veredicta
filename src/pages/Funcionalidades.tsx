@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,28 +37,10 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
+import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 
 export default function Funcionalidades() {
   const navigate = useNavigate();
-
-  // Forçar modo claro na página de funcionalidades
-  useEffect(() => {
-    const root = document.documentElement;
-    const originalTheme = root.classList.contains('dark') ? 'dark' : 'light';
-    
-    // Forçar modo claro
-    root.classList.remove('dark');
-    root.classList.add('light');
-    
-    // Cleanup: restaurar tema original quando sair da página
-    return () => {
-      root.classList.remove('light');
-      if (originalTheme === 'dark') {
-        root.classList.add('dark');
-      }
-    };
-  }, []);
 
   const mainFeatures = [
     {
@@ -272,32 +254,7 @@ export default function Funcionalidades() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-gray-900 shadow-sm border-b border-gray-800 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 max-w-screen-2xl">
-          <div className="flex flex-nowrap items-center justify-between w-full gap-2">
-            <div className="cursor-pointer shrink-0" onClick={() => navigate('/')}>
-              <Logo size="md" textSize="lg" textColor="light" clickable={false} />
-            </div>
-            <div className="flex flex-nowrap items-center gap-2 shrink-0 ml-auto">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/auth/login')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 text-white hover:bg-gray-800 hover:text-white"
-              >
-                Login
-              </Button>
-              <Button 
-                onClick={() => navigate('/auth/register')}
-                className="text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4 bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                Cadastrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-orange-600 via-orange-700 to-orange-800 text-white py-20">

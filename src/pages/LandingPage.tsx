@@ -935,11 +935,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-950 text-white py-12">
+      <footer className="bg-slate-950 text-white py-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="flex flex-col items-center text-center">
-              <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="flex items-center justify-center space-x-3 mb-3">
                 <Logo size="lg" clickable={false} textColor="light" />
               </div>
               <p className="text-slate-400 max-w-xs">
@@ -948,7 +948,7 @@ export default function LandingPage() {
             </div>
             
             <div className="flex flex-col items-center text-center">
-              <h4 className="font-semibold mb-4">Produto</h4>
+              <h4 className="font-semibold mb-3">Produto</h4>
               <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
@@ -978,7 +978,7 @@ export default function LandingPage() {
             </div>
             
             <div className="flex flex-col items-center text-center">
-              <h4 className="font-semibold mb-4">Suporte</h4>
+              <h4 className="font-semibold mb-3">Suporte</h4>
               <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
@@ -1008,7 +1008,7 @@ export default function LandingPage() {
             </div>
             
             <div className="flex flex-col items-center text-center">
-              <h4 className="font-semibold mb-4">Legal</h4>
+              <h4 className="font-semibold mb-3">Legal</h4>
               <ul className="space-y-2 text-slate-400 flex flex-col items-center">
                 <li>
                   <button 
@@ -1031,8 +1031,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-white/10 bg-slate-900/20">
-          <div className="container mx-auto px-4 py-8 text-center text-slate-400">
+        <div className="mt-8 border-t border-white/10">
+          <div className="container mx-auto px-4 py-6 text-center text-slate-400">
             <p>&copy; {getCurrentYear()} Veredicta. Todos os direitos reservados.</p>
             <p className="mt-1 text-xs text-slate-500">CNPJ: 61.992.118/0001-38</p>
           </div>

@@ -271,8 +271,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 antialiased">
       {/* Header */}
-      <header className="bg-slate-900 shadow-lg">
-        <div className="w-full px-6 lg:px-12 xl:px-16 py-4">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/60 backdrop-blur supports-[backdrop-filter]:bg-slate-950/40 shadow-[0_12px_30px_rgba(0,0,0,0.25)]">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 py-3">
           <div className="flex flex-wrap items-center justify-between w-full gap-2">
             <div className="flex items-center shrink-0">
               <Logo size="xl" clickable={false} textColor="light" />
@@ -280,20 +280,20 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto justify-end">
               <Button 
                 variant="outline" 
-                className="bg-transparent text-white border-white/20 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
+                className="bg-white/5 text-white border-white/15 hover:border-white/25 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/auth/login')}
               >
                 Entrar
               </Button>
               <Button
                 variant="outline"
-                className="hidden sm:inline-flex bg-transparent text-white border-white/60 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
+                className="hidden sm:inline-flex bg-white/5 text-white border-white/15 hover:border-white/25 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/solicitar-demonstracao')}
               >
                 Solicitar demonstração
               </Button>
               <Button 
-                className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.18)] text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
                 onClick={() => navigate('/auth/register')}
               >
                 Cadastrar-se
@@ -304,7 +304,7 @@ export default function LandingPage() {
             <div className="w-full sm:hidden">
               <Button
                 variant="outline"
-                className="w-full bg-transparent text-white border-white/60 hover:bg-white/10 text-sm"
+                className="w-full bg-white/5 text-white border-white/15 hover:border-white/25 hover:bg-white/10 text-sm"
                 onClick={() => navigate('/solicitar-demonstracao')}
               >
                 Solicitar demonstração
@@ -737,54 +737,72 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-gray-900 text-white">
+      <section className="py-20 bg-slate-950 text-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
               Modelos de Contratação por Capacidade Produtiva
             </h2>
-            <p className="text-xl text-gray-300">
+            <p className="text-xl text-slate-300">
               Escolha a estrutura de capacidade produtiva mais adequada ao momento do seu escritório.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {plans.map((plan, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto items-stretch">
+            {plans.map((plan, index) => {
+              const isFeatured = plan.name === 'Pro' || plan.badge === 'Mais Contratado';
+
+              return (
               <Card 
                 key={index} 
-                className="relative bg-gray-800 border-gray-700 shadow-lg"
+                className={[
+                  'relative h-full flex flex-col bg-white/5 border border-white/10 shadow-xl backdrop-blur transition-transform',
+                  'hover:-translate-y-0.5 hover:border-orange-500/30',
+                  isFeatured
+                    ? 'ring-1 ring-orange-500/30 shadow-[0_20px_60px_rgba(249,115,22,0.12)] md:-translate-y-2 md:hover:-translate-y-2'
+                    : ''
+                ].join(' ')}
               >
                 <CardHeader className="text-center relative pt-8">
                   {plan.badge && (
-                    <Badge className={`absolute top-2 left-1/2 transform -translate-x-1/2 ${plan.badgeColor} text-white z-10 px-3 py-1`}>
-                      ☆ {plan.badge}
+                    <Badge
+                      className={[
+                        'absolute top-2 left-1/2 -translate-x-1/2 z-10 px-3 py-1',
+                        isFeatured
+                          ? 'bg-orange-500/15 text-orange-200 border border-orange-500/30'
+                          : `${plan.badgeColor} text-white`
+                      ].join(' ')}
+                    >
+                      {plan.badge}
                     </Badge>
                   )}
                   <CardTitle className="text-2xl text-white">{plan.displayName}</CardTitle>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
+                    <span className="text-4xl font-semibold tracking-tight tabular-nums text-white">
+                      {plan.price}
+                    </span>
                     {plan.period && (
-                      <div className="text-gray-300 text-sm mt-1">{plan.period}</div>
+                      <div className="text-slate-400 text-sm mt-1">{plan.period}</div>
                     )}
                   </div>
                   {plan.tagline && (
-                    <p className="mt-4 text-gray-300 text-sm leading-relaxed">
+                    <p className="mt-4 text-slate-300 text-sm leading-relaxed">
                       {plan.tagline}
                     </p>
                   )}
                   {plan.warning && (
-                    <div className="mt-2 p-2 bg-yellow-100 rounded-lg">
+                    <div className="mt-4 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                       <div className="flex items-center justify-center">
-                        <span className="text-yellow-600 mr-1">▲</span>
-                        <span className="text-yellow-600 text-sm">{plan.warning}</span>
+                        <span className="text-yellow-200 mr-1">▲</span>
+                        <span className="text-yellow-200 text-sm">{plan.warning}</span>
                       </div>
                     </div>
                   )}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-1 flex-col">
                   {plan.creditPrice && (
-                    <div className="mb-6 p-3 bg-gray-700 rounded-lg text-center">
-                      <p className="text-sm text-gray-300">Valor por petição:</p>
+                    <div className="mb-6 p-3 bg-white/5 border border-white/10 rounded-lg text-center">
+                      <p className="text-sm text-slate-300">Valor por petição:</p>
                       <p className="text-lg font-bold text-white">{plan.creditPrice}</p>
                       {plan.savings && (
                         <div className="mt-2 flex items-center justify-center">
@@ -795,24 +813,29 @@ export default function LandingPage() {
                     </div>
                   )}
                   
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-3 flex-1">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                        <span className="text-gray-300 text-sm">{feature}</span>
+                        <CheckCircle className="h-5 w-5 text-emerald-400 mr-3 flex-shrink-0" />
+                        <span className="text-slate-300 text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>
                   
                   <Button 
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                    className={[
+                      'w-full mt-6 text-white',
+                      'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500',
+                      'shadow-[0_10px_30px_rgba(249,115,22,0.16)]'
+                    ].join(' ')}
                     onClick={() => handleSubscribe(plan.name)}
                   >
                     {plan.ctaLabel || 'Solicitar Proposta'}
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

@@ -253,7 +253,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
     <Card
       className={[
         className,
-        'rounded-2xl shadow-sm hover:shadow-md transition-shadow',
+        'rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none',
         isAtLimit
           ? 'border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30'
           : isNearLimit

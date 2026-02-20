@@ -669,12 +669,12 @@ export default function ClientDashboard() {
     subtitle: string;
     icon: React.ComponentType<{ className?: string }>;
   }) => (
-    <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+    <Card className="group rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
         </div>
-        <div className="rounded-xl bg-primary/10 text-primary p-2">
+        <div className="rounded-xl bg-primary/10 text-primary p-2 transition-colors group-hover:bg-primary/15">
           <Icon className="h-4 w-4" />
         </div>
       </CardHeader>
@@ -688,7 +688,7 @@ export default function ClientDashboard() {
   return (
     <div className="space-y-6">
       {/* Page header (conteúdo) */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -698,22 +698,30 @@ export default function ClientDashboard() {
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => navigate('/client/petitions/new')}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground active:translate-y-[1px] transition-transform motion-reduce:transform-none"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nova petição
           </Button>
-          <Button variant="outline" onClick={() => navigate('/client/petitions')}>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/client/petitions')}
+            className="active:translate-y-[1px] transition-transform motion-reduce:transform-none"
+          >
             Minhas petições
           </Button>
-          <Button variant="outline" onClick={() => navigate('/client/plans')}>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/client/plans')}
+            className="active:translate-y-[1px] transition-transform motion-reduce:transform-none"
+          >
             Ver planos
           </Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
         <PetitionUsageCard className="lg:col-span-4" />
 
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -739,7 +747,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Petições recentes / lista */}
-      <Card className="rounded-2xl shadow-sm">
+      <Card className="rounded-2xl border-border/60 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="text-xl">Suas petições</CardTitle>
@@ -780,7 +788,7 @@ export default function ClientDashboard() {
                   key={petition.id}
                   type="button"
                   onClick={() => setSelected(petition)}
-                  className="w-full text-left group flex items-start justify-between gap-4 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
+                  className="w-full text-left group flex items-start justify-between gap-4 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 hover:border-border hover:shadow-sm transition-all duration-200 motion-reduce:transform-none"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -835,40 +843,51 @@ export default function ClientDashboard() {
       </Card>
 
       {/* Ações rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-900">
+        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Nova petição</CardTitle>
             <CardDescription>Enviar uma nova demanda</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <Button onClick={() => navigate('/client/petitions/new')} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button
+              onClick={() => navigate('/client/petitions/new')}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground active:translate-y-[1px] transition-transform motion-reduce:transform-none"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Criar agora
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Chat</CardTitle>
             <CardDescription>Fale com o redator ou suporte</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <Button variant="outline" onClick={() => navigate('/client/chat')} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/client/chat')}
+              className="w-full active:translate-y-[1px] transition-transform motion-reduce:transform-none"
+            >
               <MessageSquare className="h-4 w-4 mr-2" />
               Abrir chat
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Planos</CardTitle>
             <CardDescription>Upgrade e limites</CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <Button variant="outline" onClick={() => navigate('/client/plans')} className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/client/plans')}
+              className="w-full active:translate-y-[1px] transition-transform motion-reduce:transform-none"
+            >
               Ver planos
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>

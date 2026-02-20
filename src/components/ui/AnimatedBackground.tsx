@@ -159,11 +159,11 @@ export default function AnimatedBackground() {
             const finalOpacity = char.opacity * pulse
             
             // Efeito neon sutil para ícones
-            ctx.shadowColor = 'rgba(255, 102, 0, 0.2)'
+            ctx.shadowColor = 'rgba(249, 115, 22, 0.25)'
             ctx.shadowBlur = 6
             
             // Cor e tamanho para símbolos elegantes
-            const iconColor = `rgba(255, 200, 100, ${finalOpacity})` // Dourado elegante
+            const iconColor = `rgba(249, 115, 22, ${finalOpacity})` // Laranja (padrão Veredicta)
             const fontSize = '14px' // Tamanho menor para símbolos mais complexos
             
             ctx.fillStyle = iconColor
@@ -172,7 +172,7 @@ export default function AnimatedBackground() {
             
             // Efeito de pulsação sutil para símbolos
             const pulseEffect = Math.sin(char.phase * 2) * 0.2 + 0.8 // Pulsação mais suave
-            ctx.fillStyle = `rgba(255, 200, 100, ${finalOpacity * pulseEffect})`
+            ctx.fillStyle = `rgba(249, 115, 22, ${finalOpacity * pulseEffect})`
             
             ctx.fillText(char.element.icon, char.x, y + 5)
           }

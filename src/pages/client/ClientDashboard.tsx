@@ -791,12 +791,12 @@ export default function ClientDashboard() {
                   className="w-full text-left group flex items-start justify-between gap-4 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 hover:border-border hover:shadow-sm transition-all duration-200 motion-reduce:transform-none"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getStatusColor(petition.status) as any}>
+                    <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
+                      <Badge variant={getStatusColor(petition.status) as any} className="shrink-0">
                         {getStatusLabel(petition.status)}
                       </Badge>
                       {petition.priority ? (
-                        <Badge variant={getPriorityColor(petition.priority) as any}>
+                        <Badge variant={getPriorityColor(petition.priority) as any} className="shrink-0">
                           {petition.priority}
                         </Badge>
                       ) : null}

@@ -21,3 +21,6 @@ export const MARKETING_HERO_OVERLAY_BOTTOM_CLASS =
 export const MARKETING_SECTION_CLASS = 'py-20 bg-slate-950';
 export const MARKETING_SECTION_ALT_CLASS = 'py-20 bg-slate-900/30';
 
+export const MARKETING_FIELD_CLASS =
+  'bg-white/5 border-white/10 text-slate-100 placeholder:text-slate-500 focus-visible:ring-orange-500/40 focus-visible:border-orange-500/30 ring-offset-0';
+

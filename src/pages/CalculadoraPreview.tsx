@@ -105,11 +105,11 @@ export default function CalculadoraPreview() {
             {/* Header da Calculadora */}
             <Card className={[MARKETING_CARD_CLASS, 'mb-8'].join(' ')}>
               <CardHeader className="text-center">
-                <CardTitle className="flex items-center justify-center space-x-2 text-2xl">
+                <CardTitle className="flex items-center justify-center space-x-2 text-2xl text-white">
                   <Calculator className="h-8 w-8 text-orange-300" />
                   <span>Calculadora Trabalhista Automatizada</span>
                 </CardTitle>
-                <CardDescription className="text-lg max-w-4xl mx-auto whitespace-normal break-words">
+                <CardDescription className="text-lg max-w-4xl mx-auto whitespace-normal break-words text-slate-300">
                   Calcule verbas rescisórias, horas extras, adicionais e todas as verbas trabalhistas de forma automatizada
                 </CardDescription>
               </CardHeader>
@@ -131,7 +131,7 @@ export default function CalculadoraPreview() {
                 <CardContent className="p-4 text-center">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-orange-300" />
                   <h3 className="font-semibold">Verbas Rescisórias</h3>
-                  <p className="text-sm text-gray-600">Aviso prévio, férias, 13º salário, FGTS</p>
+                  <p className="text-sm text-slate-300">Aviso prévio, férias, 13º salário, FGTS</p>
                 </CardContent>
               </Card>
               
@@ -139,7 +139,7 @@ export default function CalculadoraPreview() {
                 <CardContent className="p-4 text-center">
                   <Calculator className="h-8 w-8 mx-auto mb-2 text-orange-300" />
                   <h3 className="font-semibold">Horas Extras</h3>
-                  <p className="text-sm text-gray-600">50% úteis, 100% fins de semana</p>
+                  <p className="text-sm text-slate-300">50% úteis, 100% fins de semana</p>
                 </CardContent>
               </Card>
               
@@ -147,7 +147,7 @@ export default function CalculadoraPreview() {
                 <CardContent className="p-4 text-center">
                   <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-orange-300" />
                   <h3 className="font-semibold">Adicionais</h3>
-                  <p className="text-sm text-gray-600">Insalubridade, periculosidade, noturno</p>
+                  <p className="text-sm text-slate-300">Insalubridade, periculosidade, noturno</p>
                 </CardContent>
               </Card>
               
@@ -155,7 +155,7 @@ export default function CalculadoraPreview() {
                 <CardContent className="p-4 text-center">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-orange-300" />
                   <h3 className="font-semibold">Desvio de Função</h3>
-                  <p className="text-sm text-gray-600">Diferenças salariais e reflexos</p>
+                  <p className="text-sm text-slate-300">Diferenças salariais e reflexos</p>
                 </CardContent>
               </Card>
             </div>
@@ -163,7 +163,7 @@ export default function CalculadoraPreview() {
             {/* Preview do Formulário em Etapas */}
             <Card className={[MARKETING_CARD_CLASS, 'shadow-2xl'].join(' ')}>
               <CardHeader className="bg-white/5 border-b border-white/10 text-white rounded-t-2xl">
-                <CardTitle className="text-xl">Preview da Interface</CardTitle>
+                <CardTitle className="text-xl text-white">Preview da Interface</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
                 {/* Barra de Progresso das Etapas */}
@@ -173,17 +173,17 @@ export default function CalculadoraPreview() {
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">1</div>
                       <span className="font-medium">Dados Pessoais</span>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">2</div>
                       <span className="font-medium">Dados Salariais</span>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">3</div>
                       <span className="font-medium">Jornada de Trabalho</span>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">4</div>
                       <span className="font-medium">Cálculos</span>
@@ -388,7 +388,7 @@ export default function CalculadoraPreview() {
             <br />
             <span className="text-orange-400">Seus Cálculos Trabalhistas?</span>
           </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
             Cadastre-se agora e tenha acesso imediato à calculadora mais avançada do mercado jurídico
           </p>
           
@@ -411,7 +411,7 @@ export default function CalculadoraPreview() {
             </Button>
           </div>
           
-          <div className="flex items-center justify-center space-x-8 text-gray-400">
+          <div className="flex items-center justify-center space-x-8 text-slate-400">
             <div className="flex items-center">
               <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
               <span>Grátis para começar</span>

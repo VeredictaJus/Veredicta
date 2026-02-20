@@ -8,7 +8,13 @@ import { Mail, Phone, MapPin, Send, MessageSquare, CheckCircle, AlertCircle } fr
 import { EmailService } from '@/services/emailService';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 import MarketingHero from '@/components/Marketing/MarketingHero';
-import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_SECTION_ALT_CLASS, MARKETING_SECTION_CLASS } from '@/styles/marketing';
+import {
+  MARKETING_CARD_CLASS,
+  MARKETING_CARD_HOVER_CLASS,
+  MARKETING_FIELD_CLASS,
+  MARKETING_SECTION_ALT_CLASS,
+  MARKETING_SECTION_CLASS,
+} from '@/styles/marketing';
 
 export default function Contato() {
   const navigate = useNavigate();
@@ -83,11 +89,11 @@ export default function Contato() {
             {/* Contact Form */}
             <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
               <CardHeader>
-                <CardTitle className="text-2xl flex items-center">
+                <CardTitle className="text-2xl flex items-center text-white">
                   <MessageSquare className="w-6 h-6 mr-3 text-orange-300" />
                   Envie sua Mensagem
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-slate-300">
                   Preencha o formulário abaixo e responderemos o mais breve possível
                 </CardDescription>
               </CardHeader>
@@ -124,6 +130,7 @@ export default function Contato() {
                         onChange={handleChange}
                         required
                         placeholder="Seu nome completo"
+                        className={MARKETING_FIELD_CLASS}
                       />
                     </div>
                     <div>
@@ -137,6 +144,7 @@ export default function Contato() {
                         onChange={handleChange}
                         required
                         placeholder="seu@email.com"
+                        className={MARKETING_FIELD_CLASS}
                       />
                     </div>
                   </div>
@@ -152,6 +160,7 @@ export default function Contato() {
                       onChange={handleChange}
                       required
                       placeholder="Qual o assunto da sua mensagem?"
+                      className={MARKETING_FIELD_CLASS}
                     />
                   </div>
                   
@@ -166,6 +175,7 @@ export default function Contato() {
                       required
                       rows={6}
                       placeholder="Descreva sua dúvida ou sugestão..."
+                      className={MARKETING_FIELD_CLASS}
                     />
                   </div>
                   

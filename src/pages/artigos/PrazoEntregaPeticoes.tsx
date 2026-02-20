@@ -1,139 +1,96 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Eye, AlertTriangle, CheckCircle, Zap, Shield } from 'lucide-react';
-import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import { ArrowLeft, AlertTriangle, CheckCircle, Zap, Shield } from 'lucide-react';
+import ArticleLayout from '@/components/Marketing/ArticleLayout';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS } from '@/styles/marketing';
 
 export default function PrazoEntregaPeticoes() {
   const navigate = useNavigate();
 
   return (
-    <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
-      <section className="border-b border-white/10 bg-slate-900/30">
-        <div className="container mx-auto px-4 py-10 max-w-screen-2xl">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/central-ajuda')}
-            className="mb-6 text-slate-300 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para Central de Ajuda
-          </Button>
-
-          <div className="flex items-center gap-4 mb-5">
-            <Badge className="bg-orange-500/15 text-orange-200 border border-orange-500/30">Petições</Badge>
-            <div className="flex items-center text-slate-300 text-sm">
-              <Eye className="w-4 h-4 mr-1" />
-              890 visualizações
-            </div>
-            <div className="flex items-center text-slate-300 text-sm">
-              <Clock className="w-4 h-4 mr-1" />
-              6 min de leitura
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-semibold tracking-tight text-white mb-2">Prazo de entrega das petições</h1>
-          <p className="text-lg text-slate-300 max-w-3xl">
-            Entenda nossos SLAs, políticas de prazo e como garantir entregas pontuais para seus clientes.
-          </p>
-        </div>
-      </section>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-10">
-        <div className="max-w-4xl mx-auto">
-          <Card className="shadow-lg border-0 ">
-            <CardContent className="p-8 ">
+    <ArticleLayout
+      categoryLabel="Petições"
+      viewsLabel="890 visualizações"
+      readingTimeLabel="6 min de leitura"
+      title="Prazo de entrega das petições"
+      subtitle="Entenda nossos SLAs, políticas de prazo e como garantir entregas pontuais para seus clientes."
+    >
+      <Card className={MARKETING_CARD_CLASS}>
+        <CardContent className="p-8">
               {/* SLAs por Plano */}
               <section className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-950 mb-6">SLAs por Plano de Assinatura</h2>
+                <h2 className="text-3xl font-semibold text-white mb-6">SLAs por Plano de Assinatura</h2>
                 
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-green-100 hover:shadow-lg transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-sky-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-bold text-green-950">Free</h3>
-                        <Badge className="bg-green-500 text-white border-green-600 font-semibold">Gratuito</Badge>
+                        <h3 className="text-2xl font-semibold text-white">Start</h3>
+                        <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                          Básico
+                        </span>
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-green-800 font-medium">Petições:</span>
-                          <span className="font-bold text-green-900">3-5 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Petições:</span>
+                          <span className="font-semibold text-white">até 3 dias úteis</span>
                         </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-green-800 font-medium">Revisões:</span>
-                          <span className="font-bold text-green-900">3-5 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Revisões:</span>
+                          <span className="font-semibold text-white">até 3 dias úteis</span>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-green-200">
-                          <p className="text-xs text-green-700 text-center">1 petição gratuita</p>
+                        <div className="mt-4 pt-3 border-t border-white/10">
+                          <p className="text-xs text-slate-300 text-center">4 peças por ciclo (30 dias)</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-orange-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-bold text-blue-950">Start</h3>
-                        <Badge className="bg-blue-600 text-white border-blue-700 font-semibold">Básico</Badge>
+                        <h3 className="text-2xl font-semibold text-white">Pro</h3>
+                        <span className="text-xs px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-200">
+                          Mais Contratado
+                        </span>
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-blue-800 font-medium">Petições:</span>
-                          <span className="font-bold text-blue-900">Até 3 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Petições:</span>
+                          <span className="font-semibold text-white">até 2 dias úteis</span>
                         </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-blue-800 font-medium">Revisões:</span>
-                          <span className="font-bold text-blue-900">Até 3 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Revisões:</span>
+                          <span className="font-semibold text-white">até 2 dias úteis</span>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-blue-200">
-                          <p className="text-xs text-blue-700 text-center">4 petições incluídas</p>
+                        <div className="mt-4 pt-3 border-t border-white/10">
+                          <p className="text-xs text-slate-300 text-center">14 peças por ciclo (60 dias)</p>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-2 border-purple-400 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-amber-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-bold text-purple-950">Pro</h3>
-                        <Badge className="bg-orange-500 text-white border-orange-600 font-semibold">Mais Popular</Badge>
+                        <h3 className="text-2xl font-semibold text-white">Elite</h3>
+                        <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                          Premium
+                        </span>
                       </div>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-purple-800 font-medium">Petições:</span>
-                          <span className="font-bold text-purple-900">Até 2 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Petições:</span>
+                          <span className="font-semibold text-white">até 1 dia útil</span>
                         </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-purple-800 font-medium">Revisões:</span>
-                          <span className="font-bold text-purple-900">Até 2 dias úteis</span>
+                        <div className="flex justify-between items-center p-2 rounded bg-white/5 border border-white/10">
+                          <span className="text-slate-300 font-medium">Revisões:</span>
+                          <span className="font-semibold text-white">até 1 dia útil</span>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-purple-200">
-                          <p className="text-xs text-purple-700 text-center">14 petições incluídas</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 border-orange-400 bg-gradient-to-br from-orange-50 to-orange-100 hover:shadow-lg transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-2xl font-bold text-orange-950">Elite</h3>
-                        <Badge className="bg-orange-600 text-white border-orange-700 font-semibold">Premium</Badge>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-orange-800 font-medium">Petições:</span>
-                          <span className="font-bold text-orange-900">Até 1 dia útil</span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 rounded bg-white/70">
-                          <span className="text-orange-800 font-medium">Revisões:</span>
-                          <span className="font-bold text-orange-900">Até 1 dia útil</span>
-                        </div>
-                        <div className="mt-4 pt-3 border-t border-orange-200">
-                          <p className="text-xs text-orange-700 text-center">70 petições incluídas</p>
+                        <div className="mt-4 pt-3 border-t border-white/10">
+                          <p className="text-xs text-slate-300 text-center">70 peças por ciclo (90 dias)</p>
                         </div>
                       </div>
                     </CardContent>
@@ -143,66 +100,84 @@ export default function PrazoEntregaPeticoes() {
 
               {/* Tipos de Urgência */}
               <section className="mb-8">
-                <h2 className="text-3xl font-bold text-gray-950 mb-6">Tipos de Urgência</h2>
+                <h2 className="text-3xl font-semibold text-white mb-6">Tipos de Urgência</h2>
                 
                 <div className="space-y-4">
-                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white hover:shadow-md transition-shadow">
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-emerald-400'].join(' ')}>
                     <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
-                        <div className="p-2 bg-green-100 rounded-full">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div className="p-2 bg-emerald-500/15 ring-1 ring-emerald-500/25 rounded-full">
+                          <CheckCircle className="w-6 h-6 text-emerald-300" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-green-900 mb-2">Normal</h3>
-                          <p className="text-gray-900 mb-3 font-medium">
+                          <h3 className="text-lg font-semibold text-white mb-2">Normal</h3>
+                          <p className="text-slate-300 mb-3">
                             Solicitações dentro do prazo padrão do seu plano. Ideal para casos sem urgência específica.
                           </p>
                           <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <Badge className="bg-green-100 text-green-700 border-green-300">Sem custo adicional</Badge>
-                            <Badge className="bg-green-100 text-green-700 border-green-300">Melhor qualidade</Badge>
-                            <Badge className="bg-green-100 text-green-700 border-green-300">Todos os planos</Badge>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Sem custo adicional
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Melhor qualidade
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Todos os planos
+                            </span>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-l-4 border-l-yellow-500 bg-gradient-to-r from-yellow-50 to-white hover:shadow-md transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-amber-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
-                        <div className="p-2 bg-yellow-100 rounded-full">
-                          <Zap className="w-6 h-6 text-yellow-600" />
+                        <div className="p-2 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full">
+                          <Zap className="w-6 h-6 text-orange-300" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-yellow-900 mb-2">Urgente</h3>
-                          <p className="text-gray-900 mb-3 font-medium">
+                          <h3 className="text-lg font-semibold text-white mb-2">Urgente</h3>
+                          <p className="text-slate-300 mb-3">
                             Redução de 50% no prazo padrão. Para casos com prazos processuais apertados.
                           </p>
                           <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Taxa +30%</Badge>
-                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Planos Pro+</Badge>
-                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Prioridade</Badge>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Taxa adicional
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Prioridade
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Conforme disponibilidade
+                            </span>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-l-4 border-l-red-500 bg-gradient-to-r from-red-50 to-white hover:shadow-md transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-rose-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
-                        <div className="p-2 bg-red-100 rounded-full">
-                          <AlertTriangle className="w-6 h-6 text-red-600" />
+                        <div className="p-2 bg-rose-500/15 ring-1 ring-rose-500/25 rounded-full">
+                          <AlertTriangle className="w-6 h-6 text-rose-300" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-red-900 mb-2">Emergencial</h3>
-                          <p className="text-gray-900 mb-3 font-medium">
+                          <h3 className="text-lg font-semibold text-white mb-2">Emergencial</h3>
+                          <p className="text-slate-300 mb-3">
                             Entrega em até 24 horas. Para situações críticas com prazos fatais iminentes.
                           </p>
                           <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <Badge className="bg-red-100 text-red-700 border-red-300">Taxa +100%</Badge>
-                            <Badge className="bg-red-100 text-red-700 border-red-300">Premium+</Badge>
-                            <Badge className="bg-red-100 text-red-700 border-red-300">Máxima prioridade</Badge>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Taxa adicional
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Máxima prioridade
+                            </span>
+                            <span className="text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                              Sujeito a disponibilidade
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -213,62 +188,71 @@ export default function PrazoEntregaPeticoes() {
 
               {/* Garantias */}
               <section>
-                <h2 className="text-3xl font-bold text-gray-950 mb-6">Nossas Garantias</h2>
+                <h2 className="text-3xl font-semibold text-white mb-6">Nossas Garantias</h2>
                 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-white hover:shadow-md transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-emerald-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
-                        <div className="p-3 bg-green-100 rounded-lg">
-                          <Shield className="w-6 h-6 text-green-600" />
+                        <div className="p-3 bg-emerald-500/15 ring-1 ring-emerald-500/25 rounded-xl">
+                          <Shield className="w-6 h-6 text-emerald-300" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-green-900 mb-2">Garantia de Prazo</h3>
-                          <p className="text-gray-900 text-sm mb-3 font-medium">
+                          <h3 className="text-lg font-semibold text-white mb-2">Garantia de Prazo</h3>
+                          <p className="text-slate-300 text-sm mb-3">
                             Se não entregarmos no prazo prometido, você recebe desconto de 20% 
                             na próxima petição ou reembolso parcial.
                           </p>
-                          <Badge className="bg-green-500 text-white border-green-600">SLA Garantido</Badge>
+                          <span className="inline-flex text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                            SLA Garantido
+                          </span>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-white hover:shadow-md transition-shadow " style={{ backgroundColor: '#ffffff' }}>
-                    <CardContent className="p-6 " style={{ backgroundColor: '#ffffff' }}>
+                  <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'border-l-4 border-l-sky-400'].join(' ')}>
+                    <CardContent className="p-6">
                       <div className="flex items-start space-x-4">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <CheckCircle className="w-6 h-6 text-blue-600" />
+                        <div className="p-3 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-xl">
+                          <CheckCircle className="w-6 h-6 text-orange-300" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-blue-900 mb-2">Garantia de Qualidade</h3>
-                          <p className="text-gray-900 text-sm mb-3 font-medium">
+                          <h3 className="text-lg font-semibold text-white mb-2">Garantia de Qualidade</h3>
+                          <p className="text-slate-300 text-sm mb-3">
                             Todas as petições passam por revisão técnica e jurídica 
                             antes da entrega final ao cliente.
                           </p>
-                          <Badge className="bg-blue-500 text-white border-blue-600">Qualidade Assegurada</Badge>
+                          <span className="inline-flex text-xs px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-200">
+                            Qualidade Assegurada
+                          </span>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
               </section>
-            </CardContent>
-          </Card>
+        </CardContent>
+      </Card>
 
           {/* Navigation */}
           <div className="mt-8 flex justify-between">
-            <Button variant="outline" onClick={() => navigate('/artigos/como-solicitar-primeira-peticao')}>
+            <Button
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+              onClick={() => navigate('/artigos/como-solicitar-primeira-peticao')}
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Artigo Anterior
             </Button>
-            <Button onClick={() => navigate('/artigos/como-usar-calculadora-trabalhista')}>
+            <Button
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white"
+              onClick={() => navigate('/artigos/como-usar-calculadora-trabalhista')}
+            >
               Próximo Artigo
               <ArrowLeft className="w-4 h-4 ml-2 transform rotate-180" />
             </Button>
           </div>
-        </div>
-      </main>
-    </div>
+    </ArticleLayout>
   );
 }

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient'
-import { DatabaseService } from '@/services/databaseService'
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useUser } from '@/contexts/UserContext';
 import { Petition } from '@/types';
@@ -8,8 +7,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Eye, FileText, CreditCard, CheckCircle, Clock, MessageSquare } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Plus, Eye, FileText, CheckCircle, Clock, MessageSquare, ArrowRight } from 'lucide-react';
 import { PetitionUsageCard } from '@/components/dashboard/PetitionUsageCard';
 import { toast } from 'sonner';
 import { UserSettingsService } from '@/services/userSettingsService';
@@ -631,179 +630,251 @@ export default function ClientDashboard() {
     return average.toString();
   };
 
-  const stats = {
-    activePetitions: petitions.filter(p => {
+  const stats = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+
+    const activePetitions = petitions.filter(p => {
       const status = p.status?.toUpperCase();
       return ['PENDING', 'ASSIGNED', 'IN_PROGRESS'].includes(status);
-    }).length,
-    // Considerar COMPLETED e APPROVED como concluídas (case-insensitive)
-    completedThisMonth: petitions.filter(p => {
+    }).length;
+
+    const completedThisMonth = petitions.filter(p => {
       const status = p.status?.toUpperCase();
-      return status === 'COMPLETED' || status === 'APPROVED';
-    }).length,
-  };
+      if (status !== 'COMPLETED' && status !== 'APPROVED') return false;
+      const dateRef = new Date((p.completed_at as any) || (p.accepted_at as any) || p.created_at);
+      return dateRef.getMonth() === month && dateRef.getFullYear() === year;
+    }).length;
+
+    return { activePetitions, completedThisMonth };
+  }, [petitions]);
+
+  const avgCompletionDays = useMemo(() => calculateAverageTime(), [petitions]);
+
+  const displayedPetitions = useMemo(() => {
+    return isPetitionsExpanded ? petitions : petitions.slice(0, 5);
+  }, [isPetitionsExpanded, petitions]);
+
+  const canShowAllButton = !isPetitionsExpanded && petitions.length > 5;
+
+  const StatCard = ({
+    title,
+    value,
+    subtitle,
+    icon: Icon,
+  }: {
+    title: string;
+    value: React.ReactNode;
+    subtitle: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }) => (
+    <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        </div>
+        <div className="rounded-xl bg-primary/10 text-primary p-2">
+          <Icon className="h-4 w-4" />
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="text-3xl font-semibold tracking-tight text-foreground">{value}</div>
+        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Bem-vindo de volta, {userProfile?.name || user?.email || 'Usuário'}
-        </p>
+      {/* Page header (conteúdo) */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Bem-vindo de volta, {userProfile?.name || user?.email || 'Usuário'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => navigate('/client/petitions/new')}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova petição
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/client/petitions')}>
+            Minhas petições
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/client/plans')}>
+            Ver planos
+          </Button>
+        </div>
       </div>
 
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Card de uso de petições */}
-        <PetitionUsageCard className="lg:col-span-1" />
+      {/* KPIs */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <PetitionUsageCard className="lg:col-span-4" />
 
-        <Card className="bg-container-primary border-border flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Petições Ativas</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg flex-1 flex flex-col justify-center">
-            <div className="text-2xl font-bold">{stats.activePetitions}</div>
-            <p className="text-xs text-muted-foreground">em andamento</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-container-secondary border-border flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg flex-1 flex flex-col justify-center">
-            <div className="text-2xl font-bold">{stats.completedThisMonth}</div>
-            <p className="text-xs text-muted-foreground">este mês</p>
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard
+            title="Petições ativas"
+            value={stats.activePetitions}
+            subtitle="Em andamento"
+            icon={FileText}
+          />
+          <StatCard
+            title="Concluídas"
+            value={stats.completedThisMonth}
+            subtitle="Este mês"
+            icon={CheckCircle}
+          />
+          <StatCard
+            title="Tempo médio"
+            value={avgCompletionDays}
+            subtitle="Dias para conclusão"
+            icon={Clock}
+          />
+        </div>
       </div>
 
-      {/* Lista de Petições em tempo real */}
-      {isPetitionsExpanded ? (
-        <Card className="bg-container-secondary border-border">
-          <CardHeader 
-            className="cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setIsPetitionsExpanded(false)}
-          >
-            <CardTitle>Suas Petições</CardTitle>
-            <CardDescription>Lista completa de petições</CardDescription>
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
-            {petitions.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma petição encontrada</h3>
-                <p className="text-muted-foreground">Você ainda não criou nenhuma petição</p>
-              </div>
-            ) : (
-              <div className="h-[400px] max-h-[50vh] overflow-y-auto space-y-4 pr-2">
-                {petitions.map((petition) => (
-                  <div key={petition.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <Badge variant={getStatusColor(petition.status) as any}>
-                          {getStatusLabel(petition.status)}
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">{petition.title}</h4>
-                        <p className="text-sm text-muted-foreground">{petition.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelected(petition)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-container-secondary border-border">
-          <CardHeader 
-            className="cursor-pointer hover:bg-muted/50 transition-colors"
-            onClick={() => setIsPetitionsExpanded(true)}
-          >
-            <CardTitle>Suas Petições</CardTitle>
-            <CardDescription>Últimas petições criadas</CardDescription>
-          </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
-            {petitions.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Nenhuma petição encontrada</h3>
-                <p className="text-muted-foreground">Você ainda não criou nenhuma petição</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {petitions.slice(0, 5).map((petition) => (
-                  <div key={petition.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/50">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-shrink-0">
-                        <Badge variant={getStatusColor(petition.status) as any}>
-                          {getStatusLabel(petition.status)}
-                        </Badge>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-foreground">{petition.title}</h4>
-                        <p className="text-sm text-muted-foreground">{petition.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelected(petition)}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        Ver
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {petitions.length > 5 && (
-                  <div className="text-center pt-4">
-                    <Button variant="outline" onClick={() => setIsPetitionsExpanded(true)}>
-                      Ver todas as petições ({petitions.length})
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Ações rápidas */}
-      <Card className="bg-container-primary border-border">
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-          <CardDescription className="!max-w-none !overflow-visible !whitespace-normal">Acesso rápido às principais funcionalidades</CardDescription>
-        </CardHeader>
-        <CardContent className="bg-container-inner rounded-b-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Petições recentes / lista */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <CardTitle className="text-xl">Suas petições</CardTitle>
+            <CardDescription>
+              {isPetitionsExpanded ? 'Lista completa em tempo real' : 'Últimas petições criadas'}
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
-              onClick={() => navigate('/client/chat')}
+              onClick={() => setIsPetitionsExpanded((v) => !v)}
             >
-              <MessageSquare className="h-6 w-6" />
-              <span>Chat</span>
+              {isPetitionsExpanded ? 'Ver menos' : 'Ver mais'}
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/client/petitions')}>
+              Abrir página <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
+        </CardHeader>
+
+        <CardContent>
+          {petitions.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="mx-auto h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                <FileText className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">Nenhuma petição ainda</h3>
+              <p className="text-muted-foreground mb-5">Crie sua primeira petição para começar.</p>
+              <Button onClick={() => navigate('/client/petitions/new')} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Plus className="h-4 w-4 mr-2" />
+                Criar petição
+              </Button>
+            </div>
+          ) : (
+            <div className={isPetitionsExpanded ? 'max-h-[52vh] overflow-y-auto pr-1 space-y-2' : 'space-y-2'}>
+              {displayedPetitions.map((petition) => (
+                <button
+                  key={petition.id}
+                  type="button"
+                  onClick={() => setSelected(petition)}
+                  className="w-full text-left group flex items-start justify-between gap-4 p-4 rounded-xl border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={getStatusColor(petition.status) as any}>
+                        {getStatusLabel(petition.status)}
+                      </Badge>
+                      {petition.priority ? (
+                        <Badge variant={getPriorityColor(petition.priority) as any}>
+                          {petition.priority}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <div className="mt-2">
+                      <div className="font-medium text-foreground truncate">
+                        {petition.title}
+                      </div>
+                      {petition.description ? (
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {petition.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelected(petition);
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Ver
+                    </Button>
+                  </div>
+                </button>
+              ))}
+
+              {canShowAllButton ? (
+                <div className="text-center pt-3">
+                  <Button variant="outline" onClick={() => setIsPetitionsExpanded(true)}>
+                    Ver todas ({petitions.length})
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Ações rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Nova petição</CardTitle>
+            <CardDescription>Enviar uma nova demanda</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Button onClick={() => navigate('/client/petitions/new')} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Plus className="h-4 w-4 mr-2" />
+              Criar agora
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Chat</CardTitle>
+            <CardDescription>Fale com o redator ou suporte</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Button variant="outline" onClick={() => navigate('/client/chat')} className="w-full">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Abrir chat
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Planos</CardTitle>
+            <CardDescription>Upgrade e limites</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Button variant="outline" onClick={() => navigate('/client/plans')} className="w-full">
+              Ver planos
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Modal de detalhes */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
@@ -956,23 +1027,23 @@ export default function ClientDashboard() {
       <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
         <DialogContent className="max-w-md">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 mb-4">
               <span className="text-3xl">🎉</span>
             </div>
             
-            <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">
+            <DialogTitle className="text-2xl font-bold text-foreground mb-2">
               Parabéns!
             </DialogTitle>
             
-            <DialogDescription className="text-gray-600 mb-4">
+            <DialogDescription className="text-muted-foreground mb-4">
               Seu plano foi ativado com sucesso!
             </DialogDescription>
             
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h4 className="font-semibold text-green-800 mb-2">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mb-6">
+              <h4 className="font-semibold text-foreground mb-2">
                 🎁 Bônus de Boas-vindas
               </h4>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-muted-foreground">
                 Você ganhou <strong>1 petição gratuita extra</strong> além do seu plano!
                 <br />
                 Use quando quiser, sem prazo de validade.
@@ -1003,39 +1074,39 @@ export default function ClientDashboard() {
         <DialogContent className="max-w-lg sm:max-w-md">
           <div className="text-center py-4">
             {/* Ícone de boas-vindas */}
-            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 mb-6 shadow-lg">
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 mb-6 shadow-lg">
               <span className="text-4xl">🎉</span>
             </div>
             
             {/* Título */}
-            <DialogTitle className="text-3xl font-bold text-gray-900 mb-3">
+            <DialogTitle className="text-3xl font-bold text-foreground mb-3">
               Bem-vindo à Veredicta!
             </DialogTitle>
             
             {/* Descrição */}
-            <DialogDescription className="text-gray-600 mb-6 text-base">
+            <DialogDescription className="text-muted-foreground mb-6 text-base">
               Estamos muito felizes em tê-lo conosco! Você está pronto para começar.
             </DialogDescription>
             
             {/* Destaque para petição de cortesia */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-6 mb-6 shadow-md">
+            <div className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-2xl p-6 mb-6 shadow-sm">
               <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-orange-500">
+                <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-orange-500 text-white shadow-sm">
                   <span className="text-2xl">{isConcierge ? '📝' : '🎁'}</span>
                 </div>
-                <h4 className="text-xl font-bold text-orange-900">
+                <h4 className="text-xl font-bold text-foreground">
                   {isConcierge ? 'Primeiro passo' : 'Presente de Boas-vindas'}
                 </h4>
               </div>
               
-              <div className="bg-white rounded-lg p-4 border border-orange-200">
-                <p className="text-base text-gray-800 leading-relaxed">
-                  <span className="font-semibold text-orange-700 text-lg">
+              <div className="bg-background/70 rounded-xl p-4 border border-border/60">
+                <p className="text-base text-foreground leading-relaxed">
+                  <span className="font-semibold text-primary text-lg">
                     {isConcierge ? 'Sua primeira petição pode ser criada agora' : 'Uma petição está disponível para você'}
                   </span>
                   !
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   {isConcierge
                     ? 'Preencha as informações e envie seus documentos para iniciar a redação.'
                     : 'Use quando quiser para criar sua primeira petição jurídica com qualidade profissional.'}
@@ -1053,7 +1124,7 @@ export default function ClientDashboard() {
                   setShowNewClientWelcomeModal(false);
                   navigate('/client/petitions/new');
                 }} 
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 text-lg shadow-lg hover:shadow-xl transition-all"
               >
                 <FileText className="mr-2 h-5 w-5" />
                 Criar Minha Primeira Petição
@@ -1073,7 +1144,7 @@ export default function ClientDashboard() {
             </div>
             
             {/* Nota informativa */}
-            <p className="text-xs text-gray-500 mt-4">
+            <p className="text-xs text-muted-foreground mt-4">
               Esta mensagem aparecerá apenas uma vez. Você pode criar sua primeira petição quando quiser!
             </p>
           </div>

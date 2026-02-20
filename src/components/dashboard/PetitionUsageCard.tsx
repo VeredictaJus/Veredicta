@@ -23,10 +23,10 @@ const planIcons = {
 
 const planColors = {
   free: 'text-muted-foreground',
-  start: 'text-blue-600',
-  pro: 'text-purple-600',
-  elite: 'text-orange-600',
-  concierge: 'text-orange-600',
+  start: 'text-sky-600 dark:text-sky-300',
+  pro: 'text-violet-600 dark:text-violet-300',
+  elite: 'text-orange-600 dark:text-orange-300',
+  concierge: 'text-orange-600 dark:text-orange-300',
 };
 
 const planNames = {
@@ -232,9 +232,9 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
   };
 
   const getStatusColor = () => {
-    if (isAtLimit) return 'text-red-600';
-    if (isNearLimit) return 'text-orange-600';
-    return 'text-green-600';
+    if (isAtLimit) return 'text-rose-600 dark:text-rose-300';
+    if (isNearLimit) return 'text-orange-600 dark:text-orange-300';
+    return 'text-emerald-600 dark:text-emerald-300';
   };
 
   const getStatusText = () => {
@@ -244,13 +244,25 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
   };
 
   const getProgressColor = () => {
-    if (isAtLimit) return 'bg-red-500';
-    if (isNearLimit) return 'bg-orange-500';
-    return 'bg-green-500';
+    if (isAtLimit) return '[&>div]:bg-rose-500';
+    if (isNearLimit) return '[&>div]:bg-orange-500';
+    return '[&>div]:bg-emerald-500';
   };
 
   return (
-    <Card className={`${className} ${isAtLimit ? 'border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-950/30' : isNearLimit ? 'border-orange-200 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/30' : ''}`}>
+    <Card
+      className={[
+        className,
+        'rounded-2xl shadow-sm hover:shadow-md transition-shadow',
+        isAtLimit
+          ? 'border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30'
+          : isNearLimit
+            ? 'border-orange-200 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-950/30'
+            : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center gap-2">
@@ -289,8 +301,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
           </div>
           <Progress 
             value={usagePercentage} 
-            className="h-2"
-            // Note: Progress component might need custom styling for colors
+            className={`h-2 ${getProgressColor()}`}
           />
         </div>
 

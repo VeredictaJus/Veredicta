@@ -753,8 +753,19 @@ const handleInputChange = (field: keyof FormData, value: string) => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 dark:bg-gray-50">
+    <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
       <AnimatedBackground />
+
+      {/* Overlays: mantém os caracteres, mas escurece o fundo e aplica degradê laranja */}
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/80" />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+      />
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
@@ -764,7 +775,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               <div className="bg-white rounded-full p-2 shadow-md">
                 <img src={logoImage} alt="Veredicta" className="h-8 w-auto" />
               </div>
-              <span className="text-xl font-medium text-gray-900 dark:text-gray-900 tracking-wide">
+              <span className="text-xl font-medium text-white tracking-wide">
                 Vered
                 <span className="relative inline-block">
                   <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -776,7 +787,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
             <Button
               variant="ghost"
               onClick={() => navigate('/auth/login')}
-              className="flex items-center text-gray-900 hover:text-orange-600 hover:bg-gray-100 dark:text-gray-900 dark:hover:text-orange-600 dark:hover:bg-gray-100"
+              className="flex items-center text-slate-100 hover:text-white hover:bg-white/10 bg-transparent"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar

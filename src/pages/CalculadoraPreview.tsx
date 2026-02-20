@@ -24,6 +24,8 @@ import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_SECTION_ALT
 export default function CalculadoraPreview() {
   const navigate = useNavigate();
 
+  const SOCIAL_PROOF_LABEL = 'Usada por 120+ advogados';
+
   const features = [
     {
       icon: Calculator,
@@ -93,7 +95,7 @@ export default function CalculadoraPreview() {
         <div className="flex items-center justify-center">
           <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-6 py-3 shadow-xl">
             <Star className="w-5 h-5 text-orange-300" />
-            <span className="text-white font-semibold">Usada por 1000+ advogados</span>
+            <span className="text-white font-semibold">{SOCIAL_PROOF_LABEL}</span>
           </div>
         </div>
       </MarketingHero>
@@ -368,11 +370,11 @@ export default function CalculadoraPreview() {
               <div className="text-slate-300">Precisão nos Cálculos</div>
             </div>
             <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-8'].join(' ')}>
-              <div className="text-4xl font-semibold mb-2 text-white">1000+</div>
+              <div className="text-4xl font-semibold mb-2 text-white">120+</div>
               <div className="text-slate-300">Advogados Ativos</div>
             </div>
             <div className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, 'p-8'].join(' ')}>
-              <div className="text-4xl font-semibold mb-2 text-white">50K+</div>
+              <div className="text-4xl font-semibold mb-2 text-white">3K+</div>
               <div className="text-slate-300">Cálculos Realizados</div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/ui/Logo';
 import { getCurrentYear } from '@/utils/dateUtils';
@@ -12,7 +12,13 @@ export default function PublicLayout() {
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 py-3">
           <div className="flex flex-wrap items-center justify-between w-full gap-2">
             <div className="flex items-center shrink-0">
-              <Logo size="xl" clickable={false} textColor="light" />
+              <Link
+                to="/"
+                aria-label="Voltar para a página inicial"
+                className="hover:opacity-80 transition-opacity duration-200"
+              >
+                <Logo size="xl" clickable={false} textColor="light" />
+              </Link>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto justify-end">

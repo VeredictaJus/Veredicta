@@ -1,9 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getCurrentYear } from '@/utils/dateUtils';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
 import MarketingHero from '@/components/Marketing/MarketingHero';
 import { MARKETING_SECTION_CLASS } from '@/styles/marketing';
+
+const LAST_UPDATED_LABEL = '20 de Fevereiro de 2026';
 
 export default function Termos() {
   return (
@@ -11,13 +12,26 @@ export default function Termos() {
       <MarketingHero
         eyebrow="Legal"
         title="Termos de Serviço"
-        subtitle={<>Última atualização: 18 de Julho de {getCurrentYear()}</>}
+        subtitle={<>Última atualização: {LAST_UPDATED_LABEL}</>}
       />
 
       {/* Content */}
       <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4 max-w-4xl">
-          <div className="space-y-8">
+          <div
+            className={[
+              'space-y-8',
+              // padronizar Cards shadcn no tema dark (evita containers brancos)
+              '[&_.bg-card]:bg-white/5',
+              '[&_.border]:border-white/10',
+              '[&_.shadow-sm]:shadow-xl',
+              '[&_.rounded-lg]:rounded-2xl',
+              // corrigir textos escuros herdados por tokens (foreground/muted)
+              '[&_.text-foreground]:text-white',
+              '[&_.text-card-foreground]:text-slate-100',
+              '[&_.text-muted-foreground]:text-slate-300',
+            ].join(' ')}
+          >
             <Card>
               <CardHeader>
                 <CardTitle className="text-gray-900">1. Aceitação dos Termos</CardTitle>

@@ -81,18 +81,27 @@ export default function Sidebar({
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 bottom-0 z-50 w-64 border-r border-border shadow-sm flex flex-col text-sm transition-transform duration-200 lg:translate-x-0
+        relative overflow-hidden
+        bg-gradient-to-b from-background to-muted/30
+        dark:from-slate-950 dark:to-slate-900/30
+        before:content-[''] before:absolute before:inset-0 before:pointer-events-none
+        before:bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_55%)]
+        dark:before:bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.22),transparent_55%)]
+        ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo Section - Padronizado como WriterLayout */}
-        <div className="p-6 border-b border-border">
+        <div className="p-6 border-b border-border relative z-10">
           <Logo size="md" textSize="xl" align="center" />
         </div>
+        {/* Accent line (brand) */}
+        <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent relative z-10" />
 
         {/* Aviso de sidebar desabilitado */}
         {isDisabled && (
-          <div className="mx-6 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-2xl shadow-sm">
+          <div className="mx-6 mt-4 p-4 bg-primary/10 border border-primary/20 rounded-2xl shadow-sm relative z-10">
             <div className="flex items-center space-x-2">
               <Lock className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">
@@ -106,7 +115,7 @@ export default function Sidebar({
         )}
 
         {/* Menu Section - Padronizado como WriterLayout */}
-        <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto relative z-10">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;

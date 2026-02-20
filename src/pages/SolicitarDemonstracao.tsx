@@ -5,9 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react'
+import { CheckCircle, AlertCircle, ShieldCheck, Clock, Sparkles } from 'lucide-react'
 import { EmailService } from '@/services/emailService'
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage'
+import MarketingHero from '@/components/Marketing/MarketingHero'
+import {
+  MARKETING_CARD_CLASS,
+  MARKETING_CARD_HOVER_CLASS,
+  MARKETING_FIELD_CLASS,
+  MARKETING_SECTION_ALT_CLASS,
+  MARKETING_SECTION_CLASS,
+} from '@/styles/marketing'
 
 type VolumeOption = 'ate_20' | '21_50' | '51_100' | 'mais_100'
 const WHATSAPP_PHONE_NUMBER = '5544997271991' // (44) 99727-1991 sem caracteres especiais
@@ -219,50 +227,92 @@ export default function SolicitarDemonstracao() {
     }
   }
 
+  const whatsappUrl = buildDemoWhatsAppUrl({ ...formData, utm })
+
+  const scrollToForm = () => {
+    const el = document.getElementById('demo-form')
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className={`min-h-screen ${PUBLIC_PAGE_CLASS}`}>
+      <MarketingHero
+        eyebrow="Demonstração"
+        title={
+          <>
+            Solicite uma demonstração da{' '}
+            <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
+              Veredicta
+            </span>
+          </>
+        }
+        subtitle={
+          <>
+            Escale a produção de petições com padrão, previsibilidade e apoio humano.
+            <br />
+            Em poucos minutos, você entende o fluxo e se faz sentido para sua operação.
+          </>
+        }
+      >
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.18)]"
+            onClick={scrollToForm}
+          >
+            Solicitar demonstração
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+            onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
+          >
+            Falar no WhatsApp
+          </Button>
+        </div>
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-orange-600 to-orange-800">
-        <div className="container mx-auto px-4 py-14">
-          <div className="max-w-5xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Solicite uma demonstração da Veredicta</h1>
-            <p className="text-lg md:text-xl text-orange-100">
-              Tecnologia jurídica para escalar a produção de petições com apoio humano, padrão e previsibilidade.
-            </p>
-
-            <p className="mt-6 text-orange-100">
-              A Veredicta apoia escritórios de advocacia, departamentos jurídicos e equipes jurídicas estruturadas que
-              lidam com alta demanda de peças e prazos apertados.
-              <br />
-              Aqui você entende como a plataforma funciona na prática e avalia se faz sentido para a sua operação.
-            </p>
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-slate-300">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2">
+            <Clock className="w-4 h-4 text-orange-300" />
+            <span className="text-sm">Duração média: 20 min</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2">
+            <Sparkles className="w-4 h-4 text-orange-300" />
+            <span className="text-sm">Sem compromisso</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2">
+            <ShieldCheck className="w-4 h-4 text-orange-300" />
+            <span className="text-sm">LGPD e confidencialidade</span>
           </div>
         </div>
-      </section>
+      </MarketingHero>
 
-      <section className="py-12 bg-white">
+      <section className={MARKETING_SECTION_CLASS}>
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto items-start">
             {/* Left */}
             <div className="space-y-6">
-              <Card className="border-orange-200">
+              <Card className={[MARKETING_CARD_CLASS].join(' ')}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-orange-600" />
-                    Atendemos exclusivamente
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <ShieldCheck className="h-5 w-5 text-orange-300" />
+                    Para quem é a demonstração
                   </CardTitle>
+                  <CardDescription className="text-slate-300">
+                    Atendemos operações jurídicas com demanda recorrente e necessidade de padrão.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {[
-                      'Advogados com alta demanda de petições',
-                      'Escritórios de advocacia',
-                      'Departamentos jurídicos',
-                      'Equipes jurídicas com volume recorrente de petições',
+                      'Escritórios de advocacia com volume contínuo',
+                      'Departamentos jurídicos e equipes internas',
+                      'Prazos frequentes e necessidade de previsibilidade',
+                      'Padronização e revisão técnica antes da entrega',
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-2 text-gray-700">
-                        <span className="mt-1 h-2 w-2 rounded-full bg-orange-600 flex-shrink-0" />
+                      <li key={item} className="flex items-start gap-3 text-slate-300">
+                        <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-400 flex-shrink-0" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -270,48 +320,61 @@ export default function SolicitarDemonstracao() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className={[MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS].join(' ')}>
                 <CardHeader>
-                  <CardTitle>O que você verá na demonstração</CardTitle>
+                  <CardTitle className="text-white">O que você verá na demonstração</CardTitle>
+                  <CardDescription className="text-slate-300">
+                    Um overview rápido do fluxo, dos padrões e do modelo de operação.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3 text-gray-700">
+                  <ul className="space-y-3 text-slate-300">
                     {[
-                      'Entender como funciona a produção de petições sob demanda',
-                      'Ver como a Veredicta ajuda a manter padrão e qualidade',
-                      'Avaliar se a solução se encaixa na rotina do seu escritório',
-                      'Tirar dúvidas com a equipe',
-                      'Após validação do cadastro, você pode receber uma petição gratuita para testar o fluxo na prática.',
+                      'Como funciona a produção de petições sob demanda',
+                      'Como garantimos padrão e qualidade com revisão técnica',
+                      'Como acompanhar prazos e entregas pelo fluxo',
+                      'Como escalar mantendo previsibilidade',
+                      'Próximos passos (e, se aplicável, peça piloto para testar o fluxo)',
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-3">
-                        <span className="mt-0.5 text-orange-600">✓</span>
+                        <span className="mt-0.5 text-orange-300">•</span>
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
                 </CardContent>
               </Card>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Se você não tiver e-mail corporativo, pode solicitar pelo WhatsApp. Nós coletamos apenas o necessário
+                  para responder e orientar os próximos passos.
+                </p>
+              </div>
             </div>
 
             {/* Form */}
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle>Solicite a demonstração</CardTitle>
-                <CardDescription>Preencha os dados abaixo:</CardDescription>
+            <Card id="demo-form" className={[MARKETING_CARD_CLASS, 'shadow-2xl'].join(' ')}>
+              <CardHeader className="border-b border-white/10">
+                <CardTitle className="text-white">Solicitar demonstração</CardTitle>
+                <CardDescription className="text-slate-300">
+                  Preencha os dados abaixo. Retornamos com orientação e próximos passos.
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 {submitStatus.type && (
                   <div
-                    className={`p-4 rounded-lg mb-6 flex items-center gap-3 ${
+                    className={[
+                      'p-4 rounded-xl mb-6 flex items-center gap-3 border',
                       submitStatus.type === 'success'
-                        ? 'bg-green-50 text-green-800 border border-green-200'
-                        : 'bg-red-50 text-red-800 border border-red-200'
-                    }`}
+                        ? 'bg-emerald-500/10 text-emerald-200 border-emerald-500/20'
+                        : 'bg-red-500/10 text-red-200 border-red-500/20',
+                    ].join(' ')}
                   >
                     {submitStatus.type === 'success' ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <CheckCircle className="w-5 h-5 text-emerald-300" />
                     ) : (
-                      <AlertCircle className="w-5 h-5 text-red-600" />
+                      <AlertCircle className="w-5 h-5 text-red-300" />
                     )}
                     <span className="text-sm font-medium">{submitStatus.message}</span>
                   </div>
@@ -319,32 +382,37 @@ export default function SolicitarDemonstracao() {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label>Nome completo</Label>
+                    <Label className="text-slate-200">Nome completo</Label>
                     <Input
+                      className={MARKETING_FIELD_CLASS}
                       value={formData.nome}
                       onChange={(e) => setFormData((s) => ({ ...s, nome: e.target.value }))}
                       required
                       placeholder="Seu nome completo"
+                      autoComplete="name"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Email corporativo</Label>
+                    <Label className="text-slate-200">Email corporativo</Label>
                     <Input
+                      className={MARKETING_FIELD_CLASS}
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
                       required
                       placeholder="nome@empresa.com.br"
+                      autoComplete="email"
                     />
-                    <p className="text-xs text-gray-500">
-                      Preferimos e-mail corporativo. Se você não tiver, pode solicitar a demonstração pelo WhatsApp no link abaixo.
+                    <p className="text-xs text-slate-400">
+                      Preferimos e-mail corporativo. Se você não tiver, solicite pelo WhatsApp abaixo.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Celular (WhatsApp)</Label>
+                    <Label className="text-slate-200">Celular (WhatsApp)</Label>
                     <Input
+                      className={MARKETING_FIELD_CLASS}
                       type="tel"
                       value={formData.celular}
                       onChange={(e) => setFormData((s) => ({ ...s, celular: formatBrazilPhone(e.target.value) }))}
@@ -354,18 +422,21 @@ export default function SolicitarDemonstracao() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Escritório / Empresa</Label>
+                    <Label className="text-slate-200">Escritório / Empresa</Label>
                     <Input
+                      className={MARKETING_FIELD_CLASS}
                       value={formData.empresa}
                       onChange={(e) => setFormData((s) => ({ ...s, empresa: e.target.value }))}
                       required
                       placeholder="Nome do escritório/empresa"
+                      autoComplete="organization"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Cargo</Label>
+                    <Label className="text-slate-200">Cargo</Label>
                     <Input
+                      className={MARKETING_FIELD_CLASS}
                       value={formData.cargo}
                       onChange={(e) => setFormData((s) => ({ ...s, cargo: e.target.value }))}
                       required
@@ -374,16 +445,19 @@ export default function SolicitarDemonstracao() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Volume médio mensal de petições</Label>
+                    <Label className="text-slate-200">Volume médio mensal de petições</Label>
                     <RadioGroup
                       value={formData.volume}
                       onValueChange={(v) => setFormData((s) => ({ ...s, volume: v as VolumeOption }))}
                       className="gap-3"
                     >
                       {(['ate_20', '21_50', '51_100', 'mais_100'] as VolumeOption[]).map((v) => (
-                        <div key={v} className="flex items-center gap-3 rounded-md border p-3">
+                        <div
+                          key={v}
+                          className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/[0.07] transition-colors p-3"
+                        >
                           <RadioGroupItem value={v} id={v} />
-                          <Label htmlFor={v} className="cursor-pointer">
+                          <Label htmlFor={v} className="cursor-pointer text-slate-200">
                             {volumeLabel(v)}
                           </Label>
                         </div>
@@ -393,27 +467,69 @@ export default function SolicitarDemonstracao() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-orange-600 hover:bg-orange-700"
+                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.16)]"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Enviando...' : '👉 Solicitar demonstração'}
+                    {isSubmitting ? 'Enviando...' : 'Solicitar demonstração'}
                   </Button>
 
                   <a
-                    href={buildDemoWhatsAppUrl({ ...formData, utm })}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full text-center rounded-md border border-green-600 text-green-700 hover:bg-green-50 py-2 font-medium"
+                    className="block w-full text-center rounded-xl border border-white/15 text-white hover:bg-white/10 py-2 font-medium transition-colors"
                   >
                     Solicitar pelo WhatsApp
                   </a>
 
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-slate-300">
                     Nossa equipe entrará em contato para entender sua necessidade e orientar os próximos passos.
                   </p>
+
+                  <div className="pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/privacidade')}
+                      className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+                    >
+                      Ao solicitar, você concorda com nossa Política de Privacidade.
+                    </button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      <section className={MARKETING_SECTION_ALT_CLASS}>
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl">
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mb-3">
+                Prefere começar agora?
+              </h2>
+              <p className="text-lg text-slate-300 mb-6">
+                Crie sua conta e conheça a plataforma. Se fizer sentido, a demonstração aprofunda no fluxo e na operação.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white"
+                  onClick={() => navigate('/auth/register')}
+                >
+                  Cadastrar-se
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10 bg-transparent"
+                  onClick={() => window.open(whatsappUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  Falar com especialista
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -757,7 +757,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
       <AnimatedBackground />
 
       {/* Overlays: mantém os caracteres, mas escurece o fundo e aplica degradê laranja */}
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/80" />
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
       <div
         aria-hidden
         className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"

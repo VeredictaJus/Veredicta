@@ -13,13 +13,13 @@ export default function AnimatedBackground() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Fundo pergaminho - laranja mais vivo e vibrante
+    // Fundo (dark) com leve nuance laranja para contraste com os símbolos
     const createParchmentGradient = () => {
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-      gradient.addColorStop(0, '#FF6600') // Laranja vibrante
-      gradient.addColorStop(0.3, '#FF7A1A') // Laranja médio
-      gradient.addColorStop(0.7, '#FF6600')
-      gradient.addColorStop(1, '#E55A00') // Laranja mais escuro
+      gradient.addColorStop(0, '#020617') // slate-950
+      gradient.addColorStop(0.35, '#0b1220') // azul escuro (nuance)
+      gradient.addColorStop(0.7, '#111827') // gray-900
+      gradient.addColorStop(1, '#7c2d12') // orange-900
       return gradient
     }
 

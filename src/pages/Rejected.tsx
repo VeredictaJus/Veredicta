@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { XCircle, Mail, ArrowLeft, RefreshCw } from 'lucide-react';
+import { XCircle, Mail, ArrowLeft, RefreshCw, Clock } from 'lucide-react';
 import logoImage from '@/assets/images/veredicta-logo.png';
 import AnimatedBackground from "@/components/ui/AnimatedBackground";
 
@@ -10,10 +10,21 @@ export default function Rejected() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <AnimatedBackground />
+
+      {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+      />
       
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md relative z-10">
         <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4">

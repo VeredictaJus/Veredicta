@@ -55,9 +55,20 @@ export default function ForgotPassword() {
 
   if (isEmailSent) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-50">
+      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         {/* Fundo animado */}
         <AnimatedBackground />
+
+        {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
+        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+        <div
+          aria-hidden
+          className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+        />
+        <div
+          aria-hidden
+          className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+        />
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
   <Link to="/" className="flex flex-col items-center justify-center mb-6 hover:opacity-80 transition-opacity">
@@ -68,7 +79,7 @@ export default function ForgotPassword() {
         className="h-12 w-auto object-contain"
       />
     </div>
-    <span className="mt-3 text-2xl font-medium text-gray-900 drop-shadow-lg dark:text-gray-900 tracking-wide">
+    <span className="mt-3 text-2xl font-medium text-white drop-shadow-lg tracking-wide">
       Vered
       <span className="relative inline-block">
         <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -133,9 +144,20 @@ export default function ForgotPassword() {
   }
 
   return (
-  <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-50">
+  <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
     {/* Fundo animado */}
     <AnimatedBackground />
+
+    {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+    <div
+      aria-hidden
+      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+    />
+    <div
+      aria-hidden
+      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+    />
 
     {/* topo – logo com círculo branco */}
     <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -147,7 +169,7 @@ export default function ForgotPassword() {
             className="h-12 w-auto object-contain"
           />
         </div>
-        <span className="mt-3 text-2xl font-medium text-gray-900 drop-shadow-lg dark:text-gray-900 tracking-wide">
+        <span className="mt-3 text-2xl font-medium text-white drop-shadow-lg tracking-wide">
           Vered
           <span className="relative inline-block">
             <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -161,7 +183,7 @@ export default function ForgotPassword() {
       <Button
         variant="ghost"
         onClick={() => navigate('/auth/login')}
-        className="mx-auto flex items-center text-gray-900 hover:text-orange-600 hover:bg-gray-100 dark:text-gray-900 dark:hover:text-orange-600 dark:hover:bg-gray-100"
+        className="mx-auto flex items-center text-slate-100 hover:text-white hover:bg-white/10 bg-transparent"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Voltar ao login

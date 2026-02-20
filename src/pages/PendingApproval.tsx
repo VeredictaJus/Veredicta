@@ -17,10 +17,21 @@ export default function PendingApproval() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <AnimatedBackground />
+
+      {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+      />
       
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-4xl relative z-10">
         <Card className="bg-white/90 backdrop-blur-sm shadow-xl border-0">
           <CardHeader className="text-center pb-4 px-8">
             <div className="mx-auto w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mb-4">

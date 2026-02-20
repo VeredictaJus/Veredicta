@@ -19,7 +19,7 @@ const BrandLogo: FC = () => (
     <div className="w-12 h-12 rounded-full bg-white ring-1 ring-black/10 shadow flex items-center justify-center">
       <img src={logoImage} alt="Veredicta" className="w-7 h-7 object-contain" />
     </div>
-    <span className="text-2xl font-medium text-gray-900 dark:text-gray-900 tracking-wide">
+    <span className="text-2xl font-medium text-white tracking-wide drop-shadow-lg">
       Vered
       <span className="relative inline-block">
         <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -28,6 +28,20 @@ const BrandLogo: FC = () => (
       cta
     </span>
   </div>
+);
+
+const AUTH_ANIMATED_OVERLAYS = (
+  <>
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+    <div
+      aria-hidden
+      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+    />
+    <div
+      aria-hidden
+      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+    />
+  </>
 );
 
 export default function ResetPassword() {
@@ -178,9 +192,10 @@ export default function ResetPassword() {
   /* ⏳ Carregando */
   if (isValidCode === null) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center">
+      <div className="relative min-h-screen flex items-center justify-center bg-slate-950">
         <AnimatedBackground />
-        <p className="text-gray-600 relative z-10">Carregando...</p>
+        {AUTH_ANIMATED_OVERLAYS}
+        <p className="text-slate-200 relative z-10">Carregando...</p>
       </div>
     );
   }
@@ -188,8 +203,9 @@ export default function ResetPassword() {
   /* ❌ Link inválido */
   if (isValidCode === false) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-50">
+      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         <AnimatedBackground />
+        {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
           <BrandLogo />
@@ -232,8 +248,9 @@ export default function ResetPassword() {
   /* ✅ Sucesso */
   if (isSuccess) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-50">
+      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         <AnimatedBackground />
+        {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
           <BrandLogo />
@@ -269,8 +286,9 @@ export default function ResetPassword() {
 
   /* 🔐 Formulário de redefinição */
   return (
-    <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-50">
+    <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
       <AnimatedBackground />
+      {AUTH_ANIMATED_OVERLAYS}
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <BrandLogo />
@@ -278,7 +296,7 @@ export default function ResetPassword() {
         <Button
           variant="ghost"
           onClick={goToLogin}
-          className="mx-auto flex items-center text-gray-900 hover:text-orange-600 hover:bg-gray-100 dark:text-gray-900 dark:hover:text-orange-600 dark:hover:bg-gray-100"
+          className="mx-auto flex items-center text-slate-100 hover:text-white hover:bg-white/10 bg-transparent"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar ao login

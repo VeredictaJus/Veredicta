@@ -130,33 +130,33 @@ export default function CalculadoraPreview() {
             {/* Features Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <Card className={MARKETING_CARD_CLASS}>
-                <CardContent className="p-4 text-center">
+                <CardContent className="p-4 text-center text-slate-100">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-orange-300" />
-                  <h3 className="font-semibold">Verbas Rescisórias</h3>
+                  <h3 className="font-semibold text-white">Verbas Rescisórias</h3>
                   <p className="text-sm text-slate-300">Aviso prévio, férias, 13º salário, FGTS</p>
                 </CardContent>
               </Card>
               
               <Card className={MARKETING_CARD_CLASS}>
-                <CardContent className="p-4 text-center">
+                <CardContent className="p-4 text-center text-slate-100">
                   <Calculator className="h-8 w-8 mx-auto mb-2 text-orange-300" />
-                  <h3 className="font-semibold">Horas Extras</h3>
+                  <h3 className="font-semibold text-white">Horas Extras</h3>
                   <p className="text-sm text-slate-300">50% úteis, 100% fins de semana</p>
                 </CardContent>
               </Card>
               
               <Card className={MARKETING_CARD_CLASS}>
-                <CardContent className="p-4 text-center">
+                <CardContent className="p-4 text-center text-slate-100">
                   <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-orange-300" />
-                  <h3 className="font-semibold">Adicionais</h3>
+                  <h3 className="font-semibold text-white">Adicionais</h3>
                   <p className="text-sm text-slate-300">Insalubridade, periculosidade, noturno</p>
                 </CardContent>
               </Card>
               
               <Card className={MARKETING_CARD_CLASS}>
-                <CardContent className="p-4 text-center">
+                <CardContent className="p-4 text-center text-slate-100">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-orange-300" />
-                  <h3 className="font-semibold">Desvio de Função</h3>
+                  <h3 className="font-semibold text-white">Desvio de Função</h3>
                   <p className="text-sm text-slate-300">Diferenças salariais e reflexos</p>
                 </CardContent>
               </Card>
@@ -173,22 +173,22 @@ export default function CalculadoraPreview() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">1</div>
-                      <span className="font-medium">Dados Pessoais</span>
+                      <span className="font-medium text-slate-200">Dados Pessoais</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">2</div>
-                      <span className="font-medium">Dados Salariais</span>
+                      <span className="font-medium text-slate-200">Dados Salariais</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">3</div>
-                      <span className="font-medium">Jornada de Trabalho</span>
+                      <span className="font-medium text-slate-200">Jornada de Trabalho</span>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-400" />
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">4</div>
-                      <span className="font-medium">Cálculos</span>
+                      <span className="font-medium text-slate-200">Cálculos</span>
                     </div>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-2">

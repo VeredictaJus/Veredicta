@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -15,11 +14,22 @@ import {
   Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentYear } from '@/utils/dateUtils';
 import { PUBLIC_PAGE_CLASS } from '@/styles/publicPage';
+import { MARKETING_CARD_CLASS, MARKETING_CARD_HOVER_CLASS, MARKETING_ICON_PILL_CLASS } from '@/styles/marketing';
 
 export default function ManualRedator() {
   const navigate = useNavigate();
+
+  const ICON_CLASS_BY_ID: Record<string, string> = {
+    aprovacao: 'text-sky-300',
+    prazos: 'text-amber-300',
+    avaliacao: 'text-orange-300',
+    chat: 'text-indigo-300',
+    pagamentos: 'text-emerald-300',
+    areas: 'text-violet-300',
+    conduta: 'text-slate-200',
+    suporte: 'text-teal-300',
+  };
 
   const sections = [
     {
@@ -290,10 +300,10 @@ export default function ManualRedator() {
       <main className="container mx-auto px-4 py-12">
         {/* Introduction */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold text-white mb-4">
             Bem-vindo à Veredicta
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto">
             Este manual contém todas as informações essenciais sobre seus deveres, 
             obrigações e direitos como redator em nossa plataforma. Leia atentamente 
             e mantenha-se sempre atualizado.
@@ -301,15 +311,15 @@ export default function ManualRedator() {
         </div>
 
         {/* Important Alert */}
-        <Card className="mb-12 border-orange-200 bg-orange-50">
+        <Card className={`mb-12 ${MARKETING_CARD_CLASS} border-orange-500/25 bg-orange-500/10`}>
           <CardContent className="pt-6">
             <div className="flex items-center space-x-3 mb-4">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
-              <h3 className="text-lg font-semibold text-orange-900">
+              <AlertTriangle className="h-6 w-6 text-orange-300" />
+              <h3 className="text-lg font-semibold text-white">
                 Importante: Leitura Obrigatória
               </h3>
             </div>
-            <p className="text-orange-800">
+            <p className="text-slate-200">
               O conhecimento e cumprimento de todas as regras deste manual são 
               <strong> obrigatórios</strong> para todos os redatores. O não cumprimento 
               pode resultar em penalidades, suspensão ou banimento da plataforma.
@@ -321,22 +331,23 @@ export default function ManualRedator() {
         <div className="space-y-8">
           {sections.map((section) => {
             const IconComponent = section.icon;
+            const iconClassName = ICON_CLASS_BY_ID[section.id] ?? 'text-orange-300';
             return (
-              <Card key={section.id} className={`shadow-md border-2 ${section.color} transition-all hover:shadow-lg`}>
+              <Card key={section.id} className={`${MARKETING_CARD_CLASS} ${MARKETING_CARD_HOVER_CLASS}`}>
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-xl ${section.iconBg} flex items-center justify-center shadow-sm`}>
-                      <IconComponent className={`h-6 w-6 ${section.iconColor}`} />
+                    <div className={`w-12 h-12 rounded-xl ${MARKETING_ICON_PILL_CLASS} flex items-center justify-center`}>
+                      <IconComponent className={`h-6 w-6 ${iconClassName}`} />
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-2xl font-bold text-gray-900">{section.title}</CardTitle>
-                      <CardDescription className="text-sm mt-1 text-gray-600">
+                      <CardTitle className="text-2xl font-bold text-white">{section.title}</CardTitle>
+                      <CardDescription className="text-sm mt-1 text-slate-300">
                         Regras e orientações importantes
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className={`pt-0 ${section.textColor || 'text-gray-700'}`}>
+                <CardContent className="pt-0 text-slate-200">
                   <div className="space-y-3">
                     {section.content.map((item, index) => {
                       // Destaque para linhas importantes (que começam com emoji ou maiúsculas)
@@ -354,20 +365,26 @@ export default function ManualRedator() {
                       
                       const isHeader = item.trim().endsWith(':') && item.length < 50;
                       
-                      // Extrair cor do ícone para o bullet
-                      const bulletColor = section.iconColor
-                        .replace('text-', 'bg-')
-                        .replace('-600', '-400')
-                        .replace('-700', '-400');
-                      
                       return (
                         <div key={index} className="flex items-start space-x-3">
                           {item.trim() ? (
-                            <div className={`w-1.5 h-1.5 rounded-full mt-2.5 flex-shrink-0 ${isImportant ? 'bg-orange-500' : bulletColor}`}></div>
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full mt-2.5 flex-shrink-0 ${
+                                isImportant ? 'bg-orange-400' : 'bg-white/25'
+                              }`}
+                            ></div>
                           ) : (
                             <div className="w-1.5 h-1.5 rounded-full mt-2.5 flex-shrink-0 opacity-0"></div>
                           )}
-                          <p className={`leading-relaxed ${isImportant ? 'font-semibold text-gray-900' : isHeader ? 'font-medium text-gray-800' : 'text-gray-700'}`}>
+                          <p
+                            className={`leading-relaxed ${
+                              isImportant
+                                ? 'font-semibold text-white'
+                                : isHeader
+                                  ? 'font-medium text-slate-100'
+                                  : 'text-slate-200'
+                            }`}
+                          >
                             {item || '\u00A0'}
                           </p>
                         </div>
@@ -381,19 +398,20 @@ export default function ManualRedator() {
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-16 py-12 bg-gradient-to-r from-orange-600 to-orange-800 rounded-lg text-white">
+        <div
+          className={`text-center mt-16 p-10 ${MARKETING_CARD_CLASS} ${MARKETING_CARD_HOVER_CLASS} border-orange-500/25 bg-gradient-to-r from-orange-500/15 to-orange-500/5`}
+        >
           <h3 className="text-3xl font-bold mb-4">
             Pronto para Começar?
           </h3>
-          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-200 mb-8 max-w-2xl mx-auto">
             Agora que você conhece todas as regras, cadastre-se e comece 
             a fazer parte da melhor plataforma de redação jurídica do Brasil.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
             <Button 
               size="lg" 
-              variant="secondary"
-              className="bg-white text-orange-600 hover:bg-orange-50"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white"
               onClick={() => navigate('/auth/register')}
             >
               Cadastrar como Redator
@@ -401,8 +419,8 @@ export default function ManualRedator() {
             </Button>
             <Button 
               size="lg" 
-              variant="secondary"
-              className="bg-white text-orange-600 hover:bg-orange-50 border border-white"
+              variant="outline"
+              className="bg-white/5 text-white border-white/15 hover:border-white/25 hover:bg-white/10"
               onClick={() => navigate('/auth/login')}
             >
               Já tenho Conta
@@ -410,16 +428,6 @@ export default function ManualRedator() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; {getCurrentYear()} Veredicta. Todos os direitos reservados.</p>
-          <p className="text-gray-400 mt-2">
-            Este manual pode ser atualizado periodicamente. Mantenha-se sempre informado.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

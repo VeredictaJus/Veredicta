@@ -19,7 +19,7 @@ const BrandLogo: FC = () => (
     <div className="w-12 h-12 rounded-full bg-white ring-1 ring-black/10 shadow flex items-center justify-center">
       <img src={logoImage} alt="Veredicta" className="w-7 h-7 object-contain" />
     </div>
-    <span className="text-2xl font-medium text-white tracking-wide drop-shadow-lg">
+    <span className="text-2xl font-medium text-white tracking-wide px-3 py-1 rounded-xl bg-slate-950/50 backdrop-blur-sm border border-white/10 drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)]">
       Vered
       <span className="relative inline-block">
         <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -296,7 +296,7 @@ export default function ResetPassword() {
         <Button
           variant="ghost"
           onClick={goToLogin}
-          className="mx-auto flex items-center text-slate-100 hover:text-white hover:bg-white/10 bg-transparent"
+          className="mx-auto flex items-center text-white rounded-xl px-4 py-2 bg-slate-950/40 backdrop-blur-sm border border-white/10 hover:bg-white/10 drop-shadow-[0_2px_16px_rgba(0,0,0,0.75)]"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar ao login

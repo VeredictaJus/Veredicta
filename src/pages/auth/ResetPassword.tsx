@@ -23,7 +23,7 @@ const BrandLogo: FC = () => (
       Vered
       <span className="relative inline-block">
         <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
-        <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-white rounded-full"></span>
+        <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
       </span>
       cta
     </span>

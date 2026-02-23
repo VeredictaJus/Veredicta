@@ -9,6 +9,7 @@ import { useNewAuth } from '@/contexts/NewAuthContext';
 import { ClientProfile } from '@/types';
 import { PlansService, Plan } from '@/services/plansService';
 import { UserSettingsService, UserPlan } from '@/services/userSettingsService';
+import { cn } from '@/lib/utils';
 // Stripe será carregado apenas quando necessário (não precisa aqui)
 
 export default function Plans() {
@@ -397,7 +398,7 @@ export default function Plans() {
   }
 
   return (
-    <div className="space-y-6 pt-4">
+    <div className="space-y-8">
       {loadingPlans ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -407,219 +408,246 @@ export default function Plans() {
         </div>
       ) : (
         <>
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Planos e Preços</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Escolha o plano ideal para o seu escritório. Todos os planos incluem acesso completo à plataforma e redatores especializados.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-          {plans.map((plan) => (
-              <Card key={plan.id} className={`relative ${plan.recommended ? 'ring-2 ring-blue-500' : ''} ${getButtonType(plan) === 'current' ? 'ring-2 ring-orange-500' : ''}`}>
-                {/* Badges */}
-              {getButtonType(plan) === 'current' && (
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-orange-500 text-white text-xs px-3 py-1 shadow-lg">
-                    <Star className="h-3 w-3 mr-1" />
-                    Plano Atual
-                  </Badge>
-                </div>
-              )}
-              {plan.recommended && getButtonType(plan) !== 'current' && (
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-blue-500 text-white text-xs px-3 py-1 shadow-lg">
-                    <Star className="h-3 w-3 mr-1" />
-                    Mais Popular
-                  </Badge>
-                </div>
-              )}
-              {plan.name === 'Gratuito' && getButtonType(plan) !== 'current' && (
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-green-500 text-white text-xs px-3 py-1 shadow-lg">
-                    <Star className="h-3 w-3 mr-1" />
-                    Gratuito
-                  </Badge>
-                </div>
-              )}
-              
-              {/* Badge de cancelamento pendente */}
-              {getButtonType(plan) === 'current' && subscriptionStatus.is_cancelled && (
-                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-yellow-500 text-white text-xs px-3 py-1 shadow-lg">
-                    ⚠️ Expira em {subscriptionStatus.days_remaining} {subscriptionStatus.days_remaining === 1 ? 'dia' : 'dias'}
-                  </Badge>
-                </div>
-              )}
-              
-              <CardHeader className={`text-center ${getButtonType(plan) === 'current' || (plan.recommended && getButtonType(plan) !== 'current') ? 'pt-8' : ''}`}>
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <div className="space-y-1 text-center">
-                  <div className="text-3xl font-bold">
-                    {plan.name === 'Gratuito' ? 'Gratuito' : PlansService.formatPrice(plan.price)}
-                  </div>
-                  <div className="text-sm text-foreground/80">
-                    {plan.name === 'Start' ? '/mês' : ''}
-                  </div>
-                  {plan.name === 'Gratuito' && (
-                    <div className="text-sm text-orange-600 font-medium">
-                      ⚠️ Apenas 1 petição por CPF/CNPJ
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 p-2 bg-orange-50 rounded-lg">
-                    <div className="text-sm text-orange-800 font-medium">
-                      {plan.petitions_included} petições incluídas
-                    </div>
-                    {plan.name !== 'Gratuito' && plan.name !== 'Free' && (
-                      <div className="text-xs text-orange-600">
-                        Valor por petição: {PlansService.formatPrice(plan.additional_credit_price)}
-                      </div>
-                    )}
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm">
-                      <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                      <span className="text-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="pt-4">
-                  {getButtonType(plan) === 'current' && subscriptionStatus.is_cancelled ? (
-                    <Button
-                      onClick={handleReactivateSubscription}
-                      className="w-full bg-orange-600 hover:bg-orange-700"
+          <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-background to-muted/30 p-6 sm:p-10">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,rgba(249,115,22,0.16),transparent_55%)] dark:bg-[radial-gradient(circle_at_50%_10%,rgba(249,115,22,0.22),transparent_55%)]"
+            />
+            <div className="relative">
+              <div className="text-center space-y-3">
+                <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+                  Planos e preços
+                </h1>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Escolha o plano ideal para o seu escritório. Todos os planos incluem acesso completo à plataforma e redatores especializados.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-10 max-w-7xl mx-auto items-stretch">
+                {plans.map((plan) => {
+                  const buttonType = getButtonType(plan);
+                  const isCurrent = buttonType === 'current';
+                  const isRecommended = !!plan.recommended && !isCurrent;
+                  const isFree = plan.name === 'Gratuito' || plan.name === 'Free';
+                  const isFeatured = isCurrent || isRecommended;
+
+                  return (
+                    <Card
+                      key={plan.id}
+                      className={cn(
+                        'relative h-full flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-background/60 shadow-sm',
+                        'backdrop-blur supports-[backdrop-filter]:bg-background/50',
+                        'transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none',
+                        isFeatured ? 'ring-1 ring-primary/25 shadow-[0_20px_60px_rgba(249,115,22,0.12)]' : '',
+                        isCurrent ? 'ring-primary/30' : '',
+                        isFree ? 'opacity-[0.98]' : ''
+                      )}
                     >
-                      {getButtonText(plan)}
-                    </Button>
-                  ) : (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant={getButtonVariant(plan)}
-                          disabled={isButtonDisabled(plan)}
-                          className="w-full"
-                        >
-                          {getButtonText(plan)}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-lg">
-                        <DialogHeader>
-                          <DialogTitle className="!text-gray-900 dark:!text-white font-semibold">Assinar Plano {plan.name}</DialogTitle>
-                          <DialogDescription className="!text-gray-700 dark:!text-gray-300">
-                            Complete o pagamento para ativar sua assinatura
-                          </DialogDescription>
-                        </DialogHeader>
-                          
-                      {/* Interface de pagamento com cartão */}
-                      <div className="space-y-6">
-                        {/* Header do pagamento */}
-                        <div className="text-center space-y-2">
-                          <div className="flex items-center justify-center space-x-2 mb-4">
-                            <CreditCard className="h-6 w-6 text-orange-600" />
-                            <h3 className="text-xl font-semibold">Pagamento Seguro</h3>
-                          </div>
-                          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                            <p className="text-3xl font-bold text-orange-600 mb-1">
-                              R$ {plan.price.toFixed(2).replace('.', ',')}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {plan.name === 'Start' ? 'por mês' : plan.name === 'Pro' ? 'por mês' : plan.name === 'Elite' ? 'por mês' : 'gratuito'}
-                            </p>
-                          </div>
+                      {/* Badges */}
+                      {isCurrent && (
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
+                          <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 shadow-sm backdrop-blur">
+                            <Star className="h-3 w-3 mr-1" />
+                            Plano atual
+                          </Badge>
                         </div>
+                      )}
+                      {isRecommended && (
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
+                          <Badge className="bg-primary/10 text-primary border border-primary/20 text-xs px-3 py-1 shadow-sm backdrop-blur">
+                            <Star className="h-3 w-3 mr-1" />
+                            Mais popular
+                          </Badge>
+                        </div>
+                      )}
+                      {isCurrent && subscriptionStatus.is_cancelled && (
+                        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20">
+                          <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-200 border border-amber-500/25 text-xs px-3 py-1 shadow-sm backdrop-blur">
+                            ⚠️ Expira em {subscriptionStatus.days_remaining} {subscriptionStatus.days_remaining === 1 ? 'dia' : 'dias'}
+                          </Badge>
+                        </div>
+                      )}
 
-                        {/* Informações do plano */}
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-foreground">O que está incluído:</h4>
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <Check className="h-4 w-4 text-green-500" />
-                              <span className="text-sm">{plan.petitions_included} petições incluídas</span>
+                      <CardHeader className={cn('text-center relative', isFeatured ? 'pt-12' : 'pt-10')}>
+                        <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
+                          {plan.name}
+                        </CardTitle>
+                        <div className="mt-4 space-y-1">
+                          <div className="text-4xl font-semibold tracking-tight tabular-nums text-foreground">
+                            {isFree ? 'R$ 0' : PlansService.formatPrice(plan.price)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {plan.name === 'Start' || plan.name === 'Pro' || plan.name === 'Elite' ? '/mês' : ''}
+                          </div>
+                          {isFree && (
+                            <div className="text-xs text-primary font-medium">
+                              ⚠️ Apenas 1 petição por CPF/CNPJ
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <Check className="h-4 w-4 text-green-500" />
-                              <span className="text-sm">Entrega em {plan.name === 'Elite' ? '1 dia útil' : plan.name === 'Pro' ? '1-2 dias úteis' : plan.name === 'Start' ? '2-3 dias úteis' : '3-5 dias úteis'}</span>
+                          )}
+                        </div>
+
+                        <div className="mt-5 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
+                          <div className="text-sm font-semibold text-foreground">
+                            {plan.petitions_included} petições incluídas
+                          </div>
+                          {!isFree && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              Valor por petição: {PlansService.formatPrice(plan.additional_credit_price)}
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <Check className="h-4 w-4 text-green-500" />
-                              <span className="text-sm">Suporte prioritário</span>
-                            </div>
-                            {plan.name !== 'Gratuito' && (
-                              <div className="flex items-center space-x-2">
-                                <Check className="h-4 w-4 text-green-500" />
-                                <span className="text-sm">Validade: {plan.name === 'Start' ? '30 dias' : plan.name === 'Pro' ? '60 dias' : '90 dias'}</span>
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
+                      </CardHeader>
 
-                        {/* Informações de segurança */}
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Shield className="h-4 w-4 text-green-500" />
-                            <span className="text-sm font-medium">Pagamento 100% Seguro</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm text-muted-foreground">Processamento instantâneo</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Você será redirecionado para o checkout seguro do Stripe, processado pela Stripe Inc.
-                          </p>
+                      <CardContent className="flex flex-1 flex-col gap-6 pt-2">
+                        <ul className="space-y-2.5 flex-1">
+                          {plan.features.map((feature, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                              <span className="text-foreground/90">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="pt-1">
+                          {isCurrent && subscriptionStatus.is_cancelled ? (
+                            <Button
+                              onClick={handleReactivateSubscription}
+                              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.16)]"
+                            >
+                              {getButtonText(plan)}
+                            </Button>
+                          ) : (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant={getButtonVariant(plan)}
+                                  disabled={isButtonDisabled(plan)}
+                                  className={cn(
+                                    'w-full',
+                                    buttonType === 'subscribe' && !isFree
+                                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white shadow-[0_10px_30px_rgba(249,115,22,0.16)]'
+                                      : '',
+                                    buttonType === 'subscribe' && isFree
+                                      ? 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15'
+                                      : ''
+                                  )}
+                                >
+                                  {getButtonText(plan)}
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-lg rounded-2xl border border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+                                <DialogHeader>
+                                  <DialogTitle className="text-foreground font-semibold">
+                                    Assinar plano {plan.name}
+                                  </DialogTitle>
+                                  <DialogDescription className="text-muted-foreground">
+                                    Complete o pagamento para ativar sua assinatura
+                                  </DialogDescription>
+                                </DialogHeader>
+
+                                {/* Interface de pagamento com cartão */}
+                                <div className="space-y-6">
+                                  <div className="text-center space-y-2">
+                                    <div className="flex items-center justify-center gap-2 mb-4">
+                                      <CreditCard className="h-6 w-6 text-primary" />
+                                      <h3 className="text-lg font-semibold text-foreground">Pagamento seguro</h3>
+                                    </div>
+                                    <div className="rounded-xl border border-primary/15 bg-primary/5 p-4">
+                                      <p className="text-3xl font-semibold tracking-tight tabular-nums text-foreground mb-1">
+                                        {PlansService.formatPrice(plan.price)}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">por mês</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                    <h4 className="font-semibold text-foreground">O que está incluído</h4>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        <span className="text-sm text-foreground/90">
+                                          {plan.petitions_included} petições incluídas
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        <span className="text-sm text-foreground/90">
+                                          Entrega em {plan.name === 'Elite' ? '1 dia útil' : plan.name === 'Pro' ? '1-2 dias úteis' : '2-3 dias úteis'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        <span className="text-sm text-foreground/90">Suporte prioritário</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                        <span className="text-sm text-foreground/90">
+                                          Validade: {plan.name === 'Start' ? '30 dias' : plan.name === 'Pro' ? '60 dias' : '90 dias'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="rounded-xl border border-border/60 bg-muted/40 p-4 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <Shield className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                      <span className="text-sm font-medium text-foreground">Pagamento 100% seguro</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4 text-sky-600 dark:text-sky-300" />
+                                      <span className="text-sm text-muted-foreground">Processamento instantâneo</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      Você será redirecionado para o checkout seguro do Stripe, processado pela Stripe Inc.
+                                    </p>
+                                  </div>
+
+                                  <Button
+                                    onClick={() => handleSubscribe(plan)}
+                                    disabled={isButtonDisabled(plan) || isProcessingPayment === plan.id}
+                                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_30px_rgba(249,115,22,0.16)]"
+                                  >
+                                    <CreditCard className="h-5 w-5 mr-2" />
+                                    {isProcessingPayment === plan.id
+                                      ? 'Processando...'
+                                      : isButtonDisabled(plan)
+                                        ? 'Plano atual'
+                                        : 'Assinar agora com cartão'}
+                                  </Button>
+
+                                  {isProcessingPayment === plan.id && (
+                                    <Button
+                                      onClick={() => {
+                                        setIsProcessingPayment(null);
+                                        toast.info('Processamento cancelado');
+                                      }}
+                                      variant="outline"
+                                      className="w-full"
+                                    >
+                                      Cancelar
+                                    </Button>
+                                  )}
+
+                                  <div className="text-center">
+                                    <p className="text-xs text-muted-foreground">
+                                      Ao continuar, você concorda com nossos{' '}
+                                      <a href="#" className="text-primary hover:underline">Termos de Uso</a>
+                                      {' '}e{' '}
+                                      <a href="#" className="text-primary hover:underline">Política de Privacidade</a>
+                                    </p>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                         </div>
-
-                        {/* Botão de pagamento */}
-                        <Button 
-                          onClick={() => handleSubscribe(plan)}
-                          disabled={isButtonDisabled(plan) || isProcessingPayment === plan.id}
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <CreditCard className="h-5 w-5 mr-2" />
-                          {isProcessingPayment === plan.id 
-                            ? 'Processando...' 
-                            : isButtonDisabled(plan) 
-                              ? 'Plano Atual' 
-                              : 'Assinar Agora com Cartão'}
-                        </Button>
-                        
-                        {/* Botão de cancelar se estiver processando */}
-                        {isProcessingPayment === plan.id && (
-                          <Button 
-                            onClick={() => {
-                              setIsProcessingPayment(null);
-                              toast.info('Processamento cancelado');
-                            }}
-                            variant="outline"
-                            className="w-full mt-2"
-                          >
-                            Cancelar
-                          </Button>
-                        )}
-
-                        {/* Informações adicionais */}
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">
-                            Ao continuar, você concorda com nossos{' '}
-                            <a href="#" className="text-orange-600 hover:underline">Termos de Uso</a>
-                            {' '}e{' '}
-                            <a href="#" className="text-orange-600 hover:underline">Política de Privacidade</a>
-                          </p>
-                        </div>
-                      </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
         </>
       )}
     </div>

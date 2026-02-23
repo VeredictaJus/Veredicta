@@ -974,7 +974,7 @@ export default function Settings() {
   }, [user?.uid]);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3 mb-6">
         <SettingsIcon className="h-6 w-6 text-orange-600" />
         <h1 className="text-2xl font-bold">Configurações</h1>

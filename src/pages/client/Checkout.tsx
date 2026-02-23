@@ -175,7 +175,7 @@ export default function Checkout() {
 
   if (!planDetails) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Plano não encontrado</h1>
           <Button onClick={handleBack}>Voltar aos Planos</Button>
@@ -185,144 +185,142 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={handleBack} className="p-2">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Finalizar Assinatura</h1>
-              <p className="text-muted-foreground">Complete seu pagamento para ativar o plano</p>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center space-x-4 min-w-0">
+          <Button variant="ghost" onClick={handleBack} className="p-2 shrink-0">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground">Finalizar Assinatura</h1>
+            <p className="text-muted-foreground">Complete seu pagamento para ativar o plano</p>
           </div>
-          <Logo className="h-8" />
         </div>
+        <Logo className="h-8 shrink-0" />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-w-0">
-          {/* Resumo do Plano */}
-          <Card className="relative overflow-visible">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-w-0">
+        {/* Resumo do Plano */}
+        <Card className="relative overflow-visible">
+          {isNewUser && (
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+              <Badge className="bg-primary text-primary-foreground px-4 py-1.5 text-sm font-medium whitespace-nowrap">
+                <Star className="h-3 w-3 mr-1" />
+                Novo Cliente
+              </Badge>
+            </div>
+          )}
+
+          <CardHeader className="text-center pt-8">
+            <CardTitle className="text-2xl text-foreground">{planDetails.name}</CardTitle>
+            <div className="mt-4">
+              <span className="text-4xl font-bold text-primary">{planDetails.price}</span>
+              <div className="text-muted-foreground text-sm mt-1">{planDetails.period}</div>
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <ul className="space-y-3 mb-6">
+              {planDetails.features.map((feature, index) => (
+                <li key={index} className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                  <span className="text-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
             {isNewUser && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 text-sm font-medium whitespace-nowrap">
-                  <Star className="h-3 w-3 mr-1" />
-                  Novo Cliente
-                </Badge>
-              </div>
-            )}
-            
-            <CardHeader className="text-center pt-8">
-              <CardTitle className="text-2xl text-foreground">{planDetails.name}</CardTitle>
-              <div className="mt-4">
-                <span className="text-4xl font-bold text-primary">{planDetails.price}</span>
-                <div className="text-muted-foreground text-sm mt-1">{planDetails.period}</div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <ul className="space-y-3 mb-6">
-                {planDetails.features.map((feature, index) => (
-                  <li key={index} className="flex items-center">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
-                    <span className="text-foreground">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {isNewUser && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
-                    🎁 Bônus de Boas-vindas
-                  </h4>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Você ganhará <strong>1 petição gratuita extra</strong> além do seu plano!
-                    <br />
-                    Use quando quiser, sem prazo de validade.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Informações de Pagamento */}
-          <Card className="min-w-0">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-lg">
-                <CreditCard className="h-5 w-5 mr-2 flex-shrink-0" />
-                Pagamento Seguro
-              </CardTitle>
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                Seu pagamento será processado de forma segura pelo Stripe
-              </p>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                    🔒 Segurança Garantida
-                  </h4>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <li>• Pagamento processado pelo Stripe</li>
-                    <li>• Dados criptografados e seguros</li>
-                    <li>• Cancele quando quiser</li>
-                    <li>• Suporte 24/7</li>
-                  </ul>
-                </div>
-
-                <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-semibold text-foreground mb-2">Resumo do Pedido</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Plano {planDetails.name}</span>
-                      <span className="font-semibold text-foreground">{planDetails.price}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Período</span>
-                      <span className="text-foreground">{planDetails.period}</span>
-                    </div>
-                    {isNewUser && (
-                      <div className="flex justify-between text-green-600 dark:text-green-400">
-                        <span>Bônus FREE</span>
-                        <span>Grátis</span>
-                      </div>
-                    )}
-                    <hr className="my-2" />
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-foreground">Total</span>
-                      <span className="text-primary">{planDetails.price}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={handleStripeCheckout}
-                  disabled={isLoading}
-                  className="w-full bg-primary hover:bg-primary/90"
-                  size="lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processando...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Pagar com Stripe
-                    </>
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Ao continuar, você concorda com nossos termos de serviço
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+                  🎁 Bônus de Boas-vindas
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Você ganhará <strong>1 petição gratuita extra</strong> além do seu plano!
+                  <br />
+                  Use quando quiser, sem prazo de validade.
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Informações de Pagamento */}
+        <Card className="min-w-0">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <CreditCard className="h-5 w-5 mr-2 flex-shrink-0" />
+              Pagamento Seguro
+            </CardTitle>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+              Seu pagamento será processado de forma segura pelo Stripe
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                  🔒 Segurança Garantida
+                </h4>
+                <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                  <li>• Pagamento processado pelo Stripe</li>
+                  <li>• Dados criptografados e seguros</li>
+                  <li>• Cancele quando quiser</li>
+                  <li>• Suporte 24/7</li>
+                </ul>
+              </div>
+
+              <div className="bg-muted rounded-lg p-4">
+                <h4 className="font-semibold text-foreground mb-2">Resumo do Pedido</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Plano {planDetails.name}</span>
+                    <span className="font-semibold text-foreground">{planDetails.price}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Período</span>
+                    <span className="text-foreground">{planDetails.period}</span>
+                  </div>
+                  {isNewUser && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span>Bônus FREE</span>
+                      <span>Grátis</span>
+                    </div>
+                  )}
+                  <hr className="my-2" />
+                  <div className="flex justify-between font-semibold">
+                    <span className="text-foreground">Total</span>
+                    <span className="text-primary">{planDetails.price}</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleStripeCheckout}
+                disabled={isLoading}
+                className="w-full bg-primary hover:bg-primary/90"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pagar com Stripe
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Ao continuar, você concorda com nossos termos de serviço
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

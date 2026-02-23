@@ -66,12 +66,19 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
       />
 
       <aside
-        className={`fixed left-0 top-0 bottom-0 w-64 bg-background border-r border-border shadow-sm flex flex-col text-sm z-50 transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 bottom-0 w-64 border-r border-border shadow-sm flex flex-col text-sm z-50 transition-transform duration-200 lg:translate-x-0
+        overflow-hidden
+        bg-gradient-to-b from-background to-muted/30
+        dark:from-slate-950 dark:to-slate-900/30
+        before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:z-0
+        before:bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.18),transparent_55%)]
+        dark:before:bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.22),transparent_55%)]
+        ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo Section - Separado com borda inferior */}
-        <div className="p-6 border-b border-border">
+        <div className="p-6 border-b border-border relative z-10">
           {(() => {
             const role = (user?.role || '').toString().toLowerCase();
             const homePath =
@@ -92,7 +99,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
         </div>
 
         {/* Menu Section */}
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto relative z-10">
           {menuItems.map((item) => {
             const isRestricted = item.feature && !canAccess(item.feature);
             const isActive = location.pathname === item.path;

@@ -82,7 +82,7 @@ export default function Sidebar({
 
       <aside
         className={`fixed left-0 top-0 bottom-0 z-50 w-64 border-r border-border shadow-sm flex flex-col text-sm transition-transform duration-200 lg:translate-x-0
-        relative overflow-hidden
+        overflow-hidden
         bg-gradient-to-b from-background to-muted/30
         dark:from-slate-950 dark:to-slate-900/30
         before:content-[''] before:absolute before:inset-0 before:pointer-events-none

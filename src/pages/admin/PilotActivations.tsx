@@ -101,7 +101,7 @@ export default function PilotActivations() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-container-primary border-border">
+      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Ativações — Peça Piloto</CardTitle>

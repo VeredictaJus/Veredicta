@@ -1588,7 +1588,7 @@ export default function Settings() {
                 );
               })()}
 
-              <div className="mt-6 p-4 bg-container-primary border border-border rounded-lg">
+              <div className="mt-6 p-4 bg-card/80 supports-[backdrop-filter]:backdrop-blur-sm border border-border/60 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-foreground">Uso Atual</h4>
                   <Button

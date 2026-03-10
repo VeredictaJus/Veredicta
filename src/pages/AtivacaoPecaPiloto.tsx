@@ -58,7 +58,7 @@ export default function AtivacaoPecaPiloto() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
-        <Card className="border-border bg-container-primary">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
               Ativação da Peça Piloto Veredicta
@@ -68,7 +68,7 @@ export default function AtivacaoPecaPiloto() {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="rounded-lg border border-border bg-container-inner p-5">
+            <div className="rounded-lg border border-border/60 bg-card/70 supports-[backdrop-filter]:backdrop-blur-sm p-5">
               <ul className="space-y-3">
                 {BULLETS.map((b) => (
                   <li key={b} className="flex items-start gap-3 text-foreground">

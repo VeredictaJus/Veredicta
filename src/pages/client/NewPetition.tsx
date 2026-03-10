@@ -625,7 +625,7 @@ export default function NewPetition() {
         </Button>
       </div>
 
-      <div className="bg-container-primary border border-border rounded-lg p-4 mb-6">
+      <div className="bg-card/80 supports-[backdrop-filter]:backdrop-blur-sm border border-border/60 rounded-lg p-4 mb-6">
         <h3 className="font-medium text-foreground mb-2">Como funciona?</h3>
         <ol className="text-sm text-muted-foreground space-y-1">
           <li>1. Selecione a área do direito e tipo de petição</li>
@@ -647,14 +647,14 @@ export default function NewPetition() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-container-primary border-border">
+            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Informações da Petição</CardTitle>
                 <CardDescription className="!whitespace-nowrap !max-w-none !overflow-visible">
                   Preencha os detalhes da petição que você deseja solicitar
                 </CardDescription>
               </CardHeader>
-              <CardContent className="bg-container-inner rounded-b-lg space-y-4">
+              <CardContent className="space-y-4">
                 {/* Área do Direito */}
                 <div className="space-y-2">
                   <Label htmlFor="area">Área do Direito *</Label>
@@ -786,14 +786,14 @@ export default function NewPetition() {
             </Card>
 
             {/* File Upload */}
-            <Card className="bg-container-secondary border-border">
+            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Arquivos de Apoio</CardTitle>
                 <CardDescription className="!whitespace-nowrap !max-w-none !overflow-visible">
                   Faça upload de documentos, contratos, decisões ou outros arquivos relevantes
                 </CardDescription>
               </CardHeader>
-              <CardContent className="bg-container-inner rounded-b-lg">
+              <CardContent>
                 <div className="space-y-4">
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -863,8 +863,8 @@ export default function NewPetition() {
           <div className="space-y-6">
             {/* Selected Petition Summary */}
             {selectedArea && selectedType && (
-              <Card className="bg-container-primary border-border">
-                <CardContent className="bg-container-inner rounded-lg pt-6">
+              <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+                <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold text-green-800">
@@ -933,11 +933,11 @@ export default function NewPetition() {
               </CardContent>
             </Card>
 
-            <Card className="bg-container-primary border-border">
+            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-sm">Dicas Importantes</CardTitle>
               </CardHeader>
-              <CardContent className="bg-container-inner rounded-b-lg text-xs space-y-2 text-muted-foreground">
+              <CardContent className="text-xs space-y-2 text-muted-foreground">
                 <p>• Seja específico na descrição dos fatos</p>
                 <p>• Inclua todos os documentos relevantes</p>
                 <p>• Mencione prazos processuais importantes</p>

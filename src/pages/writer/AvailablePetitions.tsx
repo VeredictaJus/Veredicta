@@ -351,8 +351,8 @@ export default function AvailablePetitions() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-container-primary border-border">
-          <CardContent className="bg-container-inner rounded-lg pt-6">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+          <CardContent className="pt-6">
             <div className="flex items-center">
               <FileText className="h-8 w-8 text-blue-600" />
               <div className="ml-4">

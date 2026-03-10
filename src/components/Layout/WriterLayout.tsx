@@ -81,8 +81,8 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
     <div className={`relative flex ${isChatPage ? 'h-screen' : 'min-h-screen'} bg-background overflow-hidden`}>
       <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div
-          className="absolute -top-60 -right-60 h-[600px] w-[600px] rounded-full opacity-16"
-          style={{ background: '#f97316', filter: 'blur(90px)' }}
+          className="absolute -top-60 -right-60 h-[600px] w-[600px] rounded-full opacity-[0.08]"
+          style={{ background: '#fb923c', filter: 'blur(110px)' }}
         />
         <div
           className="absolute -bottom-60 -left-60 h-[520px] w-[520px] rounded-full opacity-20"
@@ -93,8 +93,8 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
           style={{ top: '46%', background: '#0ea5e9', filter: 'blur(80px)' }}
         />
         <div
-          className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.30) 0%, rgba(249,115,22,0.07) 50%, transparent 75%)', filter: 'blur(88px)' }}
+          className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-[0.05]"
+          style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.18) 0%, rgba(251,146,60,0.04) 50%, transparent 75%)', filter: 'blur(110px)' }}
         />
         <div
           className="absolute inset-0 opacity-[0.015]"
@@ -107,15 +107,15 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
       </div>
       <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-20">
         <div
-          className="absolute transition-[top] duration-300 mix-blend-screen"
+          className="absolute transition-[top] duration-500"
           style={{
             top: `calc(${orbY}% - 220px)`,
             right: '-180px',
             height: '440px',
             width: '440px',
-            opacity: 0.035,
-            background: 'radial-gradient(circle, rgba(249,115,22,0.36) 0%, rgba(249,115,22,0.08) 40%, transparent 72%)',
-            filter: 'blur(140px)',
+            opacity: 0.014,
+            background: 'radial-gradient(circle, rgba(251,146,60,0.2) 0%, rgba(251,146,60,0.05) 40%, transparent 72%)',
+            filter: 'blur(155px)',
           }}
         />
       </div>

@@ -475,7 +475,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Disponíveis</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -486,7 +486,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -497,7 +497,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
@@ -508,7 +508,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Receber</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -519,7 +519,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avaliação</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
@@ -543,7 +543,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       </div>
 
       {/* Seção de Avaliações Recebidas */}
-      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+      <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -633,7 +633,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
         </CardContent>
       </Card>
 
-      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+      <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

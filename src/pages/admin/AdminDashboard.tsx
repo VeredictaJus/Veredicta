@@ -819,7 +819,7 @@ export default function AdminDashboard() {
         {!loading && (
           <>
             {/* Clientes */}
-            <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+            <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Clientes Ativos</CardTitle>
@@ -833,7 +833,7 @@ export default function AdminDashboard() {
             </Card>
 
         {/* Redatores */}
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Redatores Ativos</CardTitle>
@@ -847,7 +847,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Petições */}
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Petições Ativas</CardTitle>
@@ -861,7 +861,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Receita */}
-        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Receita Mensal</CardTitle>
@@ -880,7 +880,7 @@ export default function AdminDashboard() {
       {/* gráficos - renderização condicional para melhor performance */}
       {!loading && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Volume de Petições e Receita</CardTitle>
             <CardDescription>Evolução mensal da plataforma</CardDescription>
@@ -905,7 +905,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Tipos de Petições</CardTitle>
             <CardDescription>Distribuição por categoria</CardDescription>
@@ -944,7 +944,7 @@ export default function AdminDashboard() {
       )}
 
       {/* petições pendentes */}
-      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm mt-6">
+      <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm mt-6">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1041,7 +1041,7 @@ export default function AdminDashboard() {
 
       {/* indicadores finais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-blue-50 p-2"><Clock className="h-5 w-5 text-blue-600" /></div>
@@ -1054,7 +1054,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-purple-50 p-2"><Users className="h-5 w-5 text-purple-600" /></div>

@@ -254,7 +254,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
       glowDot
       className={[
         className,
-        'rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none',
+        'rounded-2xl border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_26px_-16px_rgba(245,158,11,0.24)] hover:border-amber-300/55 dark:hover:shadow-md dark:hover:border-primary/20 motion-reduce:transform-none',
         isAtLimit
           ? 'border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30'
           : isNearLimit

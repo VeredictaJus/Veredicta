@@ -38,15 +38,15 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
       <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div
           className="absolute -top-60 -right-60 h-[600px] w-[600px] rounded-full opacity-30"
-          style={{ background: 'radial-gradient(circle, #f97316 0%, transparent 70%)', filter: 'blur(90px)' }}
+          style={{ background: '#f97316', filter: 'blur(80px)' }}
         />
         <div
           className="absolute -bottom-60 -left-60 h-[520px] w-[520px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)', filter: 'blur(90px)' }}
+          style={{ background: '#7c3aed', filter: 'blur(80px)' }}
         />
         <div
           className="absolute left-1/3 h-[420px] w-[420px] rounded-full opacity-15"
-          style={{ top: '46%', background: 'radial-gradient(circle, #0ea5e9 0%, transparent 70%)', filter: 'blur(100px)' }}
+          style={{ top: '46%', background: '#0ea5e9', filter: 'blur(80px)' }}
         />
         <div
           className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-20"

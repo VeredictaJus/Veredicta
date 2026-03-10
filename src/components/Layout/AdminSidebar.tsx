@@ -82,7 +82,7 @@ export function AdminSidebar({
         `}
       >
         {/* Logo Section - Padronizado como WriterLayout */}
-        <div className="p-6 border-b border-border relative z-10">
+        <div className="p-6 relative z-10">
           <Logo size="md" textSize="xl" align="center" />
         </div>
 

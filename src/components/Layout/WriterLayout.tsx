@@ -51,7 +51,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
     const updateOrbPosition = () => {
       const maxScroll = el.scrollHeight - el.clientHeight;
       const ratio = maxScroll > 0 ? el.scrollTop / maxScroll : 0;
-      setOrbY(22 + ratio * 62);
+      setOrbY(8 + ratio * 76);
     };
 
     updateOrbPosition();
@@ -87,8 +87,12 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
           style={{ top: '46%', background: 'radial-gradient(circle, #0ea5e9 0%, transparent 70%)', filter: 'blur(100px)' }}
         />
         <div
+          className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.58) 0%, rgba(249,115,22,0.12) 50%, transparent 75%)', filter: 'blur(74px)' }}
+        />
+        <div
           className="absolute right-[-220px] h-[560px] w-[560px] rounded-full opacity-26 transition-[top] duration-300"
-          style={{ top: `calc(${orbY}% - 280px)`, background: 'radial-gradient(circle, rgba(249,115,22,0.95) 0%, rgba(249,115,22,0.15) 42%, transparent 72%)', filter: 'blur(86px)' }}
+          style={{ top: `calc(${orbY}% - 230px)`, right: '-170px', height: '460px', width: '460px', opacity: 0.16, background: 'radial-gradient(circle, rgba(249,115,22,0.52) 0%, rgba(249,115,22,0.12) 45%, transparent 74%)', filter: 'blur(108px)' }}
         />
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -122,7 +126,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
         }`}
       >
         {/* Logo Section - Separado com borda inferior */}
-        <div className="p-6 border-b border-border relative z-10">
+        <div className="p-6 relative z-10">
           {(() => {
             const role = (user?.role || '').toString().toLowerCase();
             const homePath =

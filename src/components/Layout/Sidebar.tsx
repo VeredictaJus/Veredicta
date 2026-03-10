@@ -93,11 +93,9 @@ export default function Sidebar({
         }`}
       >
         {/* Logo Section - Padronizado como WriterLayout */}
-        <div className="p-6 border-b border-border relative z-10">
+        <div className="p-6 relative z-10">
           <Logo size="md" textSize="xl" align="center" />
         </div>
-        {/* Accent line (brand) */}
-        <div aria-hidden className="h-px w-full bg-gradient-to-r from-transparent via-primary/40 to-transparent relative z-10" />
 
         {/* Aviso de sidebar desabilitado */}
         {isDisabled && (

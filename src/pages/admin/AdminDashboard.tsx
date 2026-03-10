@@ -785,56 +785,56 @@ export default function AdminDashboard() {
         {!loading && (
           <>
             {/* Clientes */}
-            <Card className="bg-container-primary border-border shadow-sm">
+            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Clientes Ativos</CardTitle>
                   <div className="rounded-full bg-muted p-2"><Users className="h-4 w-4 text-muted-foreground" /></div>
                 </div>
               </CardHeader>
-              <CardContent className="bg-container-inner rounded-b-lg pt-0">
+              <CardContent className="pt-0">
                 <div className="text-3xl font-bold">{stats.totalClients}</div>
                 <p className="text-xs text-muted-foreground mt-1">{fmtPct(deltas.clients)} desde o mês passado</p>
               </CardContent>
             </Card>
 
         {/* Redatores */}
-        <Card className="bg-container-secondary border-border shadow-sm">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Redatores Ativos</CardTitle>
               <div className="rounded-full bg-muted p-2"><Users className="h-4 w-4 text-muted-foreground" /></div>
             </div>
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg pt-0">
+          <CardContent className="pt-0">
             <div className="text-3xl font-bold">{stats.totalWriters}</div>
             <p className="text-xs text-muted-foreground mt-1">{fmtPct(deltas.writers)} desde o mês passado</p>
           </CardContent>
         </Card>
 
         {/* Petições */}
-        <Card className="bg-container-primary border-border shadow-sm">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Petições Ativas</CardTitle>
               <div className="rounded-full bg-muted p-2"><FileText className="h-4 w-4 text-muted-foreground" /></div>
             </div>
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg pt-0">
+          <CardContent className="pt-0">
             <div className="text-3xl font-bold">{stats.totalPetitions}</div>
             <p className="text-xs text-muted-foreground mt-1">{stats.pendingPetitions} pendentes</p>
           </CardContent>
         </Card>
 
         {/* Receita */}
-        <Card className="bg-container-secondary border-border shadow-sm">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Receita Mensal</CardTitle>
               <div className="rounded-full bg-muted p-2"><DollarSign className="h-4 w-4 text-muted-foreground" /></div>
             </div>
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg pt-0">
+          <CardContent className="pt-0">
             <div className="text-3xl font-bold">R$ {Number(stats.monthlyRevenue || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">{fmtPct(deltas.revenue)} desde o mês passado</p>
           </CardContent>
@@ -846,12 +846,12 @@ export default function AdminDashboard() {
       {/* gráficos - renderização condicional para melhor performance */}
       {!loading && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card className="bg-container-secondary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Volume de Petições e Receita</CardTitle>
             <CardDescription>Evolução mensal da plataforma</CardDescription>
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent>
               {monthlyData && monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={monthlyData}>
@@ -871,12 +871,12 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-container-primary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader>
             <CardTitle>Tipos de Petições</CardTitle>
             <CardDescription>Distribuição por categoria</CardDescription>
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent>
               {petitionTypeData && petitionTypeData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -910,7 +910,7 @@ export default function AdminDashboard() {
       )}
 
       {/* petições pendentes */}
-      <Card className="shadow-sm border mt-6">
+      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm mt-6">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1007,7 +1007,7 @@ export default function AdminDashboard() {
 
       {/* indicadores finais */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <Card className="shadow-sm border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-blue-50 p-2"><Clock className="h-5 w-5 text-blue-600" /></div>
@@ -1020,7 +1020,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <div className="rounded-full bg-purple-50 p-2"><Users className="h-5 w-5 text-purple-600" /></div>

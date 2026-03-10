@@ -669,7 +669,7 @@ export default function ClientDashboard() {
     subtitle: string;
     icon: React.ComponentType<{ className?: string }>;
   }) => (
-    <Card className="group rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
+    <Card className="group rounded-2xl border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -747,7 +747,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Petições recentes / lista */}
-      <Card className="rounded-2xl border-border/60 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+      <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="text-xl">Suas petições</CardTitle>
@@ -844,7 +844,7 @@ export default function ClientDashboard() {
 
       {/* Ações rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-900">
-        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
+        <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Nova petição</CardTitle>
             <CardDescription>Enviar uma nova demanda</CardDescription>
@@ -860,7 +860,7 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
+        <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Chat</CardTitle>
             <CardDescription>Fale com o redator ou suporte</CardDescription>
@@ -877,7 +877,7 @@ export default function ClientDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
+        <Card className="rounded-2xl border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Planos</CardTitle>
             <CardDescription>Upgrade e limites</CardDescription>

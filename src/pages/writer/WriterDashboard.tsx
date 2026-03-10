@@ -443,56 +443,56 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-container-primary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Disponíveis</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">{dashboardStats.availablePetitions}</div>
             <p className="text-xs text-muted-foreground">Petições para aceitar</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-container-secondary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">{dashboardStats.myActivePetitions}</div>
             <p className="text-xs text-muted-foreground">Minhas petições</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-container-primary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">{loading ? '...' : dashboardStats.completedThisMonth}</div>
             <p className="text-xs text-muted-foreground">Total realizadas</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-container-secondary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Receber</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent className="pt-0">
             <div className="text-2xl font-bold">R$ {loading ? '...' : dashboardStats.pendingPayment.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Pagamento pendente</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-container-primary border-border">
+        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avaliação</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="bg-container-inner rounded-b-lg">
+          <CardContent className="pt-0">
             {loading ? (
               <div className="space-y-2">
                 <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
@@ -511,7 +511,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       </div>
 
       {/* Seção de Avaliações Recebidas */}
-      <Card className="bg-container-primary border-border">
+      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -532,7 +532,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
             )}
           </div>
         </CardHeader>
-        <CardContent className="bg-container-inner rounded-b-lg">
+        <CardContent className="pt-0">
           {loading ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center gap-2">
@@ -601,7 +601,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
         </CardContent>
       </Card>
 
-      <Card className="bg-container-primary border-border">
+      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -612,7 +612,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
             </div>
           </div>
         </CardHeader>
-        <CardContent className="bg-container-inner rounded-b-lg">
+        <CardContent className="pt-0">
           <div className="space-y-4">
             {myPetitions.filter(petition => petition.status !== 'approved' && petition.status !== 'cancelled').map((petition) => (
               <div key={petition.id} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200 dark:from-slate-800 dark:to-slate-900 dark:border-slate-700 hover:shadow-lg transition-all duration-300">

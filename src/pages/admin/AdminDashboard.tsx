@@ -819,7 +819,7 @@ export default function AdminDashboard() {
         {!loading && (
           <>
             {/* Clientes */}
-            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+            <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Clientes Ativos</CardTitle>
@@ -833,7 +833,7 @@ export default function AdminDashboard() {
             </Card>
 
         {/* Redatores */}
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Redatores Ativos</CardTitle>
@@ -847,7 +847,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Petições */}
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Petições Ativas</CardTitle>
@@ -861,7 +861,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Receita */}
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">Receita Mensal</CardTitle>

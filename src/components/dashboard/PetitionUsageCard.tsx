@@ -251,6 +251,7 @@ export const PetitionUsageCard: React.FC<PetitionUsageCardProps> = ({ className 
 
   return (
     <Card
+      glowDot
       className={[
         className,
         'rounded-2xl border-border/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20 motion-reduce:transform-none',

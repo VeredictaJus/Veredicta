@@ -9,7 +9,8 @@ import {
   Settings,
   Calculator,
   Lock,
-  Menu
+  Menu,
+  LogOut
 } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useUser } from '@/contexts/UserContext';
@@ -36,7 +37,7 @@ const menuItems = [
 ];
 
 export default function WriterLayout({ children }: WriterLayoutProps) {
-  const { user } = useNewAuth();
+  const { user, logout } = useNewAuth();
   const { profile: userProfile } = useUser();
   const location = useLocation();
   const { canAccess, getBlockMessage, isSuspendedOrBlocked } = useSuspensionCheck();
@@ -200,6 +201,14 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-foreground hover:bg-card/70"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -213,7 +222,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
         >
           <Menu size={18} />
         </button>
-        <div ref={contentRef} className={isChatPage ? "pt-6 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
+        <div ref={contentRef} className={isChatPage ? "pt-2 px-4 sm:px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
           {children}
         </div>
       </main>

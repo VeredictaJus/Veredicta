@@ -475,7 +475,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Disponíveis</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -486,7 +486,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -497,7 +497,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
@@ -508,7 +508,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Receber</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -519,7 +519,7 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card glowDot className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avaliação</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />

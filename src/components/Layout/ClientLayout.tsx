@@ -79,7 +79,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
         >
           <Menu size={18} />
         </button>
-        <div ref={contentRef} className={isChatPage ? "pt-6 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
+        <div ref={contentRef} className={isChatPage ? "pt-2 px-4 sm:px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
           {content}
         </div>
       </main>

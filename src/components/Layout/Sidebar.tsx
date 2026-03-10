@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Home, FileText, CreditCard, Settings, Users,
   BarChart3, Briefcase, DollarSign, Clock,
-  MessageSquare, Bot, Lock
+  MessageSquare, Bot, Lock, LogOut
 } from 'lucide-react';
 
 const clientNavItems = [
@@ -49,7 +49,7 @@ export default function Sidebar({
   open?: boolean;
   onClose?: () => void;
 }) {
-  const { user } = useNewAuth();
+  const { user, logout } = useNewAuth();
   const { profile: userProfile } = useUser();
   const { isDisabled, disabledReason } = useSidebar();
   const location = useLocation();
@@ -177,6 +177,14 @@ export default function Sidebar({
               <p className="text-xs text-muted-foreground">{roleLabel}</p>
             </div>
           </Link>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-foreground hover:bg-card/70"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </button>
         </div>
       </aside>
     </>

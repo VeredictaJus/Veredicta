@@ -211,7 +211,7 @@ export default function ChatSuport() {
   }, [searchParams, setSearchParams, selectConversation, toast]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Chat de Suporte</h1>
@@ -238,8 +238,8 @@ export default function ChatSuport() {
 
       {/* ✅ CORREÇÃO: Priorizar selectedConversationId - abrir conversa diretamente */}
       {selectedConversationId ? (
-        <div className="space-y-4">
-          <div className="h-[600px] max-h-[70vh]">
+        <div className="space-y-3">
+          <div className="h-[520px] max-h-[65vh]">
             <IntegratedChat selectedConversationId={selectedConversationId} />
           </div>
           {selectedConversation && (

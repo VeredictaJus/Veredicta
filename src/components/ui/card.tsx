@@ -2,8 +2,12 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, children, ...props }, ref) => (
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  glowDot?: boolean;
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, children, glowDot = false, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
@@ -16,10 +20,12 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
       {...props}
     >
       {children}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-4 top-4 z-[2] h-2 w-2 rounded-full bg-primary/80 opacity-70 shadow-[0_0_14px_rgba(249,115,22,0.72)] transition-opacity duration-200 group-hover:opacity-100"
-      />
+      {glowDot && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-4 top-4 z-[2] h-2 w-2 rounded-full bg-primary/80 opacity-70 shadow-[0_0_14px_rgba(249,115,22,0.72)] transition-opacity duration-200 group-hover:opacity-100"
+        />
+      )}
     </div>
   )
 );

@@ -15,6 +15,7 @@ import {
   Layers,
   Settings,
   UserCheck,
+  LogOut,
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -61,7 +62,7 @@ export function AdminSidebar({
   open?: boolean;
   onClose?: () => void;
 }) {
-  const { user } = useNewAuth();
+  const { user, logout } = useNewAuth();
   const { profile: userProfile } = useUser();
   const displayName = userProfile?.name || user?.email?.split('@')[0] || 'Usuário';
 
@@ -130,6 +131,14 @@ export function AdminSidebar({
               <p className="text-xs text-muted-foreground">Administrador</p>
             </div>
           </NavLink>
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg border border-border/50 bg-card/40 px-3 py-2 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-foreground hover:bg-card/70"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </button>
         </div>
       </aside>
     </>

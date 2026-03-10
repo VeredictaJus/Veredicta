@@ -676,7 +676,7 @@ export default function ClientDashboard() {
     subtitle: string;
     icon: React.ComponentType<{ className?: string }>;
   }) => (
-    <Card glowDot className="group rounded-2xl border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_26px_-16px_rgba(245,158,11,0.24)] hover:border-amber-300/55 dark:hover:shadow-md dark:hover:border-primary/20 motion-reduce:transform-none">
+    <Card glowDot className="group rounded-2xl border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_26px_-16px_rgba(245,158,11,0.24)] hover:border-amber-300/55 dark:hover:shadow-md dark:hover:border-primary/20 motion-reduce:transform-none">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
@@ -780,7 +780,7 @@ export default function ClientDashboard() {
       </div>
 
       {/* Petições recentes / lista */}
-      <Card className="rounded-2xl border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+      <Card className="rounded-2xl border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="text-xl">Suas petições</CardTitle>

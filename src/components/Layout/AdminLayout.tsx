@@ -36,8 +36,8 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
     <div className={`relative flex ${isChatPage && !isSupportChatPage ? 'h-screen' : 'min-h-screen'} bg-background overflow-hidden`}>
       <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div
-          className="absolute -top-60 -right-60 h-[600px] w-[600px] rounded-full opacity-30"
-          style={{ background: '#f97316', filter: 'blur(80px)' }}
+          className="absolute -top-60 -right-60 h-[600px] w-[600px] rounded-full opacity-16"
+          style={{ background: '#f97316', filter: 'blur(90px)' }}
         />
         <div
           className="absolute -bottom-60 -left-60 h-[520px] w-[520px] rounded-full opacity-20"
@@ -48,14 +48,14 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
           style={{ top: '46%', background: '#0ea5e9', filter: 'blur(80px)' }}
         />
         <div
-          className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.58) 0%, rgba(249,115,22,0.12) 50%, transparent 75%)', filter: 'blur(74px)' }}
+          className="absolute -top-36 -right-28 h-[360px] w-[360px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.30) 0%, rgba(249,115,22,0.07) 50%, transparent 75%)', filter: 'blur(88px)' }}
         />
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.015]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+              'linear-gradient(rgba(255,255,255,0.28) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.28) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
@@ -68,9 +68,9 @@ export default function AdminLayout({ children }: { children?: ReactNode }) {
             right: '-180px',
             height: '440px',
             width: '440px',
-            opacity: 0.075,
-            background: 'radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0.16) 40%, transparent 72%)',
-            filter: 'blur(125px)',
+            opacity: 0.035,
+            background: 'radial-gradient(circle, rgba(249,115,22,0.36) 0%, rgba(249,115,22,0.08) 40%, transparent 72%)',
+            filter: 'blur(140px)',
           }}
         />
       </div>

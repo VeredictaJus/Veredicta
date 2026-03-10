@@ -97,15 +97,25 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
           style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.58) 0%, rgba(249,115,22,0.12) 50%, transparent 75%)', filter: 'blur(74px)' }}
         />
         <div
-          className="absolute right-[-220px] h-[560px] w-[560px] rounded-full opacity-26 transition-[top] duration-300"
-          style={{ top: `calc(${orbY}% - 230px)`, right: '-170px', height: '460px', width: '460px', opacity: 0.16, background: 'radial-gradient(circle, rgba(249,115,22,0.52) 0%, rgba(249,115,22,0.12) 45%, transparent 74%)', filter: 'blur(108px)' }}
-        />
-        <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage:
               'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
+      <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-20">
+        <div
+          className="absolute transition-[top] duration-300 mix-blend-screen"
+          style={{
+            top: `calc(${orbY}% - 220px)`,
+            right: '-180px',
+            height: '440px',
+            width: '440px',
+            opacity: 0.075,
+            background: 'radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0.16) 40%, transparent 72%)',
+            filter: 'blur(125px)',
           }}
         />
       </div>
@@ -121,6 +131,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
 
       <aside
         className={`fixed left-0 top-0 bottom-0 w-64 border-r border-border shadow-sm flex flex-col text-sm z-50 transition-transform duration-200 lg:translate-x-0
+        lg:left-3 lg:top-3 lg:bottom-3 lg:rounded-2xl lg:border lg:border-border/70 lg:border-r lg:shadow-xl
         overflow-hidden
         bg-gradient-to-b from-background to-muted/30
         dark:from-slate-950 dark:to-slate-900/30
@@ -213,7 +224,7 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
       </aside>
 
       {/* Conteúdo Principal */}
-      <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-64">
+      <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-[17.5rem]">
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}

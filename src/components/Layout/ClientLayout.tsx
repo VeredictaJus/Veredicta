@@ -53,10 +53,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
           style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.58) 0%, rgba(249,115,22,0.12) 50%, transparent 75%)', filter: 'blur(74px)' }}
         />
         <div
-          className="absolute right-[-220px] h-[560px] w-[560px] rounded-full opacity-26 transition-[top] duration-300"
-          style={{ top: `calc(${orbY}% - 230px)`, right: '-170px', height: '460px', width: '460px', opacity: 0.16, background: 'radial-gradient(circle, rgba(249,115,22,0.52) 0%, rgba(249,115,22,0.12) 45%, transparent 74%)', filter: 'blur(108px)' }}
-        />
-        <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage:
@@ -65,12 +61,26 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
           }}
         />
       </div>
+      <div aria-hidden className="fixed inset-0 overflow-hidden pointer-events-none z-20">
+        <div
+          className="absolute transition-[top] duration-300 mix-blend-screen"
+          style={{
+            top: `calc(${orbY}% - 220px)`,
+            right: '-180px',
+            height: '440px',
+            width: '440px',
+            opacity: 0.075,
+            background: 'radial-gradient(circle, rgba(249,115,22,0.65) 0%, rgba(249,115,22,0.16) 40%, transparent 72%)',
+            filter: 'blur(125px)',
+          }}
+        />
+      </div>
 
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Conteúdo Principal */}
-      <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-64">
+      <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-[17.5rem]">
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}

@@ -296,10 +296,10 @@ export default function IntegratedChat({ className, selectedConversationId: exte
   const showFullChat = !!externalSelectedConversationId;
 
   return (
-    <div className={`flex h-full space-x-4 min-h-0 ${className}`}>
+    <div className={`flex h-full space-x-3 min-h-0 ${className}`}>
       {/* Lista de Conversas - ocultar quando há conversa externa selecionada */}
       {!showFullChat && (
-        <div className="w-1/3 h-full overflow-hidden flex flex-col">
+        <div className="h-full w-[300px] min-w-[260px] max-w-[34%] overflow-hidden flex flex-col">
           <ConversationsList
             onSelectConversation={handleSelectConversation}
             onCreateConversation={() => setIsCreateDialogOpen(true)}
@@ -308,7 +308,7 @@ export default function IntegratedChat({ className, selectedConversationId: exte
       )}
 
       {/* Janela do Chat */}
-      <div className={showFullChat ? "w-full h-full flex flex-col min-h-0" : "flex-1 h-full flex flex-col min-h-0"}>
+      <div className={showFullChat ? "w-full h-full flex flex-col min-h-0" : "flex-1 h-full flex flex-col min-h-0 max-w-[66%]"}>
         <div className="flex-1 min-h-0 overflow-hidden">
           <ChatWindow
             conversationId={activeConversationId || undefined}

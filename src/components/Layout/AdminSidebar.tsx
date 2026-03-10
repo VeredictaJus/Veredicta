@@ -79,6 +79,7 @@ export function AdminSidebar({
         className={`
           fixed z-50 lg:translate-x-0
           top-0 left-0 bottom-0 w-64 border-r border-border shadow-sm
+          lg:left-3 lg:top-3 lg:bottom-3 lg:rounded-2xl lg:border lg:border-border/70 lg:border-r lg:shadow-xl
           transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}
           flex flex-col text-sm
           overflow-hidden

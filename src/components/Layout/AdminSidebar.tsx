@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import {
   Home,
   Users,
@@ -41,10 +42,13 @@ const navItems: Item[] = [
 ];
 
 function linkClass(isActive: boolean) {
-  const base = 'flex items-center space-x-2 px-4 py-2 rounded-md font-semibold transition-colors';
-  const off = 'text-muted-foreground hover:bg-muted hover:text-foreground';
-  const on = 'bg-primary/10 text-primary';
-  return `${base} ${isActive ? on : off}`;
+  const base =
+    'group relative flex items-center gap-3 px-4 py-2.5 rounded-xl border border-transparent transition-all duration-200 outline-none';
+  const focus = 'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  const off =
+    'text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:-translate-y-[1px] hover:shadow-sm hover:border-border/60 motion-reduce:transform-none';
+  const on = 'bg-primary/10 text-foreground border-primary/20 shadow-sm';
+  return `${base} ${focus} ${isActive ? on : off}`;
 }
 
 export function AdminSidebar({
@@ -82,7 +86,7 @@ export function AdminSidebar({
           <Logo size="md" textSize="xl" align="center" />
         </div>
 
-        {/* Menu Section - Padronizado como WriterLayout */}
+        {/* Menu Section - Padronizado */}
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto relative z-10">
           {navItems.map(({ to, label, icon: Icon, exact }) => (
             <NavLink
@@ -91,8 +95,20 @@ export function AdminSidebar({
               end={!!exact}
               className={({ isActive }) => linkClass(isActive)}
             >
-              <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              {({ isActive }) => (
+                <>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-2 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-primary transition-opacity',
+                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                    )}
+                  />
+                  <Icon className={cn('w-4 h-4 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                  <span className={cn('flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}>{label}</span>
+                  {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-sm shadow-primary/70" />}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

@@ -154,6 +154,7 @@ export default function Sidebar({
                   )}
                 />
                 <span className={cn('flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}>{item.label}</span>
+                {isActive && !isDisabled && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-sm shadow-primary/70" />}
                 {isDisabled && <Lock className="h-3 w-3 ml-auto opacity-50" />}
               </Link>
             );

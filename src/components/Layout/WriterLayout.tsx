@@ -110,17 +110,26 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
                 to={isRestricted ? '#' : item.path}
                 onClick={(e) => isRestricted ? handleRestrictedClick(e, item.feature!, item.label) : undefined}
                 className={cn(
-                  'flex items-center space-x-2 px-4 py-2 rounded-md transition-colors font-semibold relative',
+                  'group relative flex items-center gap-3 px-4 py-2.5 rounded-xl border border-transparent transition-all duration-200 outline-none',
+                  'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   isRestricted 
                     ? 'text-muted-foreground/50 cursor-not-allowed opacity-60'
                     : isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      ? 'bg-primary/10 text-foreground border-primary/20 shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground hover:-translate-y-[1px] hover:shadow-sm hover:border-border/60 motion-reduce:transform-none'
                 )}
                 title={isRestricted ? 'Bloqueado durante suspensão' : undefined}
               >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'absolute left-2 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-primary transition-opacity',
+                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                  )}
+                />
                 {item.icon}
-                <span className="flex-1">{item.label}</span>
+                <span className={cn('flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}>{item.label}</span>
+                {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-sm shadow-primary/70" />}
                 {isRestricted && <Lock className="w-3 h-3 opacity-50" />}
               </Link>
             );

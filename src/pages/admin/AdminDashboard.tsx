@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Users, FileText, DollarSign, AlertTriangle, CheckCircle, Clock, Trash2,
+  Users, FileText, DollarSign, AlertTriangle, CheckCircle, Clock, Trash2, Bell,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -25,6 +25,10 @@ import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import { toast } from 'sonner';
 import { WriterService, Writer } from '@/services/writerService';
 import { DatabaseService } from '@/services/databaseService';
+import { useNotifications } from '@/contexts/NotificationContext';
+import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SimpleThemeToggle } from '@/components/ui/ThemeToggle';
 
 // Função para obter cliente admin com Service Role (bypass RLS)
 const getAdminClient = () => {
@@ -46,6 +50,8 @@ const getAdminClient = () => {
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { unreadCount, markAllAsRead } = useNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
   const truncateLongName = (name: string | undefined | null): string => {
@@ -761,6 +767,34 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel Administrativo</h1>
           <p className="text-sm text-muted-foreground">Visão geral da plataforma Veredicta</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <SimpleThemeToggle className="rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60" />
+          <Popover
+            open={notifOpen}
+            onOpenChange={(open) => {
+              setNotifOpen(open);
+              if (open) markAllAsRead();
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="relative rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60"
+                aria-label="Abrir notificações"
+              >
+                <Bell size={18} className="text-orange-500" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[360px] p-0">
+              <NotificationDropdown onSeeAll={() => setNotifOpen(false)} />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

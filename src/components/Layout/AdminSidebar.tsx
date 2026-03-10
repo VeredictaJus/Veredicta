@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useUser } from '@/contexts/UserContext';
 import {
   Home,
   Users,
@@ -15,6 +17,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 type Item = {
   to: string;
@@ -58,6 +61,10 @@ export function AdminSidebar({
   open?: boolean;
   onClose?: () => void;
 }) {
+  const { user } = useNewAuth();
+  const { profile: userProfile } = useUser();
+  const displayName = userProfile?.name || user?.email?.split('@')[0] || 'Usuário';
+
   return (
     <>
       {/* overlay no mobile */}
@@ -112,6 +119,18 @@ export function AdminSidebar({
             </NavLink>
           ))}
         </nav>
+        <div className="relative z-10 p-4 border-t border-white/5">
+          <NavLink
+            to="/admin/settings?tab=profile"
+            className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 px-3 py-3 transition-all duration-200 hover:border-primary/30 hover:bg-card/80"
+          >
+            <UserAvatar size="md" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">Administrador</p>
+            </div>
+          </NavLink>
+        </div>
       </aside>
     </>
   );

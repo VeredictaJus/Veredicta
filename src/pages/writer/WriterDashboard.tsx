@@ -13,9 +13,10 @@ SelectValue,
 } from "@/components/ui/select";
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useUser } from '@/contexts/UserContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { calculateProgress } from '@/utils/progress';
 import { WriterProfile } from '@/types';
-import { FileText, DollarSign, Clock, Star, CheckCircle, PartyPopper, MessageSquare, Calculator, AlertTriangle, X } from 'lucide-react';
+import { FileText, DollarSign, Clock, Star, CheckCircle, PartyPopper, MessageSquare, Calculator, AlertTriangle, X, Bell } from 'lucide-react';
 import { DatabaseService, Petition as RealPetition, Payment, WriterRatingStats } from '@/services/databaseService';
 import RatingDisplay from '@/components/ratings/RatingDisplay';
 import { supabase } from '@/lib/supabaseClient';
@@ -24,6 +25,9 @@ import SuspensionAlert from '@/components/Writer/SuspensionAlert';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SimpleThemeToggle } from '@/components/ui/ThemeToggle';
 
 const petitionTypes = [
   { value: 'TODOS', label: 'Todos os Tipos' },
@@ -80,7 +84,9 @@ const getPriorityColor = (priority: string) => {
 export default function WriterDashboard() {
   const { user } = useNewAuth();
   const { profile: userProfile } = useUser();
+  const { unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // ✅ Função auxiliar para truncar nomes muito longos (> 50 caracteres)
   const truncateLongName = (name: string | undefined | null): string => {
@@ -427,6 +433,32 @@ const [hasPendingCorrection, setHasPendingCorrection] = useState(false);
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <SimpleThemeToggle className="rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60" />
+          <Popover
+            open={notifOpen}
+            onOpenChange={(open) => {
+              setNotifOpen(open);
+              if (open) markAllAsRead();
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="relative rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60"
+                aria-label="Abrir notificações"
+              >
+                <Bell size={18} className="text-orange-500" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[360px] p-0">
+              <NotificationDropdown onSeeAll={() => setNotifOpen(false)} />
+            </PopoverContent>
+          </Popover>
           {loading ? (
             <div className="flex items-center space-x-2">
               <Star className="h-5 w-5 text-muted-foreground animate-pulse" />

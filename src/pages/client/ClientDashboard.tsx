@@ -12,6 +12,11 @@ import { Plus, Eye, FileText, CheckCircle, Clock, MessageSquare, ArrowRight } fr
 import { PetitionUsageCard } from '@/components/dashboard/PetitionUsageCard';
 import { toast } from 'sonner';
 import { UserSettingsService } from '@/services/userSettingsService';
+import { SimpleThemeToggle } from '@/components/ui/ThemeToggle';
+import { useNotifications } from '@/contexts/NotificationContext';
+import NotificationDropdown from '@/components/Notifications/NotificationDropdown';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Bell } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   const upperStatus = status?.toUpperCase();
@@ -60,6 +65,8 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
   const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
   const activationHandledRef = useRef(false);
+  const { unreadCount, markAllAsRead } = useNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // ✅ CORREÇÃO CRÍTICA: Garantir que apenas clientes possam acessar este componente
   // Verifica o role do usuário ao montar o componente
@@ -696,6 +703,32 @@ export default function ClientDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <SimpleThemeToggle className="rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60" />
+          <Popover
+            open={notifOpen}
+            onOpenChange={(open) => {
+              setNotifOpen(open);
+              if (open) markAllAsRead();
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="relative rounded-md p-2 hover:bg-muted transition border border-border/60 bg-card/60"
+                aria-label="Abrir notificações"
+              >
+                <Bell size={18} className="text-orange-500" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 text-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[360px] p-0">
+              <NotificationDropdown onSeeAll={() => setNotifOpen(false)} />
+            </PopoverContent>
+          </Popover>
           <Button
             onClick={() => navigate('/client/petitions/new')}
             className="bg-primary hover:bg-primary/90 text-primary-foreground active:translate-y-[1px] transition-transform motion-reduce:transform-none"

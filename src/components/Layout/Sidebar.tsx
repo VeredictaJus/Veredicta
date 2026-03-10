@@ -2,7 +2,9 @@ import { cn } from '@/lib/utils';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useLocation, Link } from 'react-router-dom';
+import { useUser } from '@/contexts/UserContext';
 import Logo from '@/components/ui/Logo';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Home, FileText, CreditCard, Settings, Users,
@@ -48,6 +50,7 @@ export default function Sidebar({
   onClose?: () => void;
 }) {
   const { user } = useNewAuth();
+  const { profile: userProfile } = useUser();
   const { isDisabled, disabledReason } = useSidebar();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -62,6 +65,9 @@ export default function Sidebar({
   };
 
   const navItems = getNavItems();
+  const displayName = userProfile?.name || user?.email?.split('@')[0] || 'Usuário';
+  const roleLabel = user?.role === 'client' ? 'Cliente' : user?.role === 'writer' ? 'Redator' : user?.role === 'admin' ? 'Administrador' : 'Usuário';
+  const profilePath = user?.role === 'client' ? '/client/settings?tab=profile' : user?.role === 'admin' ? '/admin/settings?tab=profile' : '/writer/settings?tab=profile';
 
   const handleLinkClick = (e: React.MouseEvent, href: string) => {
     if (isDisabled) {
@@ -158,6 +164,20 @@ export default function Sidebar({
             );
           })}
         </nav>
+
+        <div className="relative z-10 p-4 border-t border-white/5">
+          <Link
+            to={profilePath}
+            onClick={(e) => handleLinkClick(e, profilePath)}
+            className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 px-3 py-3 transition-all duration-200 hover:border-primary/30 hover:bg-card/80"
+          >
+            <UserAvatar size="md" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            </div>
+          </Link>
+        </div>
       </aside>
     </>
   );

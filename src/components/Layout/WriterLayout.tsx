@@ -8,15 +8,17 @@ import {
   MessageSquare,
   Settings,
   Calculator,
-  Lock
+  Lock,
+  Menu
 } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { useSuspensionCheck } from '@/hooks/useSuspensionCheck';
 import { cn } from '@/lib/utils';
-import Header from './Header';
 import Logo from '@/components/ui/Logo';
 import FloatingChatModal from '@/components/chat/FloatingChatModal';
 import { toast } from 'sonner';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 interface WriterLayoutProps {
   children: ReactNode;
@@ -35,6 +37,7 @@ const menuItems = [
 
 export default function WriterLayout({ children }: WriterLayoutProps) {
   const { user } = useNewAuth();
+  const { profile: userProfile } = useUser();
   const location = useLocation();
   const { canAccess, getBlockMessage, isSuspendedOrBlocked } = useSuspensionCheck();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,6 +46,8 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
   
   // Detectar se é a página de chat para aplicar layout especial
   const isChatPage = location.pathname.includes('/chat');
+  const displayName = userProfile?.name || user?.email?.split('@')[0] || 'Usuário';
+  const roleLabel = user?.role === 'writer' ? 'Redator' : user?.role === 'admin' ? 'Administrador' : 'Cliente';
 
   useEffect(() => {
     const el = contentRef.current;
@@ -183,12 +188,32 @@ export default function WriterLayout({ children }: WriterLayoutProps) {
             );
           })}
         </nav>
+
+        <div className="relative z-10 p-4 border-t border-white/5">
+          <Link
+            to="/writer/settings?tab=profile"
+            className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 px-3 py-3 transition-all duration-200 hover:border-primary/30 hover:bg-card/80"
+          >
+            <UserAvatar size="md" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+            </div>
+          </Link>
+        </div>
       </aside>
 
       {/* Conteúdo Principal */}
       <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-64">
-        <Header onToggleSidebar={() => setSidebarOpen(true)} />
-        <div ref={contentRef} className={isChatPage ? "pt-20 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden fixed left-4 top-4 z-30 rounded-md border border-border/70 bg-card/70 p-2 text-foreground shadow-sm supports-[backdrop-filter]:backdrop-blur-sm"
+          aria-label="Abrir menu"
+        >
+          <Menu size={18} />
+        </button>
+        <div ref={contentRef} className={isChatPage ? "pt-6 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
           {children}
         </div>
       </main>

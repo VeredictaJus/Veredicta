@@ -1,8 +1,8 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import Header from './Header';
 import Sidebar from './Sidebar';
 import FloatingChatModal from '@/components/chat/FloatingChatModal';
+import { Menu } from 'lucide-react';
 
 interface ClientLayoutProps {
   children?: ReactNode;
@@ -71,8 +71,15 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
 
       {/* Conteúdo Principal */}
       <main className="relative z-10 flex-1 flex flex-col ml-0 lg:ml-64">
-        <Header onToggleSidebar={() => setSidebarOpen(true)} />
-        <div ref={contentRef} className={isChatPage ? "pt-20 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-24 flex-1 overflow-y-auto"}>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden fixed left-4 top-4 z-30 rounded-md border border-border/70 bg-card/70 p-2 text-foreground shadow-sm supports-[backdrop-filter]:backdrop-blur-sm"
+          aria-label="Abrir menu"
+        >
+          <Menu size={18} />
+        </button>
+        <div ref={contentRef} className={isChatPage ? "pt-6 px-6 flex-1 min-h-0 overflow-hidden" : "p-6 pt-6 flex-1 overflow-y-auto"}>
           {content}
         </div>
       </main>

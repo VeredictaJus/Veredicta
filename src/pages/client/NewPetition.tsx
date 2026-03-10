@@ -647,7 +647,7 @@ export default function NewPetition() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+            <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Informações da Petição</CardTitle>
                 <CardDescription className="!whitespace-nowrap !max-w-none !overflow-visible">
@@ -786,7 +786,7 @@ export default function NewPetition() {
             </Card>
 
             {/* File Upload */}
-            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+            <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Arquivos de Apoio</CardTitle>
                 <CardDescription className="!whitespace-nowrap !max-w-none !overflow-visible">
@@ -863,7 +863,7 @@ export default function NewPetition() {
           <div className="space-y-6">
             {/* Selected Petition Summary */}
             {selectedArea && selectedType && (
-              <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+              <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -933,7 +933,7 @@ export default function NewPetition() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+            <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-sm">Dicas Importantes</CardTitle>
               </CardHeader>

@@ -1270,7 +1270,7 @@ export default function MyPetitions() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-yellow-600" />
@@ -1284,7 +1284,7 @@ export default function MyPetitions() {
           </CardContent>
         </Card>
         
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center">
               <FileText className="h-8 w-8 text-blue-600" />
@@ -1298,7 +1298,7 @@ export default function MyPetitions() {
           </CardContent>
         </Card>
         
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center">
               <AlertCircle className="h-8 w-8 text-purple-600" />
@@ -1312,7 +1312,7 @@ export default function MyPetitions() {
           </CardContent>
         </Card>
         
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardContent className="pt-6">
             <div className="flex items-center">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
@@ -1332,7 +1332,7 @@ export default function MyPetitions() {
       </div>
 
       {/* Filters */}
-      <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+      <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">

@@ -58,7 +58,7 @@ export default function AtivacaoPecaPiloto() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
-        <Card className="border-border/60 bg-card/80 shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
+        <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl sm:text-3xl font-bold text-foreground">
               Ativação da Peça Piloto Veredicta

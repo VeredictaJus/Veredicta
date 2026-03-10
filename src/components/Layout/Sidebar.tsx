@@ -134,7 +134,7 @@ export default function Sidebar({
                   'group relative flex items-center gap-3 px-4 py-2.5 rounded-xl border border-transparent transition-all duration-200 outline-none',
                   'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   isActive
-                    ? 'bg-white/[0.06] text-foreground border-[rgba(255,255,255,0.08)] shadow-sm'
+                    ? 'bg-amber-500/12 text-amber-800 border-amber-300/50 shadow-sm dark:bg-white/[0.06] dark:text-foreground dark:border-[rgba(255,255,255,0.08)]'
                     : isDisabled
                     ? 'text-muted-foreground/50 cursor-not-allowed opacity-50'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:-translate-y-[1px] hover:shadow-sm hover:border-[rgba(255,255,255,0.08)] motion-reduce:transform-none'
@@ -144,7 +144,7 @@ export default function Sidebar({
                 <span
                   aria-hidden
                   className={cn(
-                    'absolute left-2 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-white/70 transition-opacity',
+                    'absolute left-2 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-amber-500 dark:bg-white/70 transition-opacity',
                     isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
                   )}
                 />
@@ -152,14 +152,14 @@ export default function Sidebar({
                   className={cn(
                     'w-4 h-4 transition-colors',
                     isActive
-                      ? 'text-foreground'
+                      ? 'text-amber-600 dark:text-foreground'
                       : isDisabled
                         ? 'text-muted-foreground/40'
                         : 'text-muted-foreground group-hover:text-foreground'
                   )}
                 />
                 <span className={cn('flex-1 truncate', isActive ? 'font-semibold' : 'font-medium')}>{item.label}</span>
-                {isActive && !isDisabled && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white/80 shadow-sm shadow-white/30" />}
+                {isActive && !isDisabled && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-500 shadow-sm shadow-amber-400/40 dark:bg-white/80 dark:shadow-white/30" />}
                 {isDisabled && <Lock className="h-3 w-3 ml-auto opacity-50" />}
               </Link>
             );

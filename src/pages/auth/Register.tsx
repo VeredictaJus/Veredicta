@@ -964,7 +964,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                                   <p className="text-sm font-medium text-slate-100">
                                     {oabFiles.oab_front ? oabFiles.oab_front.name : 'Nenhum arquivo selecionado'}
                                   </p>
-                                  <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
+                                  <p className="text-xs text-sky-300/80">JPG, PNG ou PDF (máx. 5MB)</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -1007,7 +1007,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                                   <p className="text-sm font-medium text-slate-100">
                                     {oabFiles.oab_back ? oabFiles.oab_back.name : 'Nenhum arquivo selecionado'}
                                   </p>
-                                  <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
+                                  <p className="text-xs text-sky-300/80">JPG, PNG ou PDF (máx. 5MB)</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -1039,7 +1039,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                           )}
                         </div>
                         
-                        <p className="text-xs text-gray-500 mt-3">
+                        <p className="text-xs text-sky-300/80 mt-3">
                           📋 Envie fotos claras de ambos os lados da sua carteirinha para verificação de identidade
                         </p>
                       </div>
@@ -1133,7 +1133,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                               <p className="text-sm font-medium text-slate-100">
                                 {oabFiles.oab_front ? oabFiles.oab_front.name : 'Nenhum arquivo selecionado'}
                               </p>
-                              <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
+                              <p className="text-xs text-sky-300/80">JPG, PNG ou PDF (máx. 5MB)</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -1176,7 +1176,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                               <p className="text-sm font-medium text-slate-100">
                                 {oabFiles.oab_back ? oabFiles.oab_back.name : 'Nenhum arquivo selecionado'}
                               </p>
-                              <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
+                              <p className="text-xs text-sky-300/80">JPG, PNG ou PDF (máx. 5MB)</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -1208,7 +1208,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       )}
                     </div>
                     
-                    <p className="text-xs text-gray-500 mt-3">
+                    <p className="text-xs text-sky-300/80 mt-3">
                       📋 Envie fotos claras de ambos os lados da sua carteirinha OAB
                     </p>
                   </div>
@@ -1497,7 +1497,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
             {/* Login Link */}
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-sky-300/80">
                 Já tem uma conta?{' '}
                 <Link
                   to="/auth/login"

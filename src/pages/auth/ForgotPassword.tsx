@@ -79,7 +79,7 @@ export default function ForgotPassword() {
         className="h-12 w-auto object-contain"
       />
     </div>
-    <span className="mt-3 text-2xl font-medium text-white tracking-wide px-3 py-1 rounded-xl bg-slate-950/50 backdrop-blur-sm border border-white/10 drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)]">
+    <span className="mt-3 text-2xl font-medium text-white tracking-wide">
       Vered
       <span className="relative inline-block">
         <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
@@ -169,7 +169,7 @@ export default function ForgotPassword() {
             className="h-12 w-auto object-contain"
           />
         </div>
-        <span className="mt-3 text-2xl font-medium text-white tracking-wide px-3 py-1 rounded-xl bg-slate-950/50 backdrop-blur-sm border border-white/10 drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)]">
+        <span className="mt-3 text-2xl font-medium text-white tracking-wide">
           Vered
           <span className="relative inline-block">
             <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>

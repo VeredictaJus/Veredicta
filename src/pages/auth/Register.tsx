@@ -797,7 +797,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         {/* Card */}
         <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
           <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold text-gray-900">Criar Conta</CardTitle>
+            <CardTitle className="text-center text-2xl font-bold text-white">Criar Conta</CardTitle>
             <CardDescription className="text-center break-words whitespace-normal max-w-xs mx-auto text-gray-600">
               Escolha o tipo de conta e preencha os dados
             </CardDescription>
@@ -806,14 +806,14 @@ const handleInputChange = (field: keyof FormData, value: string) => {
           <CardContent className="space-y-6">
             {/* User Type Toggle */}
             <div className="flex justify-center">
-              <div className="flex bg-gray-100 rounded-lg p-1">
+              <div className="flex rounded-lg p-1 bg-slate-900/40 border border-white/10">
                 <button
                   type="button"
                   onClick={() => setUserType('client')}
                   className={`rounded-md flex items-center space-x-2 px-4 py-2 text-sm font-medium min-h-[40px] min-w-[120px] justify-center ${
                     userType === 'client' 
                       ? 'bg-orange-600 text-white hover:bg-orange-700 shadow-sm' 
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                      : 'bg-transparent text-slate-200 hover:bg-white/10 border border-transparent'
                   }`}
                 >
                   <Building className="h-4 w-4 flex-shrink-0" />
@@ -825,7 +825,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   className={`rounded-md flex items-center space-x-2 px-4 py-2 text-sm font-medium min-h-[40px] min-w-[120px] justify-center ${
                     userType === 'writer' 
                       ? 'bg-orange-600 text-white hover:bg-orange-700 shadow-sm' 
-                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                      : 'bg-transparent text-slate-200 hover:bg-white/10 border border-transparent'
                   }`}
                 >
                   <Users className="h-4 w-4 flex-shrink-0" />
@@ -1478,7 +1478,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   variant="outline"
                   onClick={handleGoogleRegister}
                   disabled={googleLoading}
-                  className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
+                  className="w-full border-white/10 bg-slate-900/45 text-slate-100 hover:bg-slate-900/65 hover:text-white"
                 >
                   {googleLoading ? (
                     <>

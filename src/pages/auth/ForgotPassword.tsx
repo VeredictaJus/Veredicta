@@ -194,7 +194,7 @@ export default function ForgotPassword() {
     <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
       <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
         <CardHeader className="text-center">
-          <CardTitle className="text-gray-900">Esqueci minha senha</CardTitle>
+          <CardTitle className="text-white">Esqueci minha senha</CardTitle>
           <CardDescription className="mx-auto max-w-sm leading-relaxed text-gray-600">
             Digite seu email para receber instruções de redefinição
           </CardDescription>
@@ -203,7 +203,7 @@ export default function ForgotPassword() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-gray-900">Email</Label>
+              <Label htmlFor="email" className="text-white">Email</Label>
               <Input
                 id="email"
                 type="email"

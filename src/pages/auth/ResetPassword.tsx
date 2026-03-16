@@ -357,7 +357,7 @@ export default function ResetPassword() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-sky-300/80">
                 Lembrou da senha?{' '}
                 <button
                   type="button"

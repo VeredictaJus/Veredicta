@@ -213,7 +213,7 @@ export default function ForgotPassword() {
                   setError('');
                 }}
                 placeholder="seu@email.com"
-                className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${error ? 'border-red-500' : ''}`}
+                className={`glass-input ${error ? 'border-red-500' : ''}`}
                 disabled={isLoading}
               />
               {error && (

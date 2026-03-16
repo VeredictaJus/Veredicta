@@ -329,7 +329,7 @@ export default function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mínimo 8 caracteres"
-                  className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.password ? 'border-red-500' : ''}`}
+                  className={`glass-input ${errors.password ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
@@ -343,7 +343,7 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Digite a senha novamente"
-                  className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                  className={`glass-input ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   disabled={isLoading}
                 />
                 {errors.confirmPassword && (

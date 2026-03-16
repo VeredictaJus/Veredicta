@@ -848,7 +848,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       onChange={(e) => handleInputChange('companyName', e.target.value)}
                       placeholder={documentType === 'cpf' ? 'Seu nome completo' : 'Nome da sua empresa'}
                       maxLength={60}
-                      className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.companyName ? 'border-red-500' : ''}`}
+                      className={`glass-input ${errors.companyName ? 'border-red-500' : ''}`}
                     />
                     {errors.companyName && (
                       <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
@@ -864,7 +864,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                         onChange={(e) => handleInputChange('cnpj', e.target.value)}
                         placeholder="Digite seu CPF ou CNPJ"
                         maxLength={18}
-                        className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.cnpj ? 'border-red-500' : ''}`}
+                        className={`glass-input ${errors.cnpj ? 'border-red-500' : ''}`}
                       />
                       {documentType === 'cnpj' && (
                         <Button
@@ -924,7 +924,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                         onChange={(e) => handleInputChange('contactName', e.target.value)}
                         placeholder="Nome do responsável"
                         maxLength={60}
-                        className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.contactName ? 'border-red-500' : ''}`}
+                        className={`glass-input ${errors.contactName ? 'border-red-500' : ''}`}
                       />
                       {errors.contactName && (
                         <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>
@@ -946,7 +946,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                             onChange={(e) => handleInputChange('oabNumber', e.target.value)}
                             placeholder="123456/SP"
                             maxLength={15}
-                            className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.oabNumber ? 'border-red-500' : ''}`}
+                            className={`glass-input ${errors.oabNumber ? 'border-red-500' : ''}`}
                           />
                           {errors.oabNumber && (
                             <p className="text-red-500 text-sm mt-1">{errors.oabNumber}</p>
@@ -1059,7 +1059,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
                       placeholder="Seu nome completo"
                       maxLength={60}
-                      className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.fullName ? 'border-red-500' : ''}`}
+                      className={`glass-input ${errors.fullName ? 'border-red-500' : ''}`}
                     />
                     {errors.fullName && (
                       <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
@@ -1074,7 +1074,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       onChange={(e) => handleInputChange('cpf', e.target.value)}
                       placeholder="000.000.000-00"
                       maxLength={14}
-                      className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.cpf ? 'border-red-500' : ''}`}
+                      className={`glass-input ${errors.cpf ? 'border-red-500' : ''}`}
                     />
                     {errors.cpf && (
                       <p className="text-red-500 text-sm mt-1">{errors.cpf}</p>
@@ -1089,7 +1089,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       onChange={(e) => handleInputChange('oabNumber', e.target.value)}
                       placeholder="123456/SP"
                       maxLength={15}
-                      className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.oabNumber ? 'border-red-500' : ''}`}
+                      className={`glass-input ${errors.oabNumber ? 'border-red-500' : ''}`}
                     />
                     {errors.oabNumber && (
                       <p className="text-red-500 text-sm mt-1">{errors.oabNumber}</p>
@@ -1102,7 +1102,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       value={formData.specializations}
                       onValueChange={(value) => handleInputChange('specializations', value)}
                     >
-                      <SelectTrigger className={`bg-white border-gray-300 text-gray-900 ${errors.specializations ? 'border-red-500' : ''}`}>
+                      <SelectTrigger className={`glass-input ${errors.specializations ? 'border-red-500' : ''}`}>
                         <SelectValue placeholder="Selecione sua especialização" />
                       </SelectTrigger>
                       <SelectContent className="max-h-64 overflow-y-auto bg-white border-gray-300">
@@ -1226,7 +1226,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="seu@email.com"
                   maxLength={80}
-                  className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.email ? 'border-red-500' : ''}`}
+                  className={`glass-input ${errors.email ? 'border-red-500' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -1241,7 +1241,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder="(11) 99999-9999"
                   maxLength={15}
-                  className="bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  className="glass-input"
                 />
               </div>
 
@@ -1255,7 +1255,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     placeholder="Mínimo 8 caracteres"
                     autoComplete="new-password"
-                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.password ? 'border-red-500' : ''}`}
+                    className={`glass-input ${errors.password ? 'border-red-500' : ''}`}
                   />
                   <Button
                     type="button"
@@ -1286,7 +1286,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     placeholder="Confirme sua senha"
                     autoComplete="new-password"
-                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+                    className={`glass-input ${errors.confirmPassword ? 'border-red-500' : ''}`}
                   />
                   <Button
                     type="button"

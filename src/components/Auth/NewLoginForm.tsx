@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Chrome, Loader2, Mail, Eye, EyeOff } from 'lucide-react'
+import { Chrome, Loader2, Mail, Eye, EyeOff, Lock } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
 import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground'
@@ -133,7 +133,7 @@ export default function NewLoginForm() {
             <div className="space-y-2">
               <Label htmlFor="userType" className="text-slate-200">Tipo de Usuário</Label>
               <Select value={formData.userType} onValueChange={handleUserTypeChange}>
-                <SelectTrigger disabled={loading} className="bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400">
+                <SelectTrigger disabled={loading} className="glass-input h-12 border-white/15 bg-blue-500/10 text-slate-100 placeholder:text-slate-400">
                   <SelectValue placeholder="Selecione o tipo de usuário" />
                 </SelectTrigger>
                 <SelectContent className="border-white/10 bg-slate-950/95 text-slate-100 supports-[backdrop-filter]:backdrop-blur-md">
@@ -162,7 +162,7 @@ export default function NewLoginForm() {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-200">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-200/85 pointer-events-none" />
                 <Input
                   id="email"
                   name="email"
@@ -172,7 +172,7 @@ export default function NewLoginForm() {
                   autoFocus
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="pl-10 bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400"
+                  className="glass-input pl-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
                   placeholder="seu@email.com"
                   disabled={loading}
                 />
@@ -182,6 +182,7 @@ export default function NewLoginForm() {
             <div className="space-y-2">
               <Label htmlFor="password" className="text-slate-200">Senha</Label>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-200/85 pointer-events-none" />
                 <Input
                   id="password"
                   name="password"
@@ -190,7 +191,7 @@ export default function NewLoginForm() {
                   autoComplete="current-password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pr-10 bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400"
+                  className="glass-input pl-10 pr-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
                   placeholder="Sua senha"
                   disabled={loading}
                 />

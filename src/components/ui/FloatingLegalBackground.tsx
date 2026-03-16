@@ -1,4 +1,4 @@
-import legalAuthBg from '@/assets/legal-bg-auth.svg';
+import legalAuthBg from '@/assets/legal-bg-auth-reference.png';
 
 export default function FloatingLegalBackground() {
   return (

@@ -1,4 +1,4 @@
-import legalAuthBg from '@/assets/legal-bg-auth-reference.png';
+const legalAuthBg = '/f2059462-1604-46ab-80ac-e24648761145.png';
 
 export default function FloatingLegalBackground() {
   return (

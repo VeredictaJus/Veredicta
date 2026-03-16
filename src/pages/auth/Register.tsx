@@ -798,7 +798,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold text-white">Criar Conta</CardTitle>
-            <CardDescription className="text-center break-words whitespace-normal max-w-xs mx-auto text-gray-600">
+            <CardDescription className="text-center break-words whitespace-normal max-w-xs mx-auto text-sky-300/80">
               Escolha o tipo de conta e preencha os dados
             </CardDescription>
           </CardHeader>
@@ -1440,7 +1440,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
                 />
                 <div className="text-sm">
-                  <Label htmlFor="terms" className="cursor-pointer text-gray-700">
+                  <Label htmlFor="terms" className="cursor-pointer text-sky-300/80">
                     Aceito os{' '}
                     <Link
                       to="/legal/terms"

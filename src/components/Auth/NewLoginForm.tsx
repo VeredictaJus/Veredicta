@@ -116,7 +116,7 @@ export default function NewLoginForm() {
       <Card className="w-full max-w-md relative z-10 rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(30,58,138,0.08))] shadow-[0_8px_32px_rgba(2,6,23,0.55),inset_0_1px_0_rgba(255,255,255,0.10)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
         <CardHeader className="text-center items-center px-8 pt-8 pb-4 md:px-10 md:pt-10">
           <div className="flex justify-center mb-4">
-            <Logo size="xl" clickable={true} textColor="dark" />
+            <Logo size="xl" clickable={true} textColor="light" />
           </div>
           <CardTitle className="text-2xl font-bold text-slate-100">Login</CardTitle>
           <CardDescription className="text-sky-300/80">Entre na sua conta Veredicta</CardDescription>
@@ -172,7 +172,7 @@ export default function NewLoginForm() {
                   autoFocus
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="glass-input pl-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
+                  className="glass-input auth-dark-input pl-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
                   placeholder="seu@email.com"
                   disabled={loading}
                 />
@@ -191,7 +191,7 @@ export default function NewLoginForm() {
                   autoComplete="current-password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="glass-input pl-10 pr-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
+                  className="glass-input auth-dark-input pl-10 pr-10 text-slate-100 placeholder:text-slate-400 border-white/15 bg-blue-500/10"
                   placeholder="Sua senha"
                   disabled={loading}
                 />

@@ -11,6 +11,7 @@ import { Chrome, Loader2, Mail, Eye, EyeOff } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
 import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground'
+import legalBgAuth from '@/assets/legal-bg-auth.svg'
 
 export default function NewLoginForm() {
   const navigate = useNavigate()
@@ -102,6 +103,11 @@ export default function NewLoginForm() {
       onKeyDown={handleKeyDown}
     >
       <FloatingLegalBackground />
+      <div
+        aria-hidden
+        className="fixed inset-0 z-[0] bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${legalBgAuth})` }}
+      />
 
       <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
       <div

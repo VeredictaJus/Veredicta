@@ -839,7 +839,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               {userType === 'client' && (
                 <>
                   <div>
-                    <Label htmlFor="companyName" className="text-gray-900">
+                    <Label htmlFor="companyName" className="text-white">
                       {documentType === 'cpf' ? 'Nome Completo *' : 'Nome da Empresa *'}
                     </Label>
                     <Input
@@ -856,7 +856,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="cnpj" className="text-gray-900">CPF ou CNPJ *</Label>
+                    <Label htmlFor="cnpj" className="text-white">CPF ou CNPJ *</Label>
                     <div className="flex gap-2">
                       <Input
                         id="cnpj"
@@ -917,7 +917,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   {/* Campos condicionais - CNPJ */}
                   {documentType === 'cnpj' && (
                     <div>
-                      <Label htmlFor="contactName" className="text-gray-900">Nome do Responsável *</Label>
+                      <Label htmlFor="contactName" className="text-white">Nome do Responsável *</Label>
                       <Input
                         id="contactName"
                         value={formData.contactName}
@@ -936,10 +936,10 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   {documentType === 'cpf' && (
                     <>
                       <div className="border-t border-gray-200 pt-4 mt-4">
-                        <h3 className="text-sm font-medium text-gray-900 mb-3">📋 Verificação de Identidade</h3>
+                        <h3 className="text-sm font-medium text-white mb-3">📋 Verificação de Identidade</h3>
                         
                         <div>
-                          <Label htmlFor="oabNumber" className="text-gray-900">Número da OAB *</Label>
+                          <Label htmlFor="oabNumber" className="text-white">Número da OAB *</Label>
                           <Input
                             id="oabNumber"
                             value={formData.oabNumber}
@@ -955,13 +955,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
                         {/* Upload Carteirinha OAB - Frente */}
                         <div className="mt-4">
-                          <Label className="text-gray-900">Carteirinha da OAB - Frente *</Label>
+                          <Label className="text-white">Carteirinha da OAB - Frente *</Label>
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
                                 <FileText className="h-8 w-8 text-gray-400" />
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-medium text-slate-100">
                                     {oabFiles.oab_front ? oabFiles.oab_front.name : 'Nenhum arquivo selecionado'}
                                   </p>
                                   <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
@@ -998,13 +998,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
                         {/* Upload Carteirinha OAB - Verso */}
                         <div className="mt-4">
-                          <Label className="text-gray-900">Carteirinha da OAB - Verso *</Label>
+                          <Label className="text-white">Carteirinha da OAB - Verso *</Label>
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-3">
                                 <FileText className="h-8 w-8 text-gray-400" />
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-medium text-slate-100">
                                     {oabFiles.oab_back ? oabFiles.oab_back.name : 'Nenhum arquivo selecionado'}
                                   </p>
                                   <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
@@ -1052,7 +1052,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               {userType === 'writer' && (
                 <>
                   <div>
-                    <Label htmlFor="fullName" className="text-gray-900">Nome Completo *</Label>
+                    <Label htmlFor="fullName" className="text-white">Nome Completo *</Label>
                     <Input
                       id="fullName"
                       value={formData.fullName}
@@ -1067,7 +1067,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="cpf" className="text-gray-900">CPF *</Label>
+                    <Label htmlFor="cpf" className="text-white">CPF *</Label>
                     <Input
                       id="cpf"
                       value={formData.cpf}
@@ -1082,7 +1082,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="oabNumber" className="text-gray-900">Número da OAB *</Label>
+                    <Label htmlFor="oabNumber" className="text-white">Número da OAB *</Label>
                     <Input
                       id="oabNumber"
                       value={formData.oabNumber}
@@ -1097,7 +1097,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="specializations" className="text-gray-900">Especialização Principal *</Label>
+                    <Label htmlFor="specializations" className="text-white">Especialização Principal *</Label>
                     <Select
                       value={formData.specializations}
                       onValueChange={(value) => handleInputChange('specializations', value)}
@@ -1120,17 +1120,17 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
                   {/* Carteirinha OAB */}
                   <div className="border-t border-gray-200 pt-4 mt-4">
-                    <h3 className="text-sm font-medium text-gray-900 mb-3">📋 Carteirinha da OAB</h3>
+                    <h3 className="text-sm font-medium text-white mb-3">📋 Carteirinha da OAB</h3>
                     
                     {/* Upload Carteirinha OAB - Frente */}
                     <div>
-                      <Label className="text-gray-900">Frente da Carteirinha *</Label>
+                      <Label className="text-white">Frente da Carteirinha *</Label>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <FileText className="h-8 w-8 text-gray-400" />
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-slate-100">
                                 {oabFiles.oab_front ? oabFiles.oab_front.name : 'Nenhum arquivo selecionado'}
                               </p>
                               <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
@@ -1167,13 +1167,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
                     {/* Upload Carteirinha OAB - Verso */}
                     <div className="mt-4">
-                      <Label className="text-gray-900">Verso da Carteirinha *</Label>
+                      <Label className="text-white">Verso da Carteirinha *</Label>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 mt-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <FileText className="h-8 w-8 text-gray-400" />
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-slate-100">
                                 {oabFiles.oab_back ? oabFiles.oab_back.name : 'Nenhum arquivo selecionado'}
                               </p>
                               <p className="text-xs text-gray-500">JPG, PNG ou PDF (máx. 5MB)</p>
@@ -1217,7 +1217,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
               {/* Common Fields */}
               <div>
-                <Label htmlFor="email" className="text-gray-900">Email *</Label>
+                <Label htmlFor="email" className="text-white">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -1234,7 +1234,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               </div>
 
               <div>
-                <Label htmlFor="phone" className="text-gray-900">Telefone</Label>
+                <Label htmlFor="phone" className="text-white">Telefone</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -1246,7 +1246,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               </div>
 
               <div>
-                <Label htmlFor="password" className="text-gray-900">Senha *</Label>
+                <Label htmlFor="password" className="text-white">Senha *</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -1277,7 +1277,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
               </div>
 
               <div>
-                <Label htmlFor="confirmPassword" className="text-gray-900">Confirmar Senha *</Label>
+                <Label htmlFor="confirmPassword" className="text-white">Confirmar Senha *</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -1309,23 +1309,23 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
               {/* Petition Upload Section - Only for Writers */}
               {userType === 'writer' && (
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-slate-900/45 p-6 rounded-lg border border-white/10">
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Petições Autorais</h3>
-                      <p className="text-sm text-gray-600 mb-4">
+                      <h3 className="text-lg font-medium text-white mb-2">Petições Autorais</h3>
+                      <p className="text-sm text-slate-300 mb-4">
                         Faça o upload de 3 petições de sua autoria para análise e aprovação (formato PDF, máx. 5MB cada).
                       </p>
                     </div>
 
                     {/* Petition 1 */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="border-2 border-dashed border-white/15 bg-slate-950/35 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <FileText className="h-8 w-8 text-gray-400" />
+                          <FileText className="h-8 w-8 text-slate-300" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Petição Autoral 1</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm font-medium text-slate-100">Petição Autoral 1</p>
+                            <p className="text-xs text-slate-300">
                               {petitionFiles.petition1 ? petitionFiles.petition1.name : 'Nenhum arquivo selecionado'}
                             </p>
                           </div>
@@ -1343,7 +1343,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                           />
                           <label
                             htmlFor="petition1"
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                            className="inline-flex items-center px-3 py-2 border border-white/15 text-sm leading-4 font-medium rounded-md text-slate-100 bg-slate-900/50 hover:bg-slate-900/70 cursor-pointer"
                           >
                             <Upload className="h-4 w-4 mr-2" />
                             Selecionar
@@ -1356,13 +1356,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     )}
 
                     {/* Petition 2 */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="border-2 border-dashed border-white/15 bg-slate-950/35 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <FileText className="h-8 w-8 text-gray-400" />
+                          <FileText className="h-8 w-8 text-slate-300" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Petição Autoral 2</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm font-medium text-slate-100">Petição Autoral 2</p>
+                            <p className="text-xs text-slate-300">
                               {petitionFiles.petition2 ? petitionFiles.petition2.name : 'Nenhum arquivo selecionado'}
                             </p>
                           </div>
@@ -1380,7 +1380,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                           />
                           <label
                             htmlFor="petition2"
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                            className="inline-flex items-center px-3 py-2 border border-white/15 text-sm leading-4 font-medium rounded-md text-slate-100 bg-slate-900/50 hover:bg-slate-900/70 cursor-pointer"
                           >
                             <Upload className="h-4 w-4 mr-2" />
                             Selecionar
@@ -1393,13 +1393,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                     )}
 
                     {/* Petition 3 */}
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div className="border-2 border-dashed border-white/15 bg-slate-950/35 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <FileText className="h-8 w-8 text-gray-400" />
+                          <FileText className="h-8 w-8 text-slate-300" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Petição Autoral 3</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-sm font-medium text-slate-100">Petição Autoral 3</p>
+                            <p className="text-xs text-slate-300">
                               {petitionFiles.petition3 ? petitionFiles.petition3.name : 'Nenhum arquivo selecionado'}
                             </p>
                           </div>
@@ -1417,7 +1417,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                           />
                           <label
                             htmlFor="petition3"
-                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                            className="inline-flex items-center px-3 py-2 border border-white/15 text-sm leading-4 font-medium rounded-md text-slate-100 bg-slate-900/50 hover:bg-slate-900/70 cursor-pointer"
                           >
                             <Upload className="h-4 w-4 mr-2" />
                             Selecionar

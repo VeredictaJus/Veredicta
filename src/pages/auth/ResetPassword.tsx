@@ -32,7 +32,7 @@ const BrandLogo: FC = () => (
 
 const AUTH_ANIMATED_OVERLAYS = (
   <>
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/28" />
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
     <div
       aria-hidden
       className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"

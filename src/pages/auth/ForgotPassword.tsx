@@ -60,7 +60,7 @@ export default function ForgotPassword() {
         <FloatingLegalBackground />
 
         {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/28" />
+        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
         <div
           aria-hidden
           className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
@@ -149,7 +149,7 @@ export default function ForgotPassword() {
     <FloatingLegalBackground />
 
     {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/28" />
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
     <div
       aria-hidden
       className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"

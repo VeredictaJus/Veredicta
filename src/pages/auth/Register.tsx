@@ -753,7 +753,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
+    <div className="auth-page relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
       <FloatingLegalBackground />
 
       <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />

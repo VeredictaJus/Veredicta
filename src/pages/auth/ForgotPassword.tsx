@@ -55,7 +55,7 @@ export default function ForgotPassword() {
 
   if (isEmailSent) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
+      <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         {/* Fundo animado */}
         <FloatingLegalBackground />
 
@@ -144,7 +144,7 @@ export default function ForgotPassword() {
   }
 
   return (
-  <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
+  <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
     {/* Fundo animado */}
     <FloatingLegalBackground />
 

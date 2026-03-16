@@ -192,7 +192,7 @@ export default function ResetPassword() {
   /* ⏳ Carregando */
   if (isValidCode === null) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="auth-page relative min-h-screen flex items-center justify-center bg-slate-950">
         <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
         <p className="text-slate-200 relative z-10">Carregando...</p>
@@ -203,7 +203,7 @@ export default function ResetPassword() {
   /* ❌ Link inválido */
   if (isValidCode === false) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
+      <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
@@ -248,7 +248,7 @@ export default function ResetPassword() {
   /* ✅ Sucesso */
   if (isSuccess) {
     return (
-      <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
+      <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
@@ -286,7 +286,7 @@ export default function ResetPassword() {
 
   /* 🔐 Formulário de redefinição */
   return (
-    <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
+    <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
       <FloatingLegalBackground />
       {AUTH_ANIMATED_OVERLAYS}
 

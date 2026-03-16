@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-import AnimatedBackground from '@/components/ui/AnimatedBackground'; // ✅ fundo animado
+import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -57,17 +57,17 @@ export default function ForgotPassword() {
     return (
       <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
         {/* Fundo animado */}
-        <AnimatedBackground />
+        <FloatingLegalBackground />
 
         {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
         <div
           aria-hidden
-          className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+          className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
         />
         <div
           aria-hidden
-          className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+          className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
         />
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -91,8 +91,8 @@ export default function ForgotPassword() {
 </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-          <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-            <CardHeader className="text-center bg-white dark:bg-white">
+          <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+            <CardHeader className="text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
@@ -102,7 +102,7 @@ export default function ForgotPassword() {
   </CardDescription>
 </CardHeader>
             
-            <CardContent className="space-y-4 bg-white dark:bg-white">
+            <CardContent className="space-y-4">
               <Alert className="px-0 text-center flex flex-col items-center space-y-3 py-6 bg-white border-gray-200">
   {/* override do posicionamento padrão do Alert */}
   <div className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 shadow-sm border border-orange-200">
@@ -146,17 +146,17 @@ export default function ForgotPassword() {
   return (
   <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
     {/* Fundo animado */}
-    <AnimatedBackground />
+    <FloatingLegalBackground />
 
     {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
     <div
       aria-hidden
-      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
     />
     <div
       aria-hidden
-      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
     />
 
     {/* topo – logo com círculo branco */}
@@ -192,15 +192,15 @@ export default function ForgotPassword() {
 
     {/* Card do formulário */}
     <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-      <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-        <CardHeader className="text-center bg-white dark:bg-white">
+      <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+        <CardHeader className="text-center">
           <CardTitle className="text-gray-900">Esqueci minha senha</CardTitle>
           <CardDescription className="mx-auto max-w-sm leading-relaxed text-gray-600">
             Digite seu email para receber instruções de redefinição
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="bg-white dark:bg-white">
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="email" className="text-gray-900">Email</Label>

@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Chrome, Loader2, Mail, Eye, EyeOff } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
-import AnimatedBackground from '@/components/ui/AnimatedBackground'
+import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground'
 
 export default function NewLoginForm() {
   const navigate = useNavigate()
@@ -101,29 +101,28 @@ export default function NewLoginForm() {
       className="relative min-h-screen flex items-center justify-center bg-slate-950 py-12 px-4 sm:px-6 lg:px-8"
       onKeyDown={handleKeyDown}
     >
-      <AnimatedBackground />
+      <FloatingLegalBackground />
 
-      {/* Overlays: mantém os caracteres, mas escurece o fundo e aplica degradê laranja */}
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
       <div
         aria-hidden
-        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
       />
       <div
         aria-hidden
-        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
       />
 
-      <Card className="w-full max-w-md relative z-10 bg-white/90 shadow-xl border border-gray-200 dark:bg-white dark:border-gray-200">
-        <CardHeader className="text-center items-center bg-white dark:bg-white">
+      <Card className="w-full max-w-md relative z-10 border border-white/10 bg-slate-950/35 shadow-[0_18px_50px_rgba(0,0,0,0.45)] supports-[backdrop-filter]:backdrop-blur-xl">
+        <CardHeader className="text-center items-center">
           <div className="flex justify-center mb-4">
             <Logo size="xl" clickable={true} textColor="dark" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">Login</CardTitle>
-          <CardDescription className="text-gray-600">Entre na sua conta Veredicta</CardDescription>
+          <CardTitle className="text-2xl font-bold text-slate-100">Login</CardTitle>
+          <CardDescription className="text-sky-300/80">Entre na sua conta Veredicta</CardDescription>
         </CardHeader>
 
-        <CardContent className="bg-white dark:bg-white">
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -132,38 +131,38 @@ export default function NewLoginForm() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="userType" className="text-gray-900">Tipo de Usuário</Label>
+              <Label htmlFor="userType" className="text-slate-200">Tipo de Usuário</Label>
               <Select value={formData.userType} onValueChange={handleUserTypeChange}>
-                <SelectTrigger disabled={loading} className="bg-white border-gray-300 text-gray-900">
+                <SelectTrigger disabled={loading} className="bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400">
                   <SelectValue placeholder="Selecione o tipo de usuário" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
+                <SelectContent className="border-white/10 bg-slate-950/95 text-slate-100 supports-[backdrop-filter]:backdrop-blur-md">
                   <SelectItem
                     value="client"
-                    className="bg-white hover:bg-orange-50 data-[state=checked]:bg-[#FF9E7A] data-[state=checked]:text-white data-[highlighted]:bg-[#FFB995] data-[highlighted]:text-white"
+                    className="data-[state=checked]:bg-orange-500/70 data-[state=checked]:text-white data-[highlighted]:bg-slate-800"
                   >
-                    <span className="text-gray-950 font-medium">Cliente</span>
+                    <span className="font-medium">Cliente</span>
                   </SelectItem>
                   <SelectItem
                     value="writer"
-                    className="bg-white hover:bg-orange-50 data-[state=checked]:bg-[#FF9E7A] data-[state=checked]:text-white data-[highlighted]:bg-[#FFB995] data-[highlighted]:text-white"
+                    className="data-[state=checked]:bg-orange-500/70 data-[state=checked]:text-white data-[highlighted]:bg-slate-800"
                   >
-                    <span className="text-gray-950 font-medium">Redator</span>
+                    <span className="font-medium">Redator</span>
                   </SelectItem>
                   <SelectItem
                     value="admin"
-                    className="bg-white hover:bg-orange-50 data-[state=checked]:bg-[#FF9E7A] data-[state=checked]:text-white data-[highlighted]:bg-[#FFB995] data-[highlighted]:text-white"
+                    className="data-[state=checked]:bg-orange-500/70 data-[state=checked]:text-white data-[highlighted]:bg-slate-800"
                   >
-                    <span className="text-gray-950 font-medium">Administrador</span>
+                    <span className="font-medium">Administrador</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-900">Email</Label>
+              <Label htmlFor="email" className="text-slate-200">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   id="email"
                   name="email"
@@ -173,7 +172,7 @@ export default function NewLoginForm() {
                   autoFocus
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  className="pl-10 bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400"
                   placeholder="seu@email.com"
                   disabled={loading}
                 />
@@ -181,7 +180,7 @@ export default function NewLoginForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-900">Senha</Label>
+              <Label htmlFor="password" className="text-slate-200">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -191,7 +190,7 @@ export default function NewLoginForm() {
                   autoComplete="current-password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="pr-10 bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+                  className="pr-10 bg-slate-900/45 border-white/10 text-slate-100 placeholder:text-slate-400"
                   placeholder="Sua senha"
                   disabled={loading}
                 />
@@ -199,12 +198,12 @@ export default function NewLoginForm() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent bg-transparent text-gray-400"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent bg-transparent text-slate-400"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   disabled={loading}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+                  {showPassword ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
                 </Button>
               </div>
             </div>
@@ -214,7 +213,7 @@ export default function NewLoginForm() {
               variant="outline"
               onClick={handleGoogleClient}
               disabled={loading}
-              className="w-full border-gray-300 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900"
+              className="w-full border-white/10 bg-slate-900/45 text-slate-100 hover:bg-slate-900/65 hover:text-white"
             >
               {loading ? (
                 <>
@@ -242,14 +241,14 @@ export default function NewLoginForm() {
 
             <div className="text-center text-sm space-y-1">
               <p>
-                <span className="text-gray-600">Não tem uma conta? </span>
-                <Link to="/auth/register" className="text-orange-600 hover:text-orange-800 font-medium">
+                <span className="text-slate-300">Não tem uma conta? </span>
+                <Link to="/auth/register" className="text-orange-400 hover:text-orange-300 font-medium">
                   Cadastre-se aqui
                 </Link>
               </p>
               <p>
-                <span className="text-gray-600">Esqueceu a senha? </span>
-                <Link to="/auth/forgot-password" className="text-orange-600 hover:text-orange-800 font-medium">
+                <span className="text-slate-300">Esqueceu a senha? </span>
+                <Link to="/auth/forgot-password" className="text-orange-400 hover:text-orange-300 font-medium">
                   Redefinir aqui
                 </Link>
               </p>

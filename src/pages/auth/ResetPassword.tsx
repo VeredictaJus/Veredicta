@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
-import AnimatedBackground from "@/components/ui/AnimatedBackground";
+import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -32,14 +32,14 @@ const BrandLogo: FC = () => (
 
 const AUTH_ANIMATED_OVERLAYS = (
   <>
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
     <div
       aria-hidden
-      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
     />
     <div
       aria-hidden
-      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
     />
   </>
 );
@@ -193,7 +193,7 @@ export default function ResetPassword() {
   if (isValidCode === null) {
     return (
       <div className="relative min-h-screen flex items-center justify-center bg-slate-950">
-        <AnimatedBackground />
+        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
         <p className="text-slate-200 relative z-10">Carregando...</p>
       </div>
@@ -204,7 +204,7 @@ export default function ResetPassword() {
   if (isValidCode === false) {
     return (
       <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        <AnimatedBackground />
+        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -212,8 +212,8 @@ export default function ResetPassword() {
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-          <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-            <CardHeader className="text-center bg-white dark:bg-white">
+          <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+            <CardHeader className="text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
@@ -222,7 +222,7 @@ export default function ResetPassword() {
                 O link de redefinição de senha é inválido ou expirou
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 bg-white dark:bg-white">
+            <CardContent className="space-y-4">
               <Alert className="bg-white border-gray-200 text-center flex flex-col items-center">
                 <AlertTriangle className="h-4 w-4 mx-auto mb-2" />
                 <AlertDescription className="text-gray-900 text-center">
@@ -249,7 +249,7 @@ export default function ResetPassword() {
   if (isSuccess) {
     return (
       <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        <AnimatedBackground />
+        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -257,15 +257,15 @@ export default function ResetPassword() {
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-          <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-            <CardHeader className="text-center bg-white dark:bg-white">
+          <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+            <CardHeader className="text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <CardTitle className="text-gray-900">Senha Redefinida!</CardTitle>
               <CardDescription className="text-gray-600 !whitespace-normal !max-w-none">Sua senha foi alterada com sucesso</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 bg-white dark:bg-white">
+            <CardContent className="space-y-4">
               <Alert className="bg-white border-gray-200 text-center flex flex-col items-center">
                 <CheckCircle className="h-4 w-4 mx-auto mb-2" />
                 <AlertDescription className="text-gray-900 text-center">Agora você pode fazer login com sua nova senha.</AlertDescription>
@@ -287,7 +287,7 @@ export default function ResetPassword() {
   /* 🔐 Formulário de redefinição */
   return (
     <div className="relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-      <AnimatedBackground />
+      <FloatingLegalBackground />
       {AUTH_ANIMATED_OVERLAYS}
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -304,15 +304,15 @@ export default function ResetPassword() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-          <CardHeader className="text-center items-center bg-white dark:bg-white">
+        <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+          <CardHeader className="text-center items-center">
             <CardTitle className="leading-tight text-gray-900">Redefinir Senha</CardTitle>
             <CardDescription className="text-center mx-auto max-w-sm leading-relaxed text-gray-600 !whitespace-normal !max-w-none">
               Digite sua nova senha
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="bg-white dark:bg-white">
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {errors.general && (
                 <Alert className="bg-white border-gray-200 text-center flex flex-col items-center">

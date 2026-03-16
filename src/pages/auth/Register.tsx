@@ -12,7 +12,7 @@ import { useNewAuth } from '@/contexts/NewAuthContext';
 import { toast } from 'sonner';
 // Logo do Supabase Storage
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
-import AnimatedBackground from "@/components/ui/AnimatedBackground";
+import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 import Logo from '@/components/ui/Logo';
 import { VerificationService } from '@/services/verificationService';
 import { supabase } from '@/lib/supabase';
@@ -754,17 +754,16 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
-      <AnimatedBackground />
+      <FloatingLegalBackground />
 
-      {/* Overlays: mantém os caracteres, mas escurece o fundo e aplica degradê laranja */}
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/55" />
+      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
       <div
         aria-hidden
-        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.26),transparent_55%)]"
+        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
       />
       <div
         aria-hidden
-        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
+        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
       />
 
       <div className="w-full max-w-md relative z-10">
@@ -796,15 +795,15 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         </header>
 
         {/* Card */}
-        <Card className="bg-white/90 shadow-xl dark:bg-white dark:border-gray-200">
-          <CardHeader className="bg-white dark:bg-white">
+        <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+          <CardHeader>
             <CardTitle className="text-center text-2xl font-bold text-gray-900">Criar Conta</CardTitle>
             <CardDescription className="text-center break-words whitespace-normal max-w-xs mx-auto text-gray-600">
               Escolha o tipo de conta e preencha os dados
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6 bg-white dark:bg-white">
+          <CardContent className="space-y-6">
             {/* User Type Toggle */}
             <div className="flex justify-center">
               <div className="flex bg-gray-100 rounded-lg p-1">

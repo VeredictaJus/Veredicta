@@ -6,7 +6,7 @@ export default function FloatingLegalBackground() {
 
   return (
     <div
-      className="fixed inset-0 z-0 bg-no-repeat bg-cover bg-center"
+      className="auth-bg-animated fixed inset-0 z-0 bg-no-repeat bg-cover bg-center"
       style={{ backgroundImage }}
     />
   );

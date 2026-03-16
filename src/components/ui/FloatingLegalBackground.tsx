@@ -1,4 +1,4 @@
-const legalAuthBg = '/f2059462-1604-46ab-80ac-e24648761145.png';
+const legalAuthBg = '/f2059462-16d4-46ab-80ac-a24648f76146.png';
 
 export default function FloatingLegalBackground() {
   return (

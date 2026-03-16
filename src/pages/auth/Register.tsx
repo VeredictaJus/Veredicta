@@ -795,7 +795,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         </header>
 
         {/* Card */}
-        <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+        <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold text-gray-900">Criar Conta</CardTitle>
             <CardDescription className="text-center break-words whitespace-normal max-w-xs mx-auto text-gray-600">

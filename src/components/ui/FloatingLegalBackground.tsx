@@ -44,7 +44,7 @@ export default function FloatingLegalBackground() {
       speedX: (Math.random() - 0.5) * 0.4,
       speedY: (Math.random() - 0.5) * 0.3,
       fontSize: 14 + Math.random() * 32,
-      opacity: 0.04 + Math.random() * 0.12,
+      opacity: 0.03 + Math.random() * 0.08,
     }));
 
     const animate = () => {
@@ -60,7 +60,7 @@ export default function FloatingLegalBackground() {
         if (term.y < -50) term.y = canvas.height + 50;
 
         ctx.font = `${term.fontSize}px 'Georgia', serif`;
-        ctx.fillStyle = `hsla(210, 50%, 55%, ${term.opacity})`;
+        ctx.fillStyle = `hsla(208, 35%, 72%, ${term.opacity})`;
         ctx.fillText(term.text, term.x, term.y);
       }
 

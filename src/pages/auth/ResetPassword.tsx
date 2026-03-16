@@ -212,7 +212,7 @@ export default function ResetPassword() {
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-          <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+          <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
             <CardHeader className="text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -257,7 +257,7 @@ export default function ResetPassword() {
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-          <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+          <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
             <CardHeader className="text-center">
               <div className="mx-auto flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -304,7 +304,7 @@ export default function ResetPassword() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <Card className="border border-white/20 bg-white/86 shadow-xl supports-[backdrop-filter]:backdrop-blur-lg">
+        <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(219,234,254,0.78))] shadow-[0_8px_32px_rgba(2,6,23,0.45),inset_0_1px_0_rgba(255,255,255,0.45)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
           <CardHeader className="text-center items-center">
             <CardTitle className="leading-tight text-gray-900">Redefinir Senha</CardTitle>
             <CardDescription className="text-center mx-auto max-w-sm leading-relaxed text-gray-600 !whitespace-normal !max-w-none">

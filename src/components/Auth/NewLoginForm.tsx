@@ -113,8 +113,8 @@ export default function NewLoginForm() {
         className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
       />
 
-      <Card className="w-full max-w-md relative z-10 border border-white/10 bg-slate-950/35 shadow-[0_18px_50px_rgba(0,0,0,0.45)] supports-[backdrop-filter]:backdrop-blur-xl">
-        <CardHeader className="text-center items-center">
+      <Card className="w-full max-w-md relative z-10 rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(30,58,138,0.08))] shadow-[0_8px_32px_rgba(2,6,23,0.55),inset_0_1px_0_rgba(255,255,255,0.10)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
+        <CardHeader className="text-center items-center px-8 pt-8 pb-4 md:px-10 md:pt-10">
           <div className="flex justify-center mb-4">
             <Logo size="xl" clickable={true} textColor="dark" />
           </div>
@@ -122,7 +122,7 @@ export default function NewLoginForm() {
           <CardDescription className="text-sky-300/80">Entre na sua conta Veredicta</CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-8 pb-8 md:px-10 md:pb-10 pt-0">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">

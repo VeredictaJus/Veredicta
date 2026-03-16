@@ -9,7 +9,6 @@ import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
-import legalBgAuth from '@/assets/legal-bg-auth.svg';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -33,12 +32,7 @@ const BrandLogo: FC = () => (
 
 const AUTH_ANIMATED_OVERLAYS = (
   <>
-    <div
-      aria-hidden
-      className="fixed inset-0 z-[0] bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${legalBgAuth})` }}
-    />
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/58" />
+    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/28" />
     <div
       aria-hidden
       className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"

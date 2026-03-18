@@ -540,16 +540,15 @@ export default function NewPetition() {
         petitionId = createdPetition.id;
       }
       
-      // Upload files if any
-      if (files.length > 0) {
+      // Upload files only when user actually attached files.
+      // Demands without attachments must still be allowed.
+      const filesToUpload = files.filter(fileUpload => fileUpload.file && !fileUpload.uploaded);
+      if (filesToUpload.length > 0) {
+        const failedUploads: string[] = [];
         toast.info('Fazendo upload dos arquivos...');
         setUploadingFiles(true);
         
-        for (const fileUpload of files) {
-          if (!fileUpload.file || fileUpload.uploaded) {
-            continue;
-          }
-
+        for (const fileUpload of filesToUpload) {
           setFiles(prev => prev.map(f =>
             f.id === fileUpload.id
               ? { ...f, uploading: true, error: undefined }
@@ -579,6 +578,7 @@ export default function NewPetition() {
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Erro desconhecido';
             console.error('Erro ao fazer upload do arquivo:', message);
+            failedUploads.push(fileUpload.name);
 
             setFiles(prev => prev.map(f =>
               f.id === fileUpload.id
@@ -591,6 +591,15 @@ export default function NewPetition() {
         }
 
         setUploadingFiles(false);
+
+        // Do not finish as "concluded" if any attached file failed.
+        if (failedUploads.length > 0) {
+          const failedFilesText = failedUploads.join(', ');
+          toast.error(
+            `A petição foi criada, mas ${failedUploads.length} anexo(s) falharam no upload: ${failedFilesText}. Reenvie os anexos para concluir.`
+          );
+          return;
+        }
       }
       
       toast.success(

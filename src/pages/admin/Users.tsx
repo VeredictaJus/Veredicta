@@ -39,6 +39,10 @@ type UiUser = {
   id: string;
   name: string;
   email: string | null;
+  phone: string | null;
+  oabNumber: string | null;
+  cpf: string | null;
+  cnpj: string | null;
   role: 'CLIENT' | 'WRITER' | 'ADMIN' | 'UNKNOWN';
   created_at: string | null;
   _raw: any;
@@ -133,6 +137,22 @@ export default function Users() {
   };
 
   const [selected, setSelected] = useState<UiUser | null>(null);
+
+  const getPrimaryDocument = (user: UiUser) => {
+    if (user.cpf) return user.cpf;
+    if (user.cnpj) return user.cnpj;
+    return '—';
+  };
+
+  const getRegistrationInfo = (user: UiUser) => {
+    if (user.role === 'WRITER') {
+      return user.oabNumber || '—';
+    }
+    if (user.role === 'CLIENT') {
+      return getPrimaryDocument(user);
+    }
+    return '—';
+  };
 
   const calculateSuspensionDays = (suspendedUntil?: string | null, lateCount = 0) => {
     if (suspendedUntil) {
@@ -631,6 +651,10 @@ export default function Users() {
           id: String(p.id ?? ''),
           name: p.full_name || '—',
           email: p.email || null,
+          phone: p.phone || null,
+          oabNumber: p.oab_number || null,
+          cpf: p.cpf || null,
+          cnpj: p.cnpj || null,
           role,
           created_at: p.created_at || null,
           _raw: { ...p, _sourceTable: 'user_profiles', firebase_uid: p.firebase_uid },
@@ -821,6 +845,8 @@ export default function Users() {
                 <TableHeader>
                   <TableRow className="hover:bg-muted/50">
                     <TableHead className="text-foreground">Usuário</TableHead>
+                    <TableHead className="text-foreground">Telefone</TableHead>
+                    <TableHead className="text-foreground">OAB/Documento</TableHead>
                     <TableHead className="text-foreground">Tipo</TableHead>
                     <TableHead className="text-foreground">Status</TableHead>
                     <TableHead className="text-foreground">Cadastro</TableHead>
@@ -830,7 +856,7 @@ export default function Users() {
                 <TableBody>
                   {!loading && filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Nenhum usuário encontrado
                       </TableCell>
                     </TableRow>
@@ -847,6 +873,16 @@ export default function Users() {
                         <TableCell className="max-w-[300px]">
                           <div className="font-medium truncate" title={u.name}>{truncateLongName(u.name)}</div>
                           <div className="text-sm text-muted-foreground truncate" title={u.email || ''}>{truncateLongEmail(u.email) ?? '—'}</div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[180px]">
+                          <div className="truncate" title={u.phone || ''}>
+                            {u.phone || '—'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[220px]">
+                          <div className="truncate" title={getRegistrationInfo(u)}>
+                            {getRegistrationInfo(u)}
+                          </div>
                         </TableCell>
                         <TableCell>{ROLE_LABEL[u.role]}</TableCell>
                         <TableCell>
@@ -941,6 +977,22 @@ export default function Users() {
                                       <div>
                                         <div className="text-sm font-medium">Email</div>
                                         <div className="text-sm text-muted-foreground truncate" title={selected.email || ''}>{truncateLongEmail(selected.email) ?? '—'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-sm font-medium">Telefone</div>
+                                        <div className="text-sm text-muted-foreground">{selected.phone || '—'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-sm font-medium">OAB</div>
+                                        <div className="text-sm text-muted-foreground">{selected.oabNumber || '—'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-sm font-medium">CPF</div>
+                                        <div className="text-sm text-muted-foreground">{selected.cpf || '—'}</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-sm font-medium">CNPJ</div>
+                                        <div className="text-sm text-muted-foreground">{selected.cnpj || '—'}</div>
                                       </div>
 
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

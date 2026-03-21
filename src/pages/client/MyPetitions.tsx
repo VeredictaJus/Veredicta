@@ -1598,7 +1598,7 @@ export default function MyPetitions() {
                       <TableCell className="hidden md:table-cell">{petition.type}</TableCell>
                       <TableCell>
                         {isPausedForClientComplement(petition) ? (
-                          <Badge className="bg-amber-100 text-amber-800">
+                          <Badge className="border border-amber-300/45 bg-amber-50/85 text-amber-900 dark:border-amber-300/25 dark:bg-amber-500/12 dark:text-amber-100">
                             <Clock className="h-3 w-3 mr-1" />
                             Prazo pausado para complemento de documentos
                           </Badge>
@@ -1702,16 +1702,16 @@ export default function MyPetitions() {
                                     </p>
                                   </div>
                                   {isPausedForClientComplement(selectedPetition) && (
-                                    <div className="rounded border border-amber-300 bg-amber-50 p-3">
-                                      <p className="text-sm font-medium text-amber-900">
+                                    <div className="rounded border border-amber-300/45 bg-amber-50/85 p-3 dark:border-amber-300/25 dark:bg-amber-500/10">
+                                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
                                         Prazo pausado para complemento de documentos
                                       </p>
-                                      <p className="text-sm text-amber-800 mt-1 whitespace-pre-wrap">
+                                      <p className="text-sm text-amber-800 dark:text-amber-200 mt-1 whitespace-pre-wrap">
                                         {selectedPetition.deadline_pause_reason?.trim()
                                           ? selectedPetition.deadline_pause_reason
                                           : 'O redator sinalizou pendência de informações/documentos para continuar a elaboração.'}
                                       </p>
-                                      <p className="text-xs text-amber-700 mt-2">
+                                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
                                         Envie o complemento abaixo para acelerar a retomada do prazo.
                                       </p>
                                     </div>

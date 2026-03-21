@@ -934,9 +934,9 @@ export default function AdminPetitions() {
                                   </div>
                                 )}
                                 {selectedPetition.status === 'pending' && selectedPetition.assigned_writer_id && (
-                                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                    <label className="text-sm font-medium text-amber-900">Pausa por pendência do cliente</label>
-                                    <p className="text-sm text-amber-800 mt-1">
+                                  <div className="p-3 rounded-lg border border-amber-300/45 bg-amber-50/85 text-amber-900 dark:border-amber-300/25 dark:bg-amber-500/10 dark:text-amber-100">
+                                    <label className="text-sm font-medium">Pausa por pendência do cliente</label>
+                                    <p className="text-sm mt-1 text-amber-800 dark:text-amber-200">
                                       {selectedPetition.deadline_pause_reason || 'Motivo não informado.'}
                                     </p>
                                   </div>

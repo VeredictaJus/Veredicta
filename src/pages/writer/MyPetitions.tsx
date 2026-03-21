@@ -26,7 +26,7 @@ const statusConfig: Record<WriterStatus, { label: string; color: string; icon: a
   completed: { label: 'Concluída', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
   delivered: { label: 'Entregue', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
   approved: { label: 'Aprovada pelo Cliente', color: 'bg-emerald-100 text-emerald-800', icon: CheckCircle2 },
-  pending: { label: 'Pendente', color: 'bg-gray-100 text-gray-800', icon: Clock },
+  pending: { label: 'Aguardando Cliente', color: 'bg-amber-100 text-amber-800', icon: Clock },
   cancelled: { label: 'Cancelada', color: 'bg-red-100 text-red-800', icon: X },
   available: { label: 'Disponível', color: 'bg-blue-100 text-blue-800', icon: FileText },
   rejected: { label: 'Rejeitada', color: 'bg-red-100 text-red-800', icon: X }
@@ -713,6 +713,10 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
     if (!user?.uid) return toast.error('Usuário não autenticado.');
 
     const petition = petitions.find(p => p.id === petitionId);
+    if ((petition?.status as string) === 'pending') {
+      toast.info('Esta petição está pausada aguardando retorno do cliente. Peça ao admin para retomar o prazo.');
+      return;
+    }
     if (petition?.requires_labor_calculation && !petition?.calculation_id) {
       toast.error('Esta petição requer cálculo trabalhista. Faça o cálculo antes de enviar.');
       return;
@@ -899,6 +903,74 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
       toast.error('Erro ao enviar diretamente ao cliente.');
     } finally {
       setIsDirectDeliveryLoading(false);
+    }
+  }
+
+  async function handleRequestClientPending(petitionId: string) {
+    if (!user?.uid) return toast.error('Usuário não autenticado.');
+
+    const petition = petitions.find(p => p.id === petitionId);
+    if (!petition) return toast.error('Petição não encontrada.');
+
+    if (petition.status !== 'in_progress' && petition.status !== 'assigned') {
+      toast.info('Só é possível pausar petições em andamento.');
+      return;
+    }
+
+    const reason = window.prompt(
+      'Descreva o que está faltando para desenvolver a petição (obrigatório):\n\nEx.: falta de documentos, dados contraditórios, ausência de retorno do cliente.'
+    );
+
+    if (!reason || !reason.trim()) {
+      toast.error('Motivo obrigatório para solicitar pausa.');
+      return;
+    }
+
+    const now = new Date();
+    const remainingSeconds = petition.deadline
+      ? Math.max(0, Math.floor((new Date(petition.deadline).getTime() - now.getTime()) / 1000))
+      : null;
+
+    try {
+      const { error } = await supabase
+        .from('petitions')
+        .update({
+          status: 'pending',
+          updated_at: now.toISOString(),
+          deadline_paused_at: now.toISOString(),
+          deadline_remaining_seconds: remainingSeconds,
+          deadline_pause_reason: reason.trim(),
+          status_before_pause: petition.status,
+        })
+        .eq('id', petitionId);
+
+      if (error) throw error;
+
+      setPetitions(prev =>
+        prev.map(p =>
+          p.id === petitionId
+            ? {
+                ...p,
+                status: 'pending',
+              }
+            : p
+        )
+      );
+
+      await DatabaseService.notifyAllAdmins({
+        title: '⏸️ Petição pausada por pendência do cliente',
+        message: `O redator sinalizou pendência na petição "${petition.title}". Motivo: ${reason.trim()}`,
+        type: 'petition',
+        priority: 'high',
+        is_read: false,
+        related_entity_type: 'petition',
+        related_entity_id: petitionId,
+      });
+
+      toast.success('Prazo pausado e admin notificado.');
+    } catch (error) {
+      console.error('Erro ao pausar petição:', error);
+      toast.error('Não foi possível pausar a petição.');
     }
   }
 
@@ -1354,6 +1426,18 @@ const [isDirectDeliveryLoading, setIsDirectDeliveryLoading] = useState(false);
                                 <p className="text-xs text-muted-foreground text-center">
                                   O cliente receberá a petição e poderá aprovar, solicitar correções ou solicitar revisão humana conforme seu plano.
                                 </p>
+                                {(selectedPetition?.status === 'in_progress' ||
+                                  selectedPetition?.status === 'assigned' ||
+                                  petition.status === 'in_progress' ||
+                                  petition.status === 'assigned') && (
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => handleRequestClientPending(selectedPetition?.id || petition.id)}
+                                    className="w-full border-amber-500/40 text-amber-700 hover:bg-amber-50"
+                                  >
+                                    Solicitar complemento (pausar prazo)
+                                  </Button>
+                                )}
                                 
                                 {/* Botão para declinar petição - apenas para petições em andamento */}
                                 {(selectedPetition?.status === 'in_progress' || selectedPetition?.status === 'assigned' || petition.status === 'in_progress' || petition.status === 'assigned') && (

@@ -18,6 +18,10 @@ export interface Petition {
   files_count: number;
   status: 'pending' | 'available' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'delivered' | 'rejected' | 'approved' | 'revision' | 'pending_review';
   assigned_writer_id?: string;
+  deadline_paused_at?: string | null;
+  deadline_remaining_seconds?: number | null;
+  deadline_pause_reason?: string | null;
+  status_before_pause?: string | null;
   is_pilot?: boolean;
   requires_labor_calculation?: boolean;
   calculation_id?: string;
@@ -144,7 +148,7 @@ export class DatabaseService {
     // ✅ OTIMIZAÇÃO: Selecionar apenas campos necessários e adicionar limit
     const { data, error } = await supabase
       .from('petitions')
-      .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, client_name, client_id, price, description, requires_labor_calculation, calculation_id, correction_count, correction_requested_at, display_id, updated_at')
+      .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, client_name, client_id, price, description, requires_labor_calculation, calculation_id, correction_count, correction_requested_at, display_id, updated_at, deadline_paused_at, deadline_remaining_seconds, deadline_pause_reason, status_before_pause')
       .eq('assigned_writer_id', writerId)
       .order('created_at', { ascending: false })
       .limit(1000); // Limitar a 1000 petições mais recentes
@@ -172,6 +176,10 @@ export class DatabaseService {
       files_count: 0, // Campo não usado na página do writer
       status: (p.status || 'pending') as Petition['status'],
       assigned_writer_id: p.assigned_writer_id,
+      deadline_paused_at: p.deadline_paused_at || null,
+      deadline_remaining_seconds: typeof p.deadline_remaining_seconds === 'number' ? p.deadline_remaining_seconds : null,
+      deadline_pause_reason: p.deadline_pause_reason || null,
+      status_before_pause: p.status_before_pause || null,
       requires_labor_calculation: p.requires_labor_calculation || false,
       calculation_id: p.calculation_id,
       created_at: p.created_at || '',

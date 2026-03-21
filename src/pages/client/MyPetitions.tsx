@@ -91,6 +91,9 @@ interface Petition {
   correction_requested_at?: string;
   has_rating?: boolean;
   is_pilot?: boolean;
+  deadline_paused_at?: string | null;
+  deadline_remaining_seconds?: number | null;
+  deadline_pause_reason?: string | null;
 }
 
 const statusConfig = {
@@ -322,6 +325,12 @@ export default function MyPetitions() {
           petition.status === 'delivered' || 
           petition.status === 'approved'
         );
+      } else if (statusFilter === 'awaiting_complement') {
+        // Petição pausada aguardando complemento do cliente
+        filtered = filtered.filter(petition => petition.status === 'pending' && !!petition.assigned_writer_id);
+      } else if (statusFilter === 'pending') {
+        // Pendente "normal": ainda sem redator
+        filtered = filtered.filter(petition => petition.status === 'pending' && !petition.assigned_writer_id);
       } else {
         filtered = filtered.filter(petition => petition.status === statusFilter);
       }
@@ -472,7 +481,10 @@ export default function MyPetitions() {
               correction_count: petition.correction_count || 0,
               correction_requested_at: petition.correction_requested_at,
               has_rating: petition.has_rating || false,
-              is_pilot: Boolean(petition.is_pilot)
+              is_pilot: Boolean(petition.is_pilot),
+              deadline_paused_at: petition.deadline_paused_at || null,
+              deadline_remaining_seconds: typeof petition.deadline_remaining_seconds === 'number' ? petition.deadline_remaining_seconds : null,
+              deadline_pause_reason: petition.deadline_pause_reason || null
             };
           });
           
@@ -956,6 +968,89 @@ export default function MyPetitions() {
     }
   };
 
+  // Enviar complemento quando a petição está pausada aguardando cliente
+  const handleSendPausedComplement = async () => {
+    if (!selectedPetition?.id || !user?.uid) {
+      toast.error('Dados inválidos');
+      return;
+    }
+
+    if (!isPausedForClientComplement(selectedPetition)) {
+      toast.error('Esta petição não está em pausa para complemento.');
+      return;
+    }
+
+    if (!selectedPetition.assigned_writer_id) {
+      toast.error('Esta petição não possui redator atribuído.');
+      return;
+    }
+
+    if (!clientCorrectionNotes.trim() && correctionFiles.length === 0) {
+      toast.error('Descreva o complemento ou anexe documentos.');
+      return;
+    }
+
+    try {
+      // Upload de anexos complementares
+      for (const file of correctionFiles) {
+        const result = await PetitionFileService.uploadFile(file, selectedPetition.id, user.uid);
+        if (!result.success) {
+          toast.error(`Erro ao enviar ${file.name}: ${result.error || 'falha no upload'}`);
+          return;
+        }
+      }
+
+      const nowIso = new Date().toISOString();
+
+      // Registrar solicitação de complemento para auditoria
+      const { error: correctionError } = await supabase
+        .from('corrections')
+        .insert({
+          petition_id: selectedPetition.id,
+          user_id: user.uid,
+          mode: 'client_request',
+          status: 'pending',
+          notes: clientCorrectionNotes.trim() || null,
+          writer_observation: null,
+          created_at: nowIso,
+          updated_at: nowIso
+        });
+
+      if (correctionError) throw correctionError;
+
+      // Notificar redator
+      await DatabaseService.createNotification({
+        user_id: selectedPetition.assigned_writer_id,
+        title: '📎 Cliente enviou complemento',
+        message: `O cliente enviou complemento para a petição "${selectedPetition.title}".`,
+        type: 'petition',
+        priority: 'high',
+        is_read: false,
+        related_entity_type: 'petition',
+        related_entity_id: selectedPetition.id
+      });
+
+      // Notificar admins para retomar fluxo
+      await DatabaseService.notifyAllAdmins({
+        title: '📌 Complemento recebido do cliente',
+        message: `A petição "${selectedPetition.title}" recebeu complemento. Avalie a retomada do prazo.`,
+        type: 'petition',
+        priority: 'high',
+        is_read: false,
+        related_entity_type: 'petition',
+        related_entity_id: selectedPetition.id
+      });
+
+      setClientCorrectionNotes('');
+      setCorrectionFiles([]);
+      setUploadedCorrectionFiles([]);
+      toast.success('Complemento enviado com sucesso. O admin foi notificado para retomar o prazo.');
+    } catch (error: any) {
+      console.error('Erro ao enviar complemento:', error);
+      toast.error(error.message || 'Não foi possível enviar o complemento.');
+    }
+  };
+
   // Função para solicitar correção ao redator
   const handleRequestCorrection = async () => {
     if (!selectedPetition?.id || !user?.uid) {
@@ -1215,7 +1310,8 @@ export default function MyPetitions() {
   // Status options with counts (incluindo todos os status possíveis)
   const statusOptions = [
     { value: 'all', label: 'Todos os Status', count: petitions.length },
-    { value: 'pending', label: 'Pendente', count: petitions.filter(p => p.status === 'pending').length },
+    { value: 'pending', label: 'Pendente', count: petitions.filter(p => p.status === 'pending' && !p.assigned_writer_id).length },
+    { value: 'awaiting_complement', label: 'Aguardando complemento', count: petitions.filter(p => p.status === 'pending' && !!p.assigned_writer_id).length },
     { value: 'in_progress', label: 'Em Andamento', count: petitions.filter(p => p.status === 'in_progress').length },
     { value: 'revision', label: 'Em Revisão', count: petitions.filter(p => p.status === 'revision').length },
     { value: 'completed', label: 'Concluída', count: petitions.filter(p => 
@@ -1228,6 +1324,17 @@ export default function MyPetitions() {
 
   const handleStatusChange = (newStatus: string) => {
     setStatusFilter(newStatus);
+  };
+
+  const isPausedForClientComplement = (petition?: Petition | null) =>
+    Boolean(petition?.status === 'pending' && petition?.assigned_writer_id);
+
+  const getClientStatusLabel = (petition?: Petition | null) => {
+    if (!petition) return '—';
+    if (isPausedForClientComplement(petition)) {
+      return 'Prazo pausado para complemento de documentos';
+    }
+    return statusConfig[petition.status]?.label || petition.status;
   };
 
 
@@ -1277,7 +1384,7 @@ export default function MyPetitions() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
                 <p className="text-2xl font-bold">
-                  {petitions.filter(p => p.status === 'pending').length}
+                  {petitions.filter(p => p.status === 'pending' && !p.assigned_writer_id).length}
                 </p>
               </div>
             </div>
@@ -1490,10 +1597,17 @@ export default function MyPetitions() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{petition.type}</TableCell>
                       <TableCell>
-                        <Badge className={statusConfig[petition.status].color}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusConfig[petition.status].label}
-                        </Badge>
+                        {isPausedForClientComplement(petition) ? (
+                          <Badge className="bg-amber-100 text-amber-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Prazo pausado para complemento de documentos
+                          </Badge>
+                        ) : (
+                          <Badge className={statusConfig[petition.status].color}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusConfig[petition.status].label}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <Badge className={priorityConfig[petition.priority].color}>
@@ -1522,8 +1636,8 @@ export default function MyPetitions() {
                             </Button>
                           )}
                           
-                          {/* Só permite editar/excluir se estiver pendente ou não atribuída */}
-                          {(petition.status === 'pending' || !petition.writer_name) && (
+                          {/* Só permite editar/excluir se estiver pendente e sem redator atribuído */}
+                          {(petition.status === 'pending' && !petition.assigned_writer_id) && (
                             <>
                               <Button
                                 variant="ghost"
@@ -1571,7 +1685,7 @@ export default function MyPetitions() {
                                     <div>
                                       <label className="text-sm font-medium">Status</label>
                                       <p className="text-sm text-muted-foreground">
-                                        {statusConfig[selectedPetition.status].label}
+                                        {getClientStatusLabel(selectedPetition)}
                                       </p>
                                     </div>
                                     <div>
@@ -1587,6 +1701,21 @@ export default function MyPetitions() {
                                       {selectedPetition.description}
                                     </p>
                                   </div>
+                                  {isPausedForClientComplement(selectedPetition) && (
+                                    <div className="rounded border border-amber-300 bg-amber-50 p-3">
+                                      <p className="text-sm font-medium text-amber-900">
+                                        Prazo pausado para complemento de documentos
+                                      </p>
+                                      <p className="text-sm text-amber-800 mt-1 whitespace-pre-wrap">
+                                        {selectedPetition.deadline_pause_reason?.trim()
+                                          ? selectedPetition.deadline_pause_reason
+                                          : 'O redator sinalizou pendência de informações/documentos para continuar a elaboração.'}
+                                      </p>
+                                      <p className="text-xs text-amber-700 mt-2">
+                                        Envie o complemento abaixo para acelerar a retomada do prazo.
+                                      </p>
+                                    </div>
+                                  )}
 
                                   <div className="space-y-3">
                                     <div className="rounded border border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 p-3">
@@ -1799,7 +1928,7 @@ export default function MyPetitions() {
                                         return (
                                           <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded">
                                             <p className="text-sm text-muted-foreground mb-2">
-                                              Esta petição está com status <strong>{statusConfig[selectedPetition.status]?.label || selectedPetition.status}</strong>
+                                              Esta petição está com status <strong>{getClientStatusLabel(selectedPetition)}</strong>
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                               O botão "Aprovar" aparecerá quando a petição estiver com status "Entregue" ou "Concluída"
@@ -1813,7 +1942,7 @@ export default function MyPetitions() {
                                                   // Recarregar petição completa do banco
                                                   const { data: updatedPetition, error } = await supabase
                                                     .from('petitions')
-                                                    .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, correction_count, correction_requested_at, calculation_id')
+                                                    .select('id, title, type, status, priority, created_at, deadline, assigned_writer_id, writer_name, price, description, correction_count, correction_requested_at, calculation_id, deadline_paused_at, deadline_remaining_seconds, deadline_pause_reason')
                                                     .eq('id', selectedPetition.id)
                                                     .single();
                                                   
@@ -1870,24 +1999,33 @@ export default function MyPetitions() {
                                     </AlertDialogContent>
                                   </AlertDialog>
 
-                                  {/* Solicitar Correção - Apenas para petições entregues ou concluídas com redator atribuído */}
+                                  {/* Solicitar Correção / Enviar Complemento */}
                                   {selectedPetition.assigned_writer_id && 
-                                   (selectedPetition.status === 'delivered' || 
+                                   (isPausedForClientComplement(selectedPetition) ||
+                                    selectedPetition.status === 'delivered' || 
                                     selectedPetition.status === 'completed' || 
                                     selectedPetition.status === 'approved') && (
                                     <div className="space-y-3 border-t pt-4 mt-4">
                                       <div>
                                         <label className="text-sm font-medium mb-2 block">
-                                          Solicitar Correção ao Redator
+                                          {isPausedForClientComplement(selectedPetition)
+                                            ? 'Enviar Complemento ao Redator'
+                                            : 'Solicitar Correção ao Redator'}
                                         </label>
                                         <Textarea
-                                          placeholder="Descreva o que precisa ser corrigido na petição..."
+                                          placeholder={
+                                            isPausedForClientComplement(selectedPetition)
+                                              ? 'Descreva os documentos/informações complementares para destravar a petição...'
+                                              : 'Descreva o que precisa ser corrigido na petição...'
+                                          }
                                           value={clientCorrectionNotes}
                                           onChange={(e) => setClientCorrectionNotes(e.target.value)}
                                           className="min-h-[100px] resize-none"
                                         />
                                         <p className="text-xs text-muted-foreground mt-1">
-                                          Suas observações serão enviadas ao redator para que ele possa fazer as correções necessárias.
+                                          {isPausedForClientComplement(selectedPetition)
+                                            ? 'Seu complemento será enviado ao redator e aos admins para retomada do prazo.'
+                                            : 'Suas observações serão enviadas ao redator para que ele possa fazer as correções necessárias.'}
                                         </p>
                                       </div>
                                       
@@ -1949,12 +2087,12 @@ export default function MyPetitions() {
                                       </div>
                                       
                                       <Button
-                                        onClick={handleRequestCorrection}
+                                        onClick={isPausedForClientComplement(selectedPetition) ? handleSendPausedComplement : handleRequestCorrection}
                                         className="w-full bg-orange-600 hover:bg-orange-700 text-white"
                                         disabled={!clientCorrectionNotes.trim() && correctionFiles.length === 0}
                                       >
                                         <RefreshCcw className="h-4 w-4 mr-2" />
-                                        Solicitar Correção
+                                        {isPausedForClientComplement(selectedPetition) ? 'Enviar Complemento' : 'Solicitar Correção'}
                                         {correctionFiles.length > 0 && ` (${correctionFiles.length} arquivo${correctionFiles.length > 1 ? 's' : ''})`}
                                       </Button>
                                     </div>

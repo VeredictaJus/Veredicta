@@ -33,12 +33,17 @@ interface AdminPetition {
   title: string;
   type: string;
   client_name: string;
+  assigned_writer_id?: string | null;
   writer_name?: string | null;
   status: PetitionStatus;
   priority: PetitionPriority;
   price: number;
   created_at: string | null;
   deadline: string | null;
+  deadline_paused_at?: string | null;
+  deadline_remaining_seconds?: number | null;
+  deadline_pause_reason?: string | null;
+  status_before_pause?: string | null;
   completed_at?: string | null;
   description: string | null;
   admin_notes?: string | null;
@@ -47,7 +52,7 @@ interface AdminPetition {
 }
 
 const statusConfig: Record<PetitionStatus, { label: string; color: string; icon: any }> = {
-  pending:     { label: 'Sem Atribuição', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  pending:     { label: 'Pendente',       color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   in_progress: { label: 'Em Andamento',   color: 'bg-blue-100 text-blue-800',    icon: FileText },
   review:      { label: 'Em Revisão',      color: 'bg-purple-100 text-purple-800', icon: AlertCircle },
   approved:    { label: 'Aprovada',        color: 'bg-green-100 text-green-800',   icon: CheckCircle2 },
@@ -71,6 +76,8 @@ function mapRow(p: any): AdminPetition {
   
   if (statusRaw === 'approved') {
     status = 'approved';
+  } else if (statusRaw === 'pending') {
+    status = 'pending';
   } else if (statusRaw === 'revision' || statusRaw === 'pending_review' || statusRaw === 'review') {
     status = 'review';
   } else if (statusRaw === 'completed') {
@@ -97,12 +104,17 @@ function mapRow(p: any): AdminPetition {
     title: p.title ?? 'Petição sem título',
     type: p.type ?? p.tipo ?? 'Diversos',
     client_name: p.client_name ?? p.cliente ?? 'Cliente',
+    assigned_writer_id: p.assigned_writer_id ?? null,
     writer_name: p.writer_name ?? p.redator ?? null,
     status,
     priority,
     price: Number(p.price ?? p.valor ?? 0),
     created_at: p.created_at ?? null,
     deadline: p.deadline ?? p.prazo ?? null,
+    deadline_paused_at: p.deadline_paused_at ?? null,
+    deadline_remaining_seconds: p.deadline_remaining_seconds ?? null,
+    deadline_pause_reason: p.deadline_pause_reason ?? null,
+    status_before_pause: p.status_before_pause ?? null,
     completed_at: p.completed_at ?? p.data_conclusao ?? null,
     description: p.description ?? p.descricao ?? null,
     admin_notes: null, // Coluna não existe no banco
@@ -145,7 +157,7 @@ export default function AdminPetitions() {
     try {
       const { data, error } = await supabase
         .from('petitions')
-        .select('id, title, type, client_name, assigned_writer_id, writer_name, status, priority, price, created_at, deadline, description')
+        .select('id, title, type, client_name, assigned_writer_id, writer_name, status, priority, price, created_at, deadline, description, deadline_paused_at, deadline_remaining_seconds, deadline_pause_reason, status_before_pause')
         .order('created_at', { ascending: false })
         .limit(1000);
 
@@ -380,22 +392,89 @@ export default function AdminPetitions() {
 
   const updateStatus = async (petitionId: string, newStatus: PetitionStatus) => {
     try {
-      const { error } = await supabase
+      const currentPetition = petitions.find(p => p.id === petitionId);
+      if (!currentPetition) {
+        throw new Error('Petição não encontrada para atualizar status');
+      }
+
+      const hasWriterAssigned = !!currentPetition.assigned_writer_id;
+      const isPauseTransition = newStatus === 'pending' && hasWriterAssigned;
+      const isResumeTransition = currentPetition.status === 'pending' && newStatus === 'in_progress' && hasWriterAssigned;
+
+      const updatePayload: Record<string, any> = {
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (isPauseTransition) {
+        const reason = window.prompt(
+          'Motivo da pausa (obrigatório):\n\nEx.: Cliente não enviou documentos e não responde no chat.'
+        );
+
+        if (!reason || !reason.trim()) {
+          toast.error('Informe o motivo da pausa para congelar o prazo.');
+          return;
+        }
+
+        const currentDeadline = currentPetition.deadline ? new Date(currentPetition.deadline).getTime() : null;
+        const now = Date.now();
+        const remainingSeconds =
+          currentDeadline !== null
+            ? Math.max(0, Math.floor((currentDeadline - now) / 1000))
+            : null;
+
+        updatePayload.deadline_paused_at = new Date().toISOString();
+        updatePayload.deadline_remaining_seconds = remainingSeconds;
+        updatePayload.deadline_pause_reason = reason.trim();
+        updatePayload.status_before_pause =
+          currentPetition.status && currentPetition.status !== 'pending'
+            ? currentPetition.status
+            : 'in_progress';
+      }
+
+      if (isResumeTransition) {
+        if (typeof currentPetition.deadline_remaining_seconds === 'number') {
+          const resumedDeadline = new Date(
+            Date.now() + Math.max(0, currentPetition.deadline_remaining_seconds) * 1000
+          );
+          updatePayload.deadline = resumedDeadline.toISOString();
+        }
+
+        updatePayload.deadline_paused_at = null;
+        updatePayload.deadline_remaining_seconds = null;
+        updatePayload.deadline_pause_reason = null;
+        updatePayload.status_before_pause = null;
+      }
+
+      const { data: updatedRow, error } = await supabase
         .from('petitions')
-        .update({ status: newStatus })
-        .eq('id', petitionId);
+        .update(updatePayload)
+        .eq('id', petitionId)
+        .select('id, title, type, client_name, assigned_writer_id, writer_name, status, priority, price, created_at, deadline, description, deadline_paused_at, deadline_remaining_seconds, deadline_pause_reason, status_before_pause')
+        .single();
 
       if (error) throw error;
 
       // Atualizar estado local imediatamente para feedback visual rápido
-      setPetitions(prev => prev.map(p => p.id === petitionId ? { ...p, status: newStatus } : p));
+      if (updatedRow) {
+        const mappedUpdated = mapRow(updatedRow);
+        setPetitions(prev => prev.map(p => (p.id === petitionId ? mappedUpdated : p)));
+      } else {
+        setPetitions(prev => prev.map(p => (p.id === petitionId ? { ...p, status: newStatus } : p)));
+      }
       
       // Recarregar do banco após um pequeno delay para garantir sincronização
       setTimeout(() => {
         loadPetitions();
       }, 500);
       
-      toast.success(`Status atualizado para ${statusConfig[newStatus].label}`);
+      if (isPauseTransition) {
+        toast.success('Prazo congelado com sucesso (pendência do cliente).');
+      } else if (isResumeTransition) {
+        toast.success('Prazo retomado com sucesso.');
+      } else {
+        toast.success(`Status atualizado para ${statusConfig[newStatus].label}`);
+      }
     } catch (e: any) {
       toast.error(`Erro ao atualizar status: ${e.message || e}`);
       // Em caso de erro, recarregar do banco para garantir consistência
@@ -675,7 +754,7 @@ export default function AdminPetitions() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card className="border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm supports-[backdrop-filter]:backdrop-blur-sm"><CardContent className="rounded-lg pt-6 flex items-center"><FileText className="w-12 h-12 text-blue-600 bg-blue-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Total</p><p className="text-2xl font-bold">{stats.total}</p></div></CardContent></Card>
-        <Card><CardContent className="pt-6 flex items-center"><Clock className="w-12 h-12 text-yellow-600 bg-yellow-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Sem Atribuição</p><p className="text-2xl font-bold">{stats.pending}</p></div></CardContent></Card>
+        <Card><CardContent className="pt-6 flex items-center"><Clock className="w-12 h-12 text-yellow-600 bg-yellow-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Pendentes</p><p className="text-2xl font-bold">{stats.pending}</p></div></CardContent></Card>
         <Card><CardContent className="pt-6 flex items-center"><AlertCircle className="w-12 h-12 text-purple-600 bg-purple-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Em Revisão</p><p className="text-2xl font-bold">{stats.review}</p></div></CardContent></Card>
         <Card><CardContent className="pt-6 flex items-center"><CheckCircle2 className="w-12 h-12 text-green-600 bg-green-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Aprovadas</p><p className="text-2xl font-bold">{stats.approved}</p></div></CardContent></Card>
         <Card><CardContent className="pt-6 flex items-center"><FileText className="w-12 h-12 text-blue-600 bg-blue-100 rounded-lg p-2" /><div className="ml-4"><p className="text-sm text-muted-foreground">Em Andamento</p><p className="text-2xl font-bold">{stats.in_progress}</p></div></CardContent></Card>
@@ -852,6 +931,14 @@ export default function AdminPetitions() {
                                   <div className="p-3 bg-red-50 rounded-lg">
                                     <label className="text-sm font-medium text-red-800">Motivo da Disputa</label>
                                     <p className="text-sm text-red-700 mt-1">{selectedPetition.dispute_reason}</p>
+                                  </div>
+                                )}
+                                {selectedPetition.status === 'pending' && selectedPetition.assigned_writer_id && (
+                                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                    <label className="text-sm font-medium text-amber-900">Pausa por pendência do cliente</label>
+                                    <p className="text-sm text-amber-800 mt-1">
+                                      {selectedPetition.deadline_pause_reason || 'Motivo não informado.'}
+                                    </p>
                                   </div>
                                 )}
 

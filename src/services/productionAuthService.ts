@@ -2,6 +2,7 @@
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   getAuth,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -86,6 +87,7 @@ class ProductionAuthService {
    * Se não existir perfil no Supabase, cria um perfil mínimo (comportamento legado / onboarding).
    */
   async loginWithGoogleClient(): Promise<AuthUser> {
+    let email = ''
     try {
       const provider = new GoogleAuthProvider()
       provider.setCustomParameters({ prompt: 'select_account' })
@@ -93,7 +95,7 @@ class ProductionAuthService {
       const { user: fbUser } = await signInWithPopup(auth, provider)
       if (!fbUser) throw new Error('Falha na autenticação Google')
 
-      const email = fbUser.email || ''
+      email = fbUser.email || ''
       if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
 
       const profile = await this.getOrCreateProfile(fbUser.uid, email, 'client')
@@ -114,7 +116,7 @@ class ProductionAuthService {
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no login com Google:', error)
-      throw new Error(this.translateError(error.message))
+      throw new Error(await this.translateGoogleAuthError(error, email))
     }
   }
 
@@ -155,6 +157,7 @@ class ProductionAuthService {
    * Deve criar conta "do zero": se já existir perfil, bloqueia e pede para fazer login.
    */
   async registerWithGoogleClient(): Promise<AuthUser> {
+    let email = ''
     try {
       const provider = new GoogleAuthProvider()
       provider.setCustomParameters({ prompt: 'select_account' })
@@ -162,7 +165,7 @@ class ProductionAuthService {
       const { user: fbUser } = await signInWithPopup(auth, provider)
       if (!fbUser) throw new Error('Falha na autenticação Google')
 
-      const email = fbUser.email || ''
+      email = fbUser.email || ''
       if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
 
       const existing = await this.findExistingProfile(fbUser.uid)
@@ -188,7 +191,7 @@ class ProductionAuthService {
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no cadastro com Google:', error)
-      throw new Error(this.translateError(error.message))
+      throw new Error(await this.translateGoogleAuthError(error, email))
     }
   }
 
@@ -197,6 +200,7 @@ class ProductionAuthService {
    * Se não existir perfil, bloqueia e orienta o cadastro.
    */
   async loginWithGoogleClientExistingOnly(): Promise<AuthUser> {
+    let email = ''
     try {
       const provider = new GoogleAuthProvider()
       provider.setCustomParameters({ prompt: 'select_account' })
@@ -204,7 +208,7 @@ class ProductionAuthService {
       const { user: fbUser } = await signInWithPopup(auth, provider)
       if (!fbUser) throw new Error('Falha na autenticação Google')
 
-      const email = fbUser.email || ''
+      email = fbUser.email || ''
       if (!email) throw new Error('Não foi possível obter o e-mail da conta Google.')
 
       const existing = await this.findExistingProfile(fbUser.uid)
@@ -229,7 +233,7 @@ class ProductionAuthService {
       return authUser
     } catch (error: any) {
       console.error('❌ Erro no login com Google (somente existente):', error)
-      throw new Error(this.translateError(error.message))
+      throw new Error(await this.translateGoogleAuthError(error, email))
     }
   }
 
@@ -838,6 +842,37 @@ class ProductionAuthService {
     }
   }
 
+  private async translateGoogleAuthError(error: any, email?: string): Promise<string> {
+    const code = String(error?.code || error?.message || '')
+
+    if (code.includes('auth/popup-blocked')) {
+      return 'O navegador bloqueou o popup do Google. Permita popups para este site e tente novamente.'
+    }
+
+    if (code.includes('auth/popup-closed-by-user') || code.includes('auth/cancelled-popup-request')) {
+      return 'Login com Google cancelado. Tente novamente.'
+    }
+
+    if (code.includes('auth/account-exists-with-different-credential')) {
+      if (email) {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, email)
+          if (methods.includes('password')) {
+            return 'Esta conta já existe com email e senha. Faça login com email/senha.'
+          }
+          if (methods.length > 0) {
+            return `Esta conta já existe com outro método (${methods.join(', ')}). Use o método original para entrar.`
+          }
+        } catch {
+          // Se a consulta de métodos falhar, cair na mensagem genérica abaixo.
+        }
+      }
+      return 'Esta conta já existe com outro método de login. Use o método original para entrar.'
+    }
+
+    return this.translateError(code)
+  }
+
   // Traduzir erros
   private translateError(message: string): string {
     const errorMap: { [key: string]: string } = {
@@ -848,7 +883,11 @@ class ProductionAuthService {
       'auth/weak-password': 'Senha muito fraca',
       'auth/too-many-requests': 'Muitas tentativas. Tente novamente em alguns minutos',
       'auth/network-request-failed': 'Erro de conexão. Verifique sua internet',
-      'auth/invalid-email': 'Email inválido'
+      'auth/invalid-email': 'Email inválido',
+      'auth/popup-blocked': 'Popup bloqueado pelo navegador',
+      'auth/popup-closed-by-user': 'Popup fechado antes da autenticação',
+      'auth/cancelled-popup-request': 'Requisição de popup cancelada',
+      'auth/account-exists-with-different-credential': 'Conta já existe com outro método de login'
     }
 
     for (const [key, value] of Object.entries(errorMap)) {

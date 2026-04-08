@@ -1105,9 +1105,13 @@ const handleInputChange = (field: keyof FormData, value: string) => {
                       <SelectTrigger className={`glass-input ${errors.specializations ? 'border-red-500' : ''}`}>
                         <SelectValue placeholder="Selecione sua especialização" />
                       </SelectTrigger>
-                      <SelectContent className="max-h-64 overflow-y-auto bg-white border-gray-300">
+                      <SelectContent className="max-h-64 overflow-y-auto border-white/10 bg-slate-950/95 text-slate-100 supports-[backdrop-filter]:backdrop-blur-md">
                         {LAW_AREAS.map((area) => (
-                          <SelectItem key={area.value} value={area.value} className="text-gray-900">
+                          <SelectItem
+                            key={area.value}
+                            value={area.value}
+                            className="text-slate-100 data-[state=checked]:bg-orange-500/70 data-[state=checked]:text-white data-[highlighted]:bg-slate-800"
+                          >
                             {area.label}
                           </SelectItem>
                         ))}

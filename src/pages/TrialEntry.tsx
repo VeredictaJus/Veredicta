@@ -324,14 +324,19 @@ export default function TrialEntry() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-lg border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm">
-        <CardHeader>
+        <CardHeader className="space-y-3">
           <CardTitle className="flex items-center gap-2">
             <QrCode className="h-5 w-5 text-orange-600" />
-            Acesso rápido de teste
+            Seu acesso à Veredicta está liberado
           </CardTitle>
-          <CardDescription>
-            Informe apenas seus dados principais e entre direto na plataforma para enviar sua primeira petição.
+          <CardDescription className="text-justify">
+            Acesso liberado para envio da sua primeira demanda.
           </CardDescription>
+          <div className="rounded-md border border-orange-300/40 bg-orange-500/10 px-3 py-2">
+            <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+              Primeira petição por nossa conta
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -484,9 +489,10 @@ export default function TrialEntry() {
                   <span className="ml-2">Entrando...</span>
                 </>
               ) : (
-                'Começar teste'
+                'Acessar plataforma'
               )}
             </Button>
+            <p className="text-center text-xs text-muted-foreground">Acesso imediato. Sem compromisso.</p>
           </form>
         </CardContent>
       </Card>

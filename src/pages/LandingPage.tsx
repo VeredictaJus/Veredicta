@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +38,30 @@ export default function LandingPage() {
     'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/copy_2E0B46BB-B907-4FFA-B7D8-31F3115A343B.mp4';
   const interactiveCardClass =
     'transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/[0.07] hover:shadow-[0_16px_50px_rgba(0,0,0,0.35)] hover:border-orange-500/30';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+    if (!nodes.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -8% 0px' }
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, []);
 
   const features = [
     {
@@ -226,7 +250,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden bg-slate-950">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.32),transparent_55%)]"
+          className="pointer-events-none absolute inset-0 landing-ambient-glow bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.32),transparent_55%)]"
         />
         <div
           aria-hidden
@@ -234,19 +258,27 @@ export default function LandingPage() {
         />
         <div className="container mx-auto px-4 py-24 md:py-28 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-white mb-6">
+            <h1 data-reveal className="reveal-on-scroll text-4xl md:text-6xl font-semibold tracking-tight text-white mb-6">
               <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
                 Alta demanda
               </span>{' '}
               não precisa significar sobrecarga.
             </h1>
-            <p className="text-base md:text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed">
+            <p
+              data-reveal
+              className="reveal-on-scroll text-base md:text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed"
+              style={{ transitionDelay: '120ms' }}
+            >
               A Veredicta estrutura e executa a produção de peças jurídicas com especialistas humanos, permitindo que
               escritórios cresçam com previsibilidade, controle e padrão técnico.
             </p>
             
             {/* Para quem é a Veredicta */}
-            <div className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-left max-w-3xl mx-auto shadow-xl backdrop-blur">
+            <div
+              data-reveal
+              className="reveal-on-scroll mt-10 bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 text-left max-w-3xl mx-auto shadow-xl backdrop-blur"
+              style={{ transitionDelay: '180ms' }}
+            >
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 flex items-center gap-2">
                 <Target className="h-6 w-6 text-orange-400" />
                 Para quem é a Veredicta
@@ -290,7 +322,11 @@ export default function LandingPage() {
               </div>
             </div>
             
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <div
+              data-reveal
+              className="reveal-on-scroll mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+              style={{ transitionDelay: '240ms' }}
+            >
               <Button 
                 variant="outline" 
                 size="lg"
@@ -317,7 +353,7 @@ export default function LandingPage() {
       <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-10">
+            <div data-reveal className="reveal-on-scroll text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mb-3">
                 Execução humana com responsabilidade técnica.
               </h2>
@@ -327,7 +363,7 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
+              <div data-reveal className="reveal-on-scroll bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl">
                 <h3 className="text-lg font-semibold text-white mb-4">Nosso padrão de execução</h3>
                 <ul className="space-y-3 text-slate-200">
                   <li className="flex items-start gap-3">
@@ -349,7 +385,11 @@ export default function LandingPage() {
                 </ul>
               </div>
 
-              <div className="bg-white/5 rounded-2xl border border-orange-500/20 p-6 shadow-xl">
+              <div
+                data-reveal
+                className="reveal-on-scroll bg-white/5 rounded-2xl border border-orange-500/20 p-6 shadow-xl"
+                style={{ transitionDelay: '120ms' }}
+              >
                 <h3 className="text-lg font-semibold text-white mb-4">Como funciona na prática</h3>
                 <p className="text-slate-200 mb-4">
                   Inteligência humana aplicada à rotina jurídica.
@@ -366,7 +406,7 @@ export default function LandingPage() {
       {/* Todas as Áreas do Direito */}
       <section className="py-20 bg-slate-900/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
               Atuação especializada por área
             </h2>
@@ -381,7 +421,9 @@ export default function LandingPage() {
               return (
                 <div
                   key={index}
-                  className={['group bg-white/5 rounded-xl shadow-xl border border-white/10 p-6', interactiveCardClass].join(' ')}
+                  data-reveal
+                  className={['reveal-on-scroll group bg-white/5 rounded-xl shadow-xl border border-white/10 p-6', interactiveCardClass].join(' ')}
+                  style={{ transitionDelay: `${Math.min(index * 45, 300)}ms` }}
                 >
                   <div className="text-center mb-4">
                     <div
@@ -417,7 +459,10 @@ export default function LandingPage() {
           </div>
           
           {/* Destaque adicional */}
-          <div className="mt-16 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-center border border-orange-500/20 shadow-xl">
+          <div
+            data-reveal
+            className="reveal-on-scroll mt-16 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-8 text-center border border-orange-500/20 shadow-xl"
+          >
             <h3 className="text-2xl font-bold text-white mb-4">
               Estrutura adaptada à sua área de atuação
             </h3>
@@ -448,19 +493,31 @@ export default function LandingPage() {
 
           {/* Destaques */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '60ms' }}
+            >
               <div className="text-base font-semibold text-white">
                 Atendimento estruturado por fluxo
               </div>
             </div>
 
-            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '120ms' }}
+            >
               <div className="text-base font-semibold text-white">
                 Prazos definidos previamente
               </div>
             </div>
 
-            <div className={['group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '180ms' }}
+            >
               <div className="text-base font-semibold text-white">
                 Redação jurídica revisada antes da entrega
               </div>
@@ -472,7 +529,7 @@ export default function LandingPage() {
       {/* Features */}
       <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
               Por que escolher a Veredicta?
             </h2>
@@ -485,7 +542,9 @@ export default function LandingPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={['group bg-white/5 text-center border border-white/10 shadow-xl rounded-2xl p-6', interactiveCardClass].join(' ')}
+                data-reveal
+                className={['reveal-on-scroll group bg-white/5 text-center border border-white/10 shadow-xl rounded-2xl p-6', interactiveCardClass].join(' ')}
+                style={{ transitionDelay: `${Math.min(index * 70, 240)}ms` }}
               >
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500/15 ring-1 ring-orange-400/30 rounded-full mb-4 transition-transform duration-300 group-hover:scale-[1.03]">
                   <feature.icon className="h-8 w-8 text-orange-300" />
@@ -501,7 +560,7 @@ export default function LandingPage() {
           </div>
 
           {/* Vídeo */}
-          <div className="mt-12 max-w-5xl mx-auto">
+          <div data-reveal className="reveal-on-scroll mt-12 max-w-5xl mx-auto">
             <div className="rounded-2xl overflow-hidden border border-white/10 shadow-xl bg-white/5">
               <video
                 controls
@@ -520,7 +579,7 @@ export default function LandingPage() {
       {/* O que você ganha na prática */}
       <section className="py-20 bg-slate-900/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4 flex items-center justify-center gap-3">
               <Briefcase className="h-8 w-8 text-orange-400" />
               Impacto direto na operação do seu escritório
@@ -528,7 +587,10 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Clock className="h-6 w-6 text-orange-300" />
@@ -551,7 +613,11 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '80ms' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <FileText className="h-6 w-6 text-orange-300" />
@@ -570,7 +636,11 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '160ms' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Scale className="h-6 w-6 text-orange-300" />
@@ -593,7 +663,11 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '240ms' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <BarChart3 className="h-6 w-6 text-orange-300" />
@@ -616,7 +690,11 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className={['group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}>
+            <div
+              data-reveal
+              className={['reveal-on-scroll group bg-white/5 rounded-2xl border border-white/10 p-6 shadow-xl', interactiveCardClass].join(' ')}
+              style={{ transitionDelay: '320ms' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-11 w-11 rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
                   <Target className="h-6 w-6 text-orange-300" />
@@ -645,7 +723,7 @@ export default function LandingPage() {
       {/* How It Works */}
       <section className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
               Modelo de Produção Estruturado
             </h2>
@@ -663,7 +741,12 @@ export default function LandingPage() {
                 const Icon = step.icon;
 
                 return (
-                  <div key={index} className="relative">
+                  <div
+                    key={index}
+                    data-reveal
+                    className="reveal-on-scroll relative"
+                    style={{ transitionDelay: `${Math.min(index * 90, 270)}ms` }}
+                  >
                     <div className="flex flex-col items-center text-center">
                       {/* Ícone + número */}
                       <div className="relative mb-5">
@@ -706,18 +789,26 @@ export default function LandingPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(249,115,22,0.12),transparent_55%)]"
         />
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
+          <h2 data-reveal className="reveal-on-scroll text-4xl font-semibold tracking-tight text-white mb-4">
             Uma nova forma de escalar a produção jurídica
           </h2>
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p
+            data-reveal
+            className="reveal-on-scroll text-xl text-slate-300 mb-8 max-w-2xl mx-auto"
+            style={{ transitionDelay: '90ms' }}
+          >
             Transforme a rotina do seu escritório
             <br />
             sem mudar sua forma de advogar
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+          <div
+            data-reveal
+            className="reveal-on-scroll flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+            style={{ transitionDelay: '180ms' }}
+          >
             <Button 
               size="lg"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+              className="landing-cta-glow bg-orange-600 hover:bg-orange-700 text-white font-semibold"
               onClick={() => navigate('/auth/register')}
             >
               Cadastrar-se Gratuitamente

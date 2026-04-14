@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { EmailService } from './emailService';
+import { TrialLifecycleService } from './trialLifecycleService';
 
 // Cliente Supabase com service role para operações que precisam bypass RLS
 const createServiceRoleClient = async () => {
@@ -235,6 +236,9 @@ export class UserSettingsService {
   static async updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<boolean> {
     try {
       console.log('🔍 UserSettingsService.updateUserSettings:', { userId, settings });
+      const rawDocument = String(settings.document || '').replace(/\D/g, '');
+      const normalizedCpf = rawDocument.length <= 11 ? rawDocument || null : null;
+      const normalizedCnpj = rawDocument.length > 11 ? rawDocument.slice(0, 14) || null : null;
       
       // Garantir que user_settings existe
       const settingsExists = await this.ensureUserSettingsExists(userId);
@@ -248,7 +252,9 @@ export class UserSettingsService {
         full_name: settings.full_name,
         email: settings.email,
         phone: settings.phone,
-        avatar_url: settings.avatar_url
+        avatar_url: settings.avatar_url,
+        cpf: normalizedCpf,
+        cnpj: normalizedCnpj,
       };
 
       // Usar ID maiúsculo para consistência com o banco
@@ -277,10 +283,24 @@ export class UserSettingsService {
 
       // Atualizar perfil (apenas campos que existem em user_profiles)
       console.log('🔍 Atualizando perfil com dados:', profileData);
-      const { error: profileError } = await supabase
+      let { error: profileError } = await supabase
         .from('user_profiles')
         .update(profileData)
         .eq('firebase_uid', userId);
+
+      const profileMessage = String((profileError as any)?.message || '');
+      const missingDocColumns =
+        (profileError as any)?.code === '42703' ||
+        /column .*cpf.* does not exist/i.test(profileMessage) ||
+        /column .*cnpj.* does not exist/i.test(profileMessage);
+      if (profileError && missingDocColumns) {
+        const { cpf, cnpj, ...safeProfileData } = profileData as any;
+        const retry = await supabase
+          .from('user_profiles')
+          .update(safeProfileData)
+          .eq('firebase_uid', userId);
+        profileError = retry.error;
+      }
 
       if (profileError) {
         console.error('❌ Erro ao atualizar perfil:', profileError);
@@ -357,6 +377,13 @@ export class UserSettingsService {
         console.error('❌ Erro ao verificar dados salvos:', verificationError);
       } else {
         console.log('✅ Verificação dos dados salvos:', verificationData);
+      }
+
+      const hasDocument = Boolean(rawDocument);
+      const hasPhone = Boolean(String(settings.phone || '').trim());
+      const hasNameOrCompany = Boolean(String(settings.full_name || settings.company || '').trim());
+      if (hasDocument && hasPhone && hasNameOrCompany) {
+        await TrialLifecycleService.clearRegularizationRequirement(userId);
       }
 
       return true;

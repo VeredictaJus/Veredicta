@@ -72,6 +72,7 @@ export default function Header({ onToggleSidebar }: { onToggleSidebar?: () => vo
       // Admin
       '/admin': 'Dashboard',
       '/admin/users': 'Usuários',
+      '/admin/ciclo-vida': 'Ciclo de Vida',
       '/admin/peticoes': 'Petições',
       '/admin/pagamentos': 'Pagamentos',
       '/admin/relatorios': 'Relatórios',

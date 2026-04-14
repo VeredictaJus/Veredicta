@@ -46,6 +46,7 @@ import Status from '@/pages/Status'
 import Contato from '@/pages/Contato'
 import SolicitarDemonstracao from '@/pages/SolicitarDemonstracao'
 import AtivacaoPecaPiloto from '@/pages/AtivacaoPecaPiloto'
+import TrialEntry from '@/pages/TrialEntry'
 
 /* ==== Artigos ==== */
 import ComoSolicitarPrimeiraPeticao from '@/pages/artigos/ComoSolicitarPrimeiraPeticao'
@@ -89,7 +90,7 @@ import Revisoes from '@/pages/admin/Revisoes'
 import ChatSuport from '@/pages/admin/ChatSuport'
 import ChatReports from '@/pages/admin/ChatReports'
 import WriterApproval from '@/pages/admin/WriterApproval'
-import PilotActivations from '@/pages/admin/PilotActivations'
+import UserLifecycle from '@/pages/admin/UserLifecycle'
 
 /* ==== Users ==== */
 import UsersPage from '@/pages/users/UsersPage'
@@ -231,7 +232,8 @@ function AppRoutesContent() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<Users />} />
-            <Route path="ativacoes" element={<PilotActivations />} />
+            <Route path="ciclo-vida" element={<UserLifecycle />} />
+            <Route path="ativacoes" element={<Navigate to="/admin/ciclo-vida" replace />} />
             <Route path="peticoes" element={<AdminPetitions />} />
             <Route path="pagamentos" element={<AdminPayments />} />
             <Route path="relatorios" element={<Reports />} />
@@ -254,6 +256,8 @@ function AppRoutesContent() {
           <Route path="/test-email" element={<TestEmail />} />
           {/* Páginas públicas - acessíveis mesmo logado */}
           <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
+          <Route path="/trial/entrada" element={<TrialEntry />} />
+          <Route path="/qr" element={<Navigate to="/trial/entrada" replace />} />
           <Route element={<PublicLayout />}>
             <Route path="/manual-redator" element={<ManualRedator />} />
             <Route path="/termos" element={<Termos />} />
@@ -294,6 +298,8 @@ function AppRoutesContent() {
           <Route path="/rejected" element={<Rejected />} />
           {/* Páginas públicas - acessíveis sem login */}
           <Route path="/ativacao-peca-piloto/:token" element={<AtivacaoPecaPiloto />} />
+          <Route path="/trial/entrada" element={<TrialEntry />} />
+          <Route path="/qr" element={<Navigate to="/trial/entrada" replace />} />
           <Route element={<PublicLayout />}>
             <Route path="/manual-redator" element={<ManualRedator />} />
             <Route path="/termos" element={<Termos />} />

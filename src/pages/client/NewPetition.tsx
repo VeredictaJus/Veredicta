@@ -23,6 +23,7 @@ import { DatabaseService } from '@/services/databaseService';
 import { PlanNotificationService } from '@/services/planNotificationService';
 import { calculateBusinessDeadlineFromToday } from '@/utils/businessDays';
 import { isClientProfileComplete } from '@/utils/profileCompletion';
+import { TrialLifecycleService, type TrialFlags } from '@/services/trialLifecycleService';
 
 // Areas do Direito
 const areasDireito = [
@@ -195,6 +196,12 @@ export default function NewPetition() {
   // Estados para plano do usuário e prioridades
   const [userPlan, setUserPlan] = useState<string>('free');
   const [priorities, setPriorities] = useState(getPrioritiesByPlan('free'));
+  const [trialFlags, setTrialFlags] = useState<TrialFlags>({
+    isTrial: false,
+    trialPetitionUsed: false,
+    regularizationRequired: false,
+    hasLifecycleColumns: false,
+  });
   
   // Carregar dados de edição se existir
   useEffect(() => {
@@ -269,6 +276,19 @@ export default function NewPetition() {
     let alive = true;
     (async () => {
       try {
+        const lifecycle = await TrialLifecycleService.getTrialFlags(user.uid);
+        if (alive) setTrialFlags(lifecycle);
+
+        if (lifecycle.regularizationRequired) {
+          const settings = await UserSettingsService.getUserSettings(user.uid);
+          if (!alive) return;
+          if (!isClientProfileComplete(settings)) {
+            toast.error('Para continuar, finalize seu cadastro e escolha um plano.');
+            navigate('/client/settings');
+            return;
+          }
+        }
+
         const { data: approvedPilot, error } = await supabase
           .from('petitions')
           .select('id')
@@ -316,6 +336,9 @@ export default function NewPetition() {
       if (!user?.uid) return;
       
       try {
+        const lifecycle = await TrialLifecycleService.getTrialFlags(user.uid);
+        setTrialFlags(lifecycle);
+
         const userPlanData = await UserSettingsService.getUserCurrentPlan(user.uid);
         if (userPlanData?.plan_code) {
           setUserPlan(userPlanData.plan_code);
@@ -416,6 +439,22 @@ export default function NewPetition() {
     setSubmitting(true);
     
     try {
+      const lifecycle = await TrialLifecycleService.getTrialFlags(user.uid);
+      setTrialFlags(lifecycle);
+      if (lifecycle.regularizationRequired) {
+        const settings = await UserSettingsService.getUserSettings(user.uid);
+        if (!isClientProfileComplete(settings)) {
+          toast.error('Para continuar, finalize seu cadastro e escolha um plano.');
+          navigate('/client/settings');
+          return;
+        }
+      }
+      if (lifecycle.isTrial && lifecycle.trialPetitionUsed && !isEditMode) {
+        toast.error('Seu teste já foi utilizado. Finalize o cadastro para continuar.');
+        navigate('/client/settings');
+        return;
+      }
+
       // Gate: após aprovar a petição piloto (free), exigir perfil completo para criar novas petições
       if (!isEditMode) {
         try {
@@ -481,7 +520,9 @@ export default function NewPetition() {
         type: selectedPetitionType?.name || selectedType,
         status: 'pending' as const, // valid status in table
         // Petição piloto = petição Free (marcar na criação)
-        is_pilot: !isEditMode && String(userPlan || '').toLowerCase() === 'free',
+        is_pilot:
+          !isEditMode &&
+          (String(userPlan || '').toLowerCase() === 'free' || Boolean(trialFlags.isTrial)),
         // normaliza prioridade para os valores aceitos pelo banco
         priority: (() => {
           const p = formData.priority.toLowerCase();
@@ -538,6 +579,11 @@ export default function NewPetition() {
         }
         
         petitionId = createdPetition.id;
+
+        if (trialFlags.isTrial && !trialFlags.trialPetitionUsed) {
+          await TrialLifecycleService.markTrialPetitionUsed(user.uid);
+          setTrialFlags((prev) => ({ ...prev, trialPetitionUsed: true }));
+        }
       }
       
       // Upload files only when user actually attached files.

@@ -33,6 +33,7 @@ import { addBusinessDays, setDeadlineCutoff } from '@/utils/businessDays';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { isClientProfileComplete } from '@/utils/profileCompletion';
+import { TrialLifecycleService } from '@/services/trialLifecycleService';
 
 const BUCKET = 'petitions_correction_writer';
 
@@ -759,6 +760,7 @@ export default function MyPetitions() {
         // Se for petição piloto (free), após aprovar torna obrigatório completar cadastro
         if (petition.is_pilot) {
           try {
+            await TrialLifecycleService.markRegularizationRequired(user.uid);
             const settings = await UserSettingsService.getUserSettings(user.uid);
             if (!isClientProfileComplete(settings)) {
               toast.error('Agora é necessário completar seu cadastro para continuar (CPF/CNPJ, telefone e nome/empresa).');
@@ -2226,6 +2228,7 @@ export default function MyPetitions() {
             if (selectedPetitionForRating.is_pilot && user?.uid) {
               (async () => {
                 try {
+                  await TrialLifecycleService.markRegularizationRequired(user.uid);
                   const settings = await UserSettingsService.getUserSettings(user.uid);
                   if (!isClientProfileComplete(settings)) {
                     toast.error('Agora é necessário completar seu cadastro para continuar (CPF/CNPJ, telefone e nome/empresa).');

@@ -6,7 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import {
   Home,
   Users,
-  Link2,
+  Activity,
   FileText,
   DollarSign,
   BarChart3,
@@ -30,7 +30,7 @@ type Item = {
 const navItems: Item[] = [
   { to: '/admin',            label: 'Dashboard',   icon: Home, exact: true },
   { to: '/admin/users',      label: 'Usuários',    icon: Users },
-  { to: '/admin/ativacoes',  label: 'Ativações',   icon: Link2 },
+  { to: '/admin/ciclo-vida', label: 'Ciclo de Vida', icon: Activity },
   { to: '/admin/writer-approval', label: 'Aprovação de Redatores', icon: UserCheck },
   { to: '/admin/peticoes',   label: 'Petições',    icon: FileText },
   { to: '/admin/pagamentos', label: 'Pagamentos',  icon: DollarSign },

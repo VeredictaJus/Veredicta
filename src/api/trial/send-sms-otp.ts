@@ -1,0 +1,214 @@
+import type { Handler } from 'vite-plugin-api-routes';
+import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'node:crypto';
+
+function getSupabaseServiceClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseServiceKey =
+    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Supabase service role is not configured');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+function hashValue(raw: string) {
+  const salt = process.env.TRIAL_OTP_HASH_SALT || process.env.TRIAL_HASH_SALT || 'veredicta-trial-otp-salt';
+  return createHash('sha256').update(`${salt}:${raw}`).digest('hex');
+}
+
+function normalizePhone(input: string) {
+  const digits = String(input || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) return `+${digits}`;
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+  if (digits.length >= 8 && digits.length <= 15) return `+${digits}`;
+  return '';
+}
+
+function extractIp(req: any) {
+  const xff = String(req.headers?.['x-forwarded-for'] || req.headers?.['X-Forwarded-For'] || '');
+  const candidate = xff.split(',')[0]?.trim();
+  if (candidate) return candidate;
+  return String(req.ip || req.socket?.remoteAddress || '');
+}
+
+function isMissingRelation(error: any) {
+  const msg = String(error?.message || '');
+  return error?.code === '42P01' || /relation .* does not exist/i.test(msg);
+}
+
+async function validateEmailOtpVerificationToken(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  emailOtpToken: string
+) {
+  const tokenHash = hashValue(`verify:${emailOtpToken}`);
+  const { data: row, error } = await supabase
+    .from('trial_email_otp')
+    .select('id, verified_at, used_for_trial')
+    .eq('email', email)
+    .eq('verification_token_hash', tokenHash)
+    .eq('consumed', true)
+    .order('verified_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingRelation(error)) {
+      return {
+        ok: false,
+        status: 500,
+        error: 'Tabela de OTP e-mail não encontrada. Execute trial_email_otp_phase1.sql.',
+      };
+    }
+    throw error;
+  }
+  if (!row) {
+    return { ok: false, status: 403, error: 'Validação de e-mail não encontrada ou expirada.' };
+  }
+  if (row.used_for_trial) {
+    return { ok: false, status: 409, error: 'Este token de e-mail já foi utilizado.' };
+  }
+  const verifiedAt = new Date(String(row.verified_at || 0));
+  if (Number.isNaN(verifiedAt.getTime()) || Date.now() - verifiedAt.getTime() > 20 * 60 * 1000) {
+    return { ok: false, status: 403, error: 'Validação de e-mail expirada. Solicite um novo código.' };
+  }
+
+  return { ok: true as const };
+}
+
+function getDiditConfig() {
+  const apiKey = String(process.env.DIDIT_API_KEY || '').trim();
+  const baseUrl = String(process.env.DIDIT_BASE_URL || 'https://verification.didit.me').replace(/\/$/, '');
+  const channel = String(process.env.DIDIT_CHANNEL || 'sms').trim().toLowerCase();
+  if (!apiKey) {
+    throw new Error('DIDIT_API_KEY não configurada');
+  }
+  return { apiKey, baseUrl, channel };
+}
+
+export const POST: Handler = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const email = String(body.email || '').trim().toLowerCase();
+    const phoneInput = String(body.phone || '').trim();
+    const phoneE164 = normalizePhone(phoneInput);
+    const emailOtpToken = String(body.email_otp_token || '').trim();
+    const website = String(body.website || '').trim();
+
+    if (website) return res.status(400).json({ error: 'Solicitação inválida.' });
+    if (!email || !phoneE164 || !emailOtpToken) {
+      return res.status(400).json({ error: 'email, phone e email_otp_token são obrigatórios' });
+    }
+
+    const supabase = getSupabaseServiceClient();
+    const ipHash = hashValue(`ip:${extractIp(req) || 'unknown'}`);
+
+    const emailTokenValidation = await validateEmailOtpVerificationToken(supabase, email, emailOtpToken);
+    if (!emailTokenValidation.ok) {
+      return res.status(emailTokenValidation.status).json({ error: emailTokenValidation.error });
+    }
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const [recentByPhone, recentByIp, cooldownByPhone] = await Promise.all([
+      supabase
+        .from('trial_sms_otp')
+        .select('id', { count: 'exact', head: true })
+        .eq('phone_e164', phoneE164)
+        .gte('created_at', oneHourAgo),
+      supabase
+        .from('trial_sms_otp')
+        .select('id', { count: 'exact', head: true })
+        .eq('ip_hash', ipHash)
+        .gte('created_at', oneHourAgo),
+      supabase
+        .from('trial_sms_otp')
+        .select('id', { count: 'exact', head: true })
+        .eq('phone_e164', phoneE164)
+        .gte('created_at', oneMinuteAgo),
+    ]);
+
+    const errors = [recentByPhone.error, recentByIp.error, cooldownByPhone.error].filter(Boolean);
+    if (errors.length > 0) {
+      const firstError = errors[0] as any;
+      if (isMissingRelation(firstError)) {
+        return res.status(500).json({
+          error: 'Tabela de OTP SMS não encontrada. Execute trial_sms_otp_phase1.sql no Supabase.',
+        });
+      }
+      throw firstError;
+    }
+
+    if (Number(cooldownByPhone.count || 0) > 0) {
+      return res.status(429).json({ error: 'Aguarde 60 segundos para reenviar o código por SMS.' });
+    }
+    if (Number(recentByPhone.count || 0) >= 6 || Number(recentByIp.count || 0) >= 20) {
+      return res.status(429).json({ error: 'Limite de envio de SMS atingido. Tente novamente mais tarde.' });
+    }
+
+    const { apiKey, baseUrl, channel } = getDiditConfig();
+    const diditPayload: Record<string, any> = { phone_number: phoneE164 };
+    if (channel) diditPayload.channel = channel;
+
+    const diditResponse = await fetch(`${baseUrl}/v3/phone/send/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify(diditPayload),
+    });
+    const diditData = await diditResponse.json().catch(() => ({}));
+
+    if (!diditResponse.ok) {
+      const diditMessage =
+        String(
+          diditData?.message ||
+            diditData?.error ||
+            diditData?.detail ||
+            diditData?.errors?.[0]?.message ||
+            ''
+        ).trim() || 'Falha ao enviar OTP por SMS';
+      return res.status(502).json({ error: `Didit: ${diditMessage}` });
+    }
+
+    const providerRef = String(
+      diditData?.id || diditData?.verification_id || diditData?.request_id || diditData?.data?.id || ''
+    ).trim();
+    const providerStatus = String(
+      diditData?.status || diditData?.data?.status || diditData?.result || 'sent'
+    ).trim();
+
+    const { error: insertError } = await supabase.from('trial_sms_otp').insert({
+      phone_e164: phoneE164,
+      provider_ref: providerRef || null,
+      provider_status: providerStatus || 'sent',
+      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      ip_hash: ipHash,
+    });
+
+    if (insertError) {
+      if (isMissingRelation(insertError)) {
+        return res.status(500).json({
+          error: 'Tabela de OTP SMS não encontrada. Execute trial_sms_otp_phase1.sql no Supabase.',
+        });
+      }
+      throw insertError;
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Erro ao enviar OTP por SMS', details: error?.message || String(error) });
+  }
+};
+
+export default POST;
+

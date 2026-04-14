@@ -571,18 +571,51 @@ export default function NewPetition() {
         toast.success('Petição atualizada com sucesso!');
       } else {
         // CRIAR nova petição
-        const createdPetition = await DatabaseService.createPetition(petitionData as any);
-        
-        
-        if (!createdPetition) {
-          throw new Error('Erro ao criar petição no banco de dados');
-        }
-        
-        petitionId = createdPetition.id;
-
         if (trialFlags.isTrial && !trialFlags.trialPetitionUsed) {
-          await TrialLifecycleService.markTrialPetitionUsed(user.uid);
+          const rpcArgs = {
+            p_client_id: user.uid.trim().replace(/\0/g, '').replace(/[\x00-\x1F\x7F]/g, ''),
+            p_title: petitionData.title,
+            p_description: petitionData.description,
+            p_type: petitionData.type,
+            p_status: petitionData.status,
+            p_priority: petitionData.priority,
+            p_price: petitionData.price ?? 0,
+            p_deadline: petitionData.deadline,
+            p_assigned_writer_id: petitionData.assigned_writer_id ?? null,
+            p_files: petitionData.files ?? [],
+          };
+
+          const { data: trialData, error: trialError } = await supabase.rpc(
+            'create_trial_petition_atomic',
+            rpcArgs as any
+          );
+          if (trialError) {
+            const msg = String(trialError.message || '');
+            if (
+              /create_trial_petition_atomic/i.test(msg) &&
+              (/does not exist/i.test(msg) || /could not find the function/i.test(msg))
+            ) {
+              throw new Error(
+                'Proteção antifraude do trial não configurada. Execute o script SQL de fase 1.'
+              );
+            }
+            if (/TRIAL_ALREADY_USED/i.test(msg)) {
+              throw new Error('Seu teste gratuito já foi utilizado. Finalize o cadastro para continuar.');
+            }
+            throw trialError;
+          }
+
+          petitionId = String((trialData as any)?.id || '');
+          if (!petitionId) {
+            throw new Error('Falha ao criar petição trial.');
+          }
           setTrialFlags((prev) => ({ ...prev, trialPetitionUsed: true }));
+        } else {
+          const createdPetition = await DatabaseService.createPetition(petitionData as any);
+          if (!createdPetition) {
+            throw new Error('Erro ao criar petição no banco de dados');
+          }
+          petitionId = createdPetition.id;
         }
       }
       

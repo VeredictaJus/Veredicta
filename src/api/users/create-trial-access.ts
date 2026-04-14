@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { createHash } from 'node:crypto';
 
 const require = createRequire(import.meta.url);
 const LOCAL_JSON_PATH = resolve(process.cwd(), 'src/config/firebaseAdmin.local.json');
@@ -97,20 +98,312 @@ function hasOwn(row: Record<string, any> | null, key: string) {
   return Boolean(row && Object.prototype.hasOwnProperty.call(row, key));
 }
 
+function normalizePhone(input: string) {
+  const digits = String(input || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) return `+${digits}`;
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+  if (digits.length >= 8 && digits.length <= 15) return `+${digits}`;
+  return '';
+}
+
+function hashValue(raw: string) {
+  const salt = process.env.TRIAL_HASH_SALT || 'veredicta-trial-salt';
+  return createHash('sha256').update(`${salt}:${raw}`).digest('hex');
+}
+
+function hashOtpValue(raw: string) {
+  const salt = process.env.TRIAL_OTP_HASH_SALT || process.env.TRIAL_HASH_SALT || 'veredicta-trial-otp-salt';
+  return createHash('sha256').update(`${salt}:${raw}`).digest('hex');
+}
+
+function extractIp(req: any) {
+  const xff = String(req.headers?.['x-forwarded-for'] || req.headers?.['X-Forwarded-For'] || '');
+  const candidate = xff.split(',')[0]?.trim();
+  if (candidate) return candidate;
+  return String(req.ip || req.socket?.remoteAddress || '');
+}
+
+async function ensureTrialSecurityTables(supabase: ReturnType<typeof createClient>) {
+  const createAttemptSql = `
+    CREATE TABLE IF NOT EXISTS public.trial_signup_attempts (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      ip_hash text NOT NULL,
+      email_hash text NOT NULL,
+      phone_hash text NOT NULL,
+      success boolean NOT NULL DEFAULT false
+    );`;
+  const createIdentitySql = `
+    CREATE TABLE IF NOT EXISTS public.trial_identity_registry (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      phone_hash text UNIQUE NOT NULL,
+      email_hash text,
+      firebase_uid text NOT NULL
+    );`;
+
+  await supabase.rpc('execute_sql', { sql: createAttemptSql } as any).catch(() => {});
+  await supabase.rpc('execute_sql', { sql: createIdentitySql } as any).catch(() => {});
+}
+
+function isMissingRelation(error: any) {
+  const msg = String(error?.message || '');
+  return error?.code === '42P01' || /relation .* does not exist/i.test(msg);
+}
+
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  ipHash: string,
+  emailHash: string,
+  phoneHash: string
+) {
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const [ipAttempts, emailAttempts, phoneAttempts] = await Promise.all([
+    supabase
+      .from('trial_signup_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('ip_hash', ipHash)
+      .gte('created_at', since),
+    supabase
+      .from('trial_signup_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('email_hash', emailHash)
+      .gte('created_at', since),
+    supabase
+      .from('trial_signup_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('phone_hash', phoneHash)
+      .gte('created_at', since),
+  ]);
+
+  if (ipAttempts.error || emailAttempts.error || phoneAttempts.error) {
+    if (isMissingRelation(ipAttempts.error) || isMissingRelation(emailAttempts.error) || isMissingRelation(phoneAttempts.error)) {
+      return false;
+    }
+    throw ipAttempts.error || emailAttempts.error || phoneAttempts.error;
+  }
+
+  const ipCount = Number(ipAttempts.count || 0);
+  const emailCount = Number(emailAttempts.count || 0);
+  const phoneCount = Number(phoneAttempts.count || 0);
+  return ipCount >= 8 || emailCount >= 5 || phoneCount >= 4;
+}
+
+async function registerAttempt(
+  supabase: ReturnType<typeof createClient>,
+  ipHash: string,
+  emailHash: string,
+  phoneHash: string,
+  success: boolean
+) {
+  const { error } = await supabase.from('trial_signup_attempts').insert({
+    ip_hash: ipHash,
+    email_hash: emailHash,
+    phone_hash: phoneHash,
+    success,
+  });
+  if (error && !isMissingRelation(error)) throw error;
+}
+
+async function consumeEmailOtpVerification(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  verificationToken: string
+) {
+  const tokenHash = hashOtpValue(`verify:${verificationToken}`);
+  const { data: pendingOtp, error: otpError } = await supabase
+    .from('trial_email_otp')
+    .select('id, verified_at, used_for_trial')
+    .eq('email', email)
+    .eq('verification_token_hash', tokenHash)
+    .eq('consumed', true)
+    .eq('used_for_trial', false)
+    .order('verified_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (otpError) {
+    if (isMissingRelation(otpError)) {
+      return {
+        ok: false,
+        status: 500,
+        error: 'Tabela de OTP não encontrada. Execute trial_email_otp_phase1.sql no Supabase.',
+      };
+    }
+    throw otpError;
+  }
+
+  if (!pendingOtp) {
+    const { data: usedOtp, error: usedOtpError } = await supabase
+      .from('trial_email_otp')
+      .select('id')
+      .eq('email', email)
+      .eq('verification_token_hash', tokenHash)
+      .eq('consumed', true)
+      .eq('used_for_trial', true)
+      .maybeSingle();
+    if (usedOtpError && !isMissingRelation(usedOtpError)) throw usedOtpError;
+    if (usedOtp?.id) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'Este token de verificação já foi utilizado.',
+      };
+    }
+    return {
+      ok: false,
+      status: 403,
+      error: 'Validação de e-mail não encontrada ou expirada.',
+    };
+  }
+
+  const verifiedAt = new Date(String(pendingOtp.verified_at || 0));
+  if (Number.isNaN(verifiedAt.getTime()) || Date.now() - verifiedAt.getTime() > 20 * 60 * 1000) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Validação de e-mail expirada. Solicite um novo código.',
+    };
+  }
+
+  return { ok: true as const, otpId: pendingOtp.id as string };
+}
+
+async function consumeSmsOtpVerification(
+  supabase: ReturnType<typeof createClient>,
+  phoneE164: string,
+  verificationToken: string
+) {
+  const tokenHash = hashOtpValue(`verify:${verificationToken}`);
+  const { data: pendingOtp, error: otpError } = await supabase
+    .from('trial_sms_otp')
+    .select('id, phone_e164, verified_at, used_for_trial')
+    .eq('verification_token_hash', tokenHash)
+    .eq('consumed', true)
+    .eq('used_for_trial', false)
+    .order('verified_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (otpError) {
+    if (isMissingRelation(otpError)) {
+      return {
+        ok: false,
+        status: 500,
+        error: 'Tabela de OTP SMS não encontrada. Execute trial_sms_otp_phase1.sql no Supabase.',
+      };
+    }
+    throw otpError;
+  }
+
+  if (!pendingOtp) {
+    const { data: usedOtp, error: usedOtpError } = await supabase
+      .from('trial_sms_otp')
+      .select('id')
+      .eq('verification_token_hash', tokenHash)
+      .eq('consumed', true)
+      .eq('used_for_trial', true)
+      .maybeSingle();
+    if (usedOtpError && !isMissingRelation(usedOtpError)) throw usedOtpError;
+    if (usedOtp?.id) {
+      return { ok: false, status: 409, error: 'Este token de SMS já foi utilizado.' };
+    }
+    return { ok: false, status: 403, error: 'Validação de SMS não encontrada ou expirada.' };
+  }
+
+  if (String(pendingOtp.phone_e164 || '') !== phoneE164) {
+    return { ok: false, status: 403, error: 'Token de SMS não corresponde ao telefone informado.' };
+  }
+
+  const verifiedAt = new Date(String(pendingOtp.verified_at || 0));
+  if (Number.isNaN(verifiedAt.getTime()) || Date.now() - verifiedAt.getTime() > 20 * 60 * 1000) {
+    return { ok: false, status: 403, error: 'Validação de SMS expirada. Solicite um novo código.' };
+  }
+
+  return { ok: true as const, otpId: pendingOtp.id as string };
+}
+
 export const POST: Handler = async (req, res) => {
   try {
     const body = req.body || {};
     const email = String(body.email || '').trim().toLowerCase();
     const fullName = String(body.full_name || '').trim();
-    const phone = String(body.phone || '').trim();
+    const phoneInput = String(body.phone || '').trim();
+    const normalizedPhone = normalizePhone(phoneInput);
     const origin = String(body.origin || 'qr_code').trim().toLowerCase();
+    const website = String(body.website || '').trim();
+    const emailOtpToken = String(body.email_otp_token || '').trim();
+    const smsOtpToken = String(body.sms_otp_token || '').trim();
 
-    if (!email || !fullName || !phone) {
-      return res.status(400).json({ error: 'full_name, email e phone são obrigatórios' });
+    if (website) {
+      return res.status(400).json({ error: 'Solicitação inválida.' });
+    }
+
+    if (!email || !fullName || !normalizedPhone || !emailOtpToken || !smsOtpToken) {
+      return res
+        .status(400)
+        .json({ error: 'full_name, email, phone, email_otp_token e sms_otp_token são obrigatórios' });
     }
 
     await ensureFirebaseAdmin();
     const supabase = getSupabaseServiceClient();
+    await ensureTrialSecurityTables(supabase);
+
+    const remoteIp = extractIp(req);
+    const ipHash = hashValue(remoteIp || 'unknown-ip');
+    const emailHash = hashValue(email);
+    const phoneHash = hashValue(normalizedPhone);
+
+    const otpVerification = await consumeEmailOtpVerification(supabase, email, emailOtpToken);
+    if (!otpVerification.ok) {
+      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
+      return res.status(otpVerification.status).json({ error: otpVerification.error });
+    }
+
+    const smsVerification = await consumeSmsOtpVerification(supabase, normalizedPhone, smsOtpToken);
+    if (!smsVerification.ok) {
+      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
+      return res.status(smsVerification.status).json({ error: smsVerification.error });
+    }
+
+    const [markEmailUsed, markSmsUsed] = await Promise.all([
+      supabase
+        .from('trial_email_otp')
+        .update({
+          used_for_trial: true,
+          used_for_trial_at: new Date().toISOString(),
+        })
+        .eq('id', otpVerification.otpId),
+      supabase
+        .from('trial_sms_otp')
+        .update({
+          used_for_trial: true,
+          used_for_trial_at: new Date().toISOString(),
+        })
+        .eq('id', smsVerification.otpId),
+    ]);
+    if (markEmailUsed.error) throw markEmailUsed.error;
+    if (markSmsUsed.error) throw markSmsUsed.error;
+
+    const rateLimited = await checkRateLimit(supabase, ipHash, emailHash, phoneHash);
+    if (rateLimited) {
+      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
+      return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos para tentar novamente.' });
+    }
+
+    const { data: identityRegistry, error: identityRegistryError } = await supabase
+      .from('trial_identity_registry')
+      .select('firebase_uid')
+      .eq('phone_hash', phoneHash)
+      .maybeSingle();
+    if (identityRegistryError && !isMissingRelation(identityRegistryError)) throw identityRegistryError;
+    if (identityRegistry?.firebase_uid) {
+      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
+      return res
+        .status(409)
+        .json({ error: 'Este telefone já utilizou o acesso de teste. Finalize seu cadastro para continuar.' });
+    }
 
     let userRecord: admin.auth.UserRecord;
     try {
@@ -138,7 +431,7 @@ export const POST: Handler = async (req, res) => {
       p_full_name: fullName || null,
       p_company_name: null,
       p_cnpj: null,
-      p_phone: phone || null,
+      p_phone: normalizedPhone || null,
       p_address: null,
     };
 
@@ -152,7 +445,7 @@ export const POST: Handler = async (req, res) => {
             email,
             role: 'client',
             full_name: fullName || null,
-            phone: phone || null,
+            phone: normalizedPhone || null,
             updated_at: new Date().toISOString(),
           } as any,
           { onConflict: 'firebase_uid' }
@@ -167,7 +460,7 @@ export const POST: Handler = async (req, res) => {
 
     const profilePatch: Record<string, any> = {
       full_name: fullName,
-      phone,
+      phone: normalizedPhone,
       updated_at: new Date().toISOString(),
     };
     if (hasOwn(profileRow as any, 'is_trial')) profilePatch.is_trial = true;
@@ -177,6 +470,15 @@ export const POST: Handler = async (req, res) => {
     if (hasOwn(profileRow as any, 'trial_started_at')) profilePatch.trial_started_at = new Date().toISOString();
 
     await supabase.from('user_profiles').update(profilePatch).eq('firebase_uid', firebaseUid);
+
+    const { error: registryInsertError } = await supabase.from('trial_identity_registry').insert({
+      phone_hash: phoneHash,
+      email_hash: emailHash,
+      firebase_uid: firebaseUid,
+    });
+    if (registryInsertError && !isMissingRelation(registryInsertError)) {
+      throw registryInsertError;
+    }
 
     const farFuture = new Date(Date.now() + 3650 * 24 * 60 * 60 * 1000).toISOString();
     await supabase
@@ -194,6 +496,7 @@ export const POST: Handler = async (req, res) => {
 
     await admin.auth().setCustomUserClaims(firebaseUid, { role: 'client', trial: true });
     const customToken = await admin.auth().createCustomToken(firebaseUid, { role: 'client', trial: true });
+    await registerAttempt(supabase, ipHash, emailHash, phoneHash, true);
 
     return res.status(200).json({ success: true, uid: firebaseUid, custom_token: customToken });
   } catch (error: any) {

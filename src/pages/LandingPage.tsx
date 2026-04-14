@@ -34,7 +34,14 @@ import PricingSection from '@/components/Marketing/PricingSection';
 export default function LandingPage() {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
-  const heroBackgroundUrl = new URL('../assets/hero-bg-dark.png', import.meta.url).href;
+  const heroBackgroundCandidates = [
+    new URL('../assets/hero-bg-dark.png', import.meta.url).href,
+    '/assets/hero-bg-dark.png',
+    '/assets/hero-bg-dark.jpg',
+  ];
+  const [heroBackgroundSrc, setHeroBackgroundSrc] = useState<string>(heroBackgroundCandidates[0]);
+  const [heroBgAttemptIndex, setHeroBgAttemptIndex] = useState(0);
+  const [heroBgFailed, setHeroBgFailed] = useState(false);
   const promoVideoUrl =
     'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/copy_2E0B46BB-B907-4FFA-B7D8-31F3115A343B.mp4';
   const interactiveCardClass =
@@ -250,10 +257,20 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-950">
         <img
-          src={heroBackgroundUrl}
+          src={heroBackgroundSrc}
           alt=""
           aria-hidden
           loading="eager"
+          onError={() => {
+            const nextIndex = heroBgAttemptIndex + 1;
+            if (nextIndex < heroBackgroundCandidates.length) {
+              setHeroBgAttemptIndex(nextIndex);
+              setHeroBackgroundSrc(heroBackgroundCandidates[nextIndex]);
+              return;
+            }
+            setHeroBgFailed(true);
+          }}
+          style={{ display: heroBgFailed ? 'none' : undefined }}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
         <div

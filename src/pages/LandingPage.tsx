@@ -221,7 +221,7 @@ export default function LandingPage() {
       {/* Header */}
       <header
         className={[
-          'sticky top-0 z-50 transition-all duration-300',
+          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
           isHeaderScrolled
             ? 'border-b border-white/10 bg-slate-950/60 backdrop-blur supports-[backdrop-filter]:bg-slate-950/40 shadow-[0_12px_30px_rgba(0,0,0,0.25)]'
             : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0',
@@ -270,7 +270,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-slate-950 min-h-[calc(100dvh-72px)] flex items-center">
+      <section className="relative overflow-hidden bg-slate-950 min-h-[100dvh] flex items-center">
         <img
           src={heroBackgroundSrc}
           alt=""

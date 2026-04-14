@@ -34,6 +34,7 @@ import PricingSection from '@/components/Marketing/PricingSection';
 export default function LandingPage() {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
+  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
   const heroBackgroundCandidates = [
     new URL('../assets/hero-bg-dark.png', import.meta.url).href,
     '/assets/hero-bg-dark.png',
@@ -69,6 +70,13 @@ export default function LandingPage() {
 
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setIsHeaderScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const features = [
@@ -211,7 +219,14 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 antialiased">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/60 backdrop-blur supports-[backdrop-filter]:bg-slate-950/40 shadow-[0_12px_30px_rgba(0,0,0,0.25)]">
+      <header
+        className={[
+          'sticky top-0 z-50 transition-all duration-300',
+          isHeaderScrolled
+            ? 'border-b border-white/10 bg-slate-950/60 backdrop-blur supports-[backdrop-filter]:bg-slate-950/40 shadow-[0_12px_30px_rgba(0,0,0,0.25)]'
+            : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0',
+        ].join(' ')}
+      >
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 py-3">
           <div className="flex flex-wrap items-center justify-between w-full gap-2">
             <div className="flex items-center shrink-0">

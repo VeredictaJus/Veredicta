@@ -36,3 +36,6 @@
 
 # Assets públicos precisam ser servidos como blob normal (sem ponteiro LFS)
 public/** -filter -diff -merge -text
+
+# Hero da landing também precisa ir como blob normal
+src/assets/hero-bg-dark.png -filter -diff -merge -text

@@ -250,6 +250,12 @@ export default function LandingPage() {
       <section className="relative overflow-hidden bg-slate-950">
         <div
           aria-hidden
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/assets/hero-bg-dark.jpg')" }}
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/80" />
+        <div
+          aria-hidden
           className="pointer-events-none absolute inset-0 landing-ambient-glow bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.32),transparent_55%)]"
         />
         <div

@@ -249,10 +249,11 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-950">
-        <div
+        <img
+          src={heroBackground}
+          alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroBackground})` }}
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/80" />
         <div

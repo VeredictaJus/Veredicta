@@ -30,6 +30,7 @@ import Logo from '@/components/ui/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentYear } from '@/utils/dateUtils';
 import PricingSection from '@/components/Marketing/PricingSection';
+import heroBackground from '@/assets/hero-bg-dark.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -251,7 +252,7 @@ export default function LandingPage() {
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/assets/hero-bg-dark.jpg')" }}
+          style={{ backgroundImage: `url(${heroBackground})` }}
         />
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/80" />
         <div

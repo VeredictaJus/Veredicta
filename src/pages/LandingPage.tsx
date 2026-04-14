@@ -30,11 +30,11 @@ import Logo from '@/components/ui/Logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentYear } from '@/utils/dateUtils';
 import PricingSection from '@/components/Marketing/PricingSection';
-import heroBackground from '@/assets/hero-bg-dark.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
+  const heroBackgroundUrl = new URL('../assets/hero-bg-dark.png', import.meta.url).href;
   const promoVideoUrl =
     'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/copy_2E0B46BB-B907-4FFA-B7D8-31F3115A343B.mp4';
   const interactiveCardClass =
@@ -250,12 +250,16 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-950">
         <img
-          src={heroBackground}
+          src={heroBackgroundUrl}
           alt=""
           aria-hidden
+          loading="eager"
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/80" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,6,23,0.62),rgba(2,6,23,0.82))]"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 landing-ambient-glow bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.32),transparent_55%)]"

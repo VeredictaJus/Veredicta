@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
-import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -56,9 +55,6 @@ export default function ForgotPassword() {
   if (isEmailSent) {
     return (
       <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        {/* Fundo animado */}
-        <FloatingLegalBackground />
-
         {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
         <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
         <div
@@ -145,9 +141,6 @@ export default function ForgotPassword() {
 
   return (
   <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-    {/* Fundo animado */}
-    <FloatingLegalBackground />
-
     {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
     <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
     <div

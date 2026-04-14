@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Chrome, Loader2, Mail, Eye, EyeOff, Lock } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
-import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground'
 
 export default function NewLoginForm() {
   const navigate = useNavigate()
@@ -101,8 +100,6 @@ export default function NewLoginForm() {
       className="auth-page relative min-h-screen flex items-center justify-center bg-slate-950 py-12 px-4 sm:px-6 lg:px-8"
       onKeyDown={handleKeyDown}
     >
-      <FloatingLegalBackground />
-
       <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
       <div
         aria-hidden

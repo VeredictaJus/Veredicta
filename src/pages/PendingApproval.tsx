@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Clock, Mail, ArrowLeft } from 'lucide-react';
-import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 import { useNewAuth } from '@/contexts/NewAuthContext';
 
 export default function PendingApproval() {
@@ -17,8 +16,6 @@ export default function PendingApproval() {
 
   return (
     <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <FloatingLegalBackground />
-
       {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
       <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
       <div

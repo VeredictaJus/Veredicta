@@ -12,7 +12,6 @@ import { useNewAuth } from '@/contexts/NewAuthContext';
 import { toast } from 'sonner';
 // Logo do Supabase Storage
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
-import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 import Logo from '@/components/ui/Logo';
 import { VerificationService } from '@/services/verificationService';
 import { supabase } from '@/lib/supabase';
@@ -754,8 +753,6 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
   return (
     <div className="auth-page relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
-      <FloatingLegalBackground />
-
       <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
       <div
         aria-hidden

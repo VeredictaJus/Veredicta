@@ -8,7 +8,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
-import FloatingLegalBackground from '@/components/ui/FloatingLegalBackground';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -193,7 +192,6 @@ export default function ResetPassword() {
   if (isValidCode === null) {
     return (
       <div className="auth-page relative min-h-screen flex items-center justify-center bg-slate-950">
-        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
         <p className="text-slate-200 relative z-10">Carregando...</p>
       </div>
@@ -204,7 +202,6 @@ export default function ResetPassword() {
   if (isValidCode === false) {
     return (
       <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -249,7 +246,6 @@ export default function ResetPassword() {
   if (isSuccess) {
     return (
       <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        <FloatingLegalBackground />
         {AUTH_ANIMATED_OVERLAYS}
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
@@ -287,7 +283,6 @@ export default function ResetPassword() {
   /* 🔐 Formulário de redefinição */
   return (
     <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-      <FloatingLegalBackground />
       {AUTH_ANIMATED_OVERLAYS}
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">

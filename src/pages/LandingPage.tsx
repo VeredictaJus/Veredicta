@@ -255,7 +255,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-slate-950">
+      <section className="relative overflow-hidden bg-slate-950 min-h-[calc(100dvh-72px)] flex items-center">
         <img
           src={heroBackgroundSrc}
           alt=""
@@ -285,7 +285,7 @@ export default function LandingPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.08),transparent_55%)]"
         />
-        <div className="container mx-auto px-4 py-24 md:py-28 relative">
+        <div className="container mx-auto px-4 py-10 md:py-12 relative">
           <div className="max-w-4xl mx-auto text-center">
             <h1 data-reveal className="reveal-on-scroll text-4xl md:text-6xl font-semibold tracking-tight text-white mb-6">
               <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">

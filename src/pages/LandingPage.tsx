@@ -290,7 +290,7 @@ export default function LandingPage() {
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(2,6,23,0.62),rgba(2,6,23,0.82))]"
+          className="pointer-events-none absolute inset-0 bg-slate-950/70"
         />
         <div
           aria-hidden
@@ -302,7 +302,10 @@ export default function LandingPage() {
         />
         <div className="container mx-auto px-4 py-10 md:py-12 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 data-reveal className="reveal-on-scroll text-4xl md:text-6xl font-semibold tracking-tight text-white mb-6">
+            <h1
+              data-reveal
+              className="reveal-on-scroll text-4xl md:text-6xl font-semibold tracking-tight leading-[1.1] text-white mb-8 md:mb-10"
+            >
               <span className="bg-gradient-to-r from-orange-200 via-orange-400 to-orange-500 bg-clip-text text-transparent">
                 Alta demanda
               </span>{' '}
@@ -310,7 +313,7 @@ export default function LandingPage() {
             </h1>
             <p
               data-reveal
-              className="reveal-on-scroll text-base md:text-xl text-slate-300 mb-10 max-w-3xl mx-auto leading-relaxed"
+              className="reveal-on-scroll text-base md:text-xl text-slate-300 mb-12 md:mb-14 max-w-3xl mx-auto leading-relaxed"
               style={{ transitionDelay: '120ms' }}
             >
               A Veredicta estrutura e executa a produção de peças jurídicas com especialistas humanos, permitindo que
@@ -319,7 +322,7 @@ export default function LandingPage() {
             
             <div
               data-reveal
-              className="reveal-on-scroll mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
+              className="reveal-on-scroll mt-10 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6"
               style={{ transitionDelay: '240ms' }}
             >
               <Button 

@@ -329,10 +329,10 @@ export default function TrialEntry() {
       <AuthBackground />
       <div className="relative z-10 w-full max-w-lg">
         <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
-          <CardHeader className="space-y-3">
+          <CardHeader className="space-y-3 text-center items-center">
             <div className="flex justify-center pb-1">
               <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
-                <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
+                <div className="w-20 h-20 rounded-full border border-white/20 bg-transparent shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex items-center justify-center">
                   <img
                     src={logoImage}
                     alt="Veredicta"
@@ -349,14 +349,14 @@ export default function TrialEntry() {
                 </span>
               </Link>
             </div>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center justify-center gap-2 text-white text-center">
               <QrCode className="h-5 w-5 text-orange-600" />
               Seu acesso à Veredicta está liberado
             </CardTitle>
-            <CardDescription className="text-justify text-slate-200">
+            <CardDescription className="max-w-md text-center text-slate-200">
               Acesso liberado para envio da sua primeira demanda.
             </CardDescription>
-            <div className="rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
+            <div className="w-full max-w-md rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
               <p className="text-sm font-semibold text-orange-300">
                 Primeira petição por nossa conta
               </p>

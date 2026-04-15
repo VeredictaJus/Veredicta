@@ -2,12 +2,22 @@ import type { Handler } from 'vite-plugin-api-routes';
 import { createClient } from '@supabase/supabase-js';
 import { createHash, randomBytes } from 'node:crypto';
 
+function getEnvVar(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && String(value).trim() !== '') return String(value);
+  }
+  return '';
+}
+
 function getSupabaseServiceClient() {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey =
-    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY;
+  const supabaseUrl = getEnvVar('SUPABASE_URL', 'VITE_SUPABASE_URL');
+  const supabaseServiceKey = getEnvVar(
+    'SUPABASE_ADMIN_TOKEN',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'VITE_SUPABASE_SERVICE_ROLE_KEY'
+  );
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase service role is not configured');

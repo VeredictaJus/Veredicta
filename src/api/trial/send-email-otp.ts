@@ -3,12 +3,22 @@ import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { createHash, randomInt } from 'node:crypto';
 
+function getEnvVar(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value && String(value).trim() !== '') return String(value);
+  }
+  return '';
+}
+
 function getSupabaseServiceClient() {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseServiceKey =
-    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_SERVICE_KEY;
+  const supabaseUrl = getEnvVar('SUPABASE_URL', 'VITE_SUPABASE_URL');
+  const supabaseServiceKey = getEnvVar(
+    'SUPABASE_ADMIN_TOKEN',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'VITE_SUPABASE_SERVICE_ROLE_KEY'
+  );
 
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase service role is not configured');
@@ -20,7 +30,7 @@ function getSupabaseServiceClient() {
 }
 
 function getAppPublicUrl() {
-  const envUrl = process.env.APP_PUBLIC_URL || process.env.VITE_APP_URL || 'http://localhost:5176';
+  const envUrl = getEnvVar('APP_URL', 'APP_PUBLIC_URL', 'VITE_APP_URL') || 'http://localhost:5176';
   return String(envUrl).replace(/\/$/, '');
 }
 
@@ -50,7 +60,7 @@ async function getResendApiKey(): Promise<string> {
     // ignore
   }
 
-  return process.env.RESEND_API_KEY || process.env.VITE_RESEND_API_KEY || '';
+  return getEnvVar('RESEND_API_TOKEN', 'RESEND_API_KEY', 'VITE_RESEND_API_KEY', 'VITE_RESEND_API_TOKEN');
 }
 
 async function verifyTurnstileToken(token: string, remoteIp: string) {

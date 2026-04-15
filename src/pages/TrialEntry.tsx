@@ -156,7 +156,8 @@ export default function TrialEntry() {
 
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload?.error || 'Não foi possível enviar o código.');
+        const errorMessage = [payload?.error, payload?.details].filter(Boolean).join(' - ');
+        throw new Error(errorMessage || 'Não foi possível enviar o código.');
       }
 
       setEmailOtpSent(true);

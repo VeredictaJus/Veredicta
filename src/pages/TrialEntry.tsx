@@ -327,41 +327,59 @@ export default function TrialEntry() {
   return (
     <div className="auth-page relative min-h-screen overflow-y-auto px-4 py-6 md:py-10">
       <AuthBackground />
-      <div className="relative z-10 mx-auto w-full max-w-lg">
-        <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
-          <CardHeader className="space-y-3 text-center items-center">
-            <div className="flex justify-center pb-1">
-              <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
-                <img
-                  src={logoImage}
-                  alt="Veredicta"
-                  className="h-14 w-auto object-contain"
-                />
-                <span className="mt-3 text-2xl font-medium text-white tracking-wide">
-                  Vered
-                  <span className="relative inline-block">
-                    <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
-                    <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
-                  </span>
-                  cta
-                </span>
-              </Link>
-            </div>
-            <CardTitle className="flex items-center justify-center gap-2 text-white text-center">
-              <QrCode className="h-5 w-5 text-orange-600" />
-              Seu acesso à Veredicta está liberado
-            </CardTitle>
-            <CardDescription className="max-w-md text-center text-slate-200">
-              Acesso liberado para envio da sua primeira demanda.
-            </CardDescription>
-            <div className="w-full max-w-md rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
-              <p className="text-sm font-semibold text-orange-300">
-                Primeira petição por nossa conta
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4 text-slate-100" onSubmit={handleSubmit}>
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12">
+          <section className="text-white">
+            <p className="text-sm font-medium uppercase tracking-[0.14em] text-orange-300/85">
+              Acesso exclusivo
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              Você foi convidado a conhecer a Veredicta
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-200 sm:text-lg">
+              Plataforma de petições jurídicas sob demanda para escritórios que precisam produzir mais, sem
+              sobrecarregar a equipe.
+            </p>
+            <p className="mt-6 text-sm font-medium text-orange-200 sm:text-base">
+              Envie sua demanda {'\u2192'} Acompanhe {'\u2192'} Receba a petição pronta
+            </p>
+          </section>
+
+          <div className="w-full max-w-lg lg:justify-self-end">
+            <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
+              <CardHeader className="space-y-3 text-center items-center">
+                <div className="flex justify-center pb-1">
+                  <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
+                    <img
+                      src={logoImage}
+                      alt="Veredicta"
+                      className="h-14 w-auto object-contain"
+                    />
+                    <span className="mt-3 text-2xl font-medium text-white tracking-wide">
+                      Vered
+                      <span className="relative inline-block">
+                        <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
+                        <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
+                      </span>
+                      cta
+                    </span>
+                  </Link>
+                </div>
+                <CardTitle className="flex items-center justify-center gap-2 text-white text-center">
+                  <QrCode className="h-5 w-5 text-orange-600" />
+                  Você recebeu acesso à Veredicta.
+                </CardTitle>
+                <CardDescription className="max-w-md text-center text-slate-200">
+                  Envie uma demanda e receba sua petição pronta
+                </CardDescription>
+                <div className="w-full max-w-md rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
+                  <p className="text-sm font-semibold text-orange-300">
+                    Primeira petição por nossa conta
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4 text-slate-100" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="full_name" className="text-slate-100">Nome</Label>
               <Input
@@ -519,10 +537,12 @@ export default function TrialEntry() {
                 'Acessar plataforma'
               )}
             </Button>
-              <p className="text-center text-xs text-slate-300">Acesso imediato. Sem compromisso.</p>
-            </form>
-          </CardContent>
-        </Card>
+                  <p className="text-center text-xs text-slate-300">Você já pode enviar sua primeira demanda</p>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

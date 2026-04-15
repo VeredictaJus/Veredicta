@@ -13,6 +13,16 @@ import AuthBackground from '@/components/ui/AuthBackground';
 
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 
+function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+
+  if (!digits) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 declare global {
   interface Window {
     turnstile?: {
@@ -103,6 +113,13 @@ export default function TrialEntry() {
       toast.error('Preencha nome, email e telefone.');
       return false;
     }
+
+    const phoneDigits = form.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      toast.error('Digite um telefone válido com DDD.');
+      return false;
+    }
+
     return true;
   };
 
@@ -215,7 +232,7 @@ export default function TrialEntry() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
+          phone: form.phone.replace(/\D/g, ''),
           email_otp_token: emailOtpToken,
           website: form.website,
         }),
@@ -254,7 +271,7 @@ export default function TrialEntry() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: form.phone.trim(),
+          phone: form.phone.replace(/\D/g, ''),
           code: smsOtpCode.trim(),
         }),
       });
@@ -301,7 +318,7 @@ export default function TrialEntry() {
         body: JSON.stringify({
           full_name: form.full_name.trim(),
           email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
+          phone: form.phone.replace(/\D/g, ''),
           origin: originParam,
           website: form.website,
           email_otp_token: emailOtpToken,
@@ -412,7 +429,7 @@ export default function TrialEntry() {
                 id="phone"
                 value={form.phone}
                 onChange={(event) => {
-                  setForm((prev) => ({ ...prev, phone: event.target.value }));
+                  setForm((prev) => ({ ...prev, phone: formatPhoneInput(event.target.value) }));
                   resetOtpState();
                 }}
                 placeholder="(00) 00000-0000"

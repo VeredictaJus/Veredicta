@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { auth } from '@/lib/firebase';
+import AuthBackground from '@/components/ui/AuthBackground';
 
 declare global {
   interface Window {
@@ -322,7 +323,8 @@ export default function TrialEntry() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
+      <AuthBackground />
       <Card className="w-full max-w-lg border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm">
         <CardHeader className="space-y-3">
           <CardTitle className="flex items-center gap-2">

@@ -16,7 +16,7 @@ const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/pu
 /* --- Mini componente local para o logo dentro do círculo branco --- */
 const BrandLogo: FC = () => (
   <div className="flex items-center justify-center space-x-3 mb-6">
-    <div className="w-12 h-12 rounded-full bg-white ring-1 ring-black/10 shadow flex items-center justify-center">
+    <div className="w-12 h-12 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
       <img src={logoImage} alt="Veredicta" className="w-7 h-7 object-contain" />
     </div>
     <span className="text-2xl font-medium text-white tracking-wide px-3 py-1 rounded-xl bg-slate-950/50 backdrop-blur-sm border border-white/10 drop-shadow-[0_2px_18px_rgba(0,0,0,0.85)]">

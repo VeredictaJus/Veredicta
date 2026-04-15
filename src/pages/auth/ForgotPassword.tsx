@@ -60,7 +60,7 @@ export default function ForgotPassword() {
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
   <Link to="/" className="flex flex-col items-center justify-center mb-6 hover:opacity-80 transition-opacity">
-    <div className="w-20 h-20 rounded-full bg-white ring-1 ring-black/10 shadow-md flex items-center justify-center">
+    <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
       <img
         src={logoImage}
         alt="Veredicta"
@@ -138,7 +138,7 @@ export default function ForgotPassword() {
     {/* topo – logo com círculo branco */}
     <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
       <Link to="/" className="flex flex-col items-center justify-center mb-6 hover:opacity-80 transition-opacity">
-        <div className="w-20 h-20 rounded-full bg-white ring-1 ring-black/10 shadow-md flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
           <img
             src={logoImage}
             alt="Veredicta"

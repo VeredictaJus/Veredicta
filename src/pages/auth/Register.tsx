@@ -761,7 +761,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
         <header className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="bg-white rounded-full p-2 shadow-md">
+              <div className="rounded-full p-2 border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)]">
                 <img src={logoImage} alt="Veredicta" className="h-8 w-auto" />
               </div>
               <span className="text-xl font-medium text-white tracking-wide">

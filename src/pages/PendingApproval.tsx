@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Users, Clock, Mail, ArrowLeft } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import AuthBackground from '@/components/ui/AuthBackground';
 
 export default function PendingApproval() {
   const navigate = useNavigate();
@@ -16,16 +17,7 @@ export default function PendingApproval() {
 
   return (
     <div className="relative min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
-      />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
-      />
+      <AuthBackground />
       
       <div className="w-full max-w-4xl relative z-10">
         <Card className="rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(30,58,138,0.08))] shadow-[0_8px_32px_rgba(2,6,23,0.55),inset_0_1px_0_rgba(255,255,255,0.10)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">

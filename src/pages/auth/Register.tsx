@@ -15,6 +15,7 @@ const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/pu
 import Logo from '@/components/ui/Logo';
 import { VerificationService } from '@/services/verificationService';
 import { supabase } from '@/lib/supabase';
+import AuthBackground from '@/components/ui/AuthBackground';
 
 type UserType = 'client' | 'writer';
 
@@ -753,15 +754,7 @@ const handleInputChange = (field: keyof FormData, value: string) => {
 
   return (
     <div className="auth-page relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-950">
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
-      />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
-      />
+      <AuthBackground />
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}

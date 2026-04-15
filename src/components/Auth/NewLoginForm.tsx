@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Chrome, Loader2, Mail, Eye, EyeOff, Lock } from 'lucide-react'
 import { useNewAuth } from '@/contexts/NewAuthContext'
 import Logo from '@/components/ui/Logo'
+import AuthBackground from '@/components/ui/AuthBackground'
 
 export default function NewLoginForm() {
   const navigate = useNavigate()
@@ -100,15 +101,7 @@ export default function NewLoginForm() {
       className="auth-page relative min-h-screen flex items-center justify-center bg-slate-950 py-12 px-4 sm:px-6 lg:px-8"
       onKeyDown={handleKeyDown}
     >
-      <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
-      />
-      <div
-        aria-hidden
-        className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
-      />
+      <AuthBackground />
 
       <Card className="w-full max-w-md relative z-10 rounded-2xl border border-[rgba(125,211,252,0.15)] bg-[linear-gradient(135deg,rgba(30,64,175,0.12),rgba(30,58,138,0.08))] shadow-[0_8px_32px_rgba(2,6,23,0.55),inset_0_1px_0_rgba(255,255,255,0.10)] supports-[backdrop-filter]:backdrop-blur-[24px] supports-[backdrop-filter]:backdrop-saturate-[1.2]">
         <CardHeader className="text-center items-center px-8 pt-8 pb-4 md:px-10 md:pt-10">

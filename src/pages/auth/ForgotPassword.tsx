@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { useNewAuth } from '@/contexts/NewAuthContext';
+import AuthBackground from '@/components/ui/AuthBackground';
 
 // ✅ Usar logo público (evita falhas de asset path/case em produção)
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
@@ -55,16 +56,7 @@ export default function ForgotPassword() {
   if (isEmailSent) {
     return (
       <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-        {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-        <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
-        <div
-          aria-hidden
-          className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
-        />
-        <div
-          aria-hidden
-          className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
-        />
+        <AuthBackground />
 
         <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
   <Link to="/" className="flex flex-col items-center justify-center mb-6 hover:opacity-80 transition-opacity">
@@ -141,16 +133,7 @@ export default function ForgotPassword() {
 
   return (
   <div className="auth-page relative min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950">
-    {/* Overlays: mantém os caracteres, mas padroniza o fundo dark + halo laranja */}
-    <div aria-hidden className="fixed inset-0 z-[1] bg-slate-950/10" />
-    <div
-      aria-hidden
-      className="fixed inset-0 z-[2] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_55%)]"
-    />
-    <div
-      aria-hidden
-      className="fixed inset-0 z-[3] bg-[radial-gradient(circle_at_bottom,rgba(59,130,246,0.14),transparent_55%)]"
-    />
+    <AuthBackground />
 
     {/* topo – logo com círculo branco */}
     <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">

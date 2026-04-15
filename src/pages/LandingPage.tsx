@@ -79,6 +79,14 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const scrollToSection = (id: string) => {
+    const section = document.getElementById(id);
+    if (!section) return;
+    const headerOffset = 96;
+    const top = section.getBoundingClientRect().top + window.scrollY - headerOffset;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+
   const features = [
     {
       icon: FileText,
@@ -227,12 +235,42 @@ export default function LandingPage() {
             : 'border-b border-transparent bg-transparent shadow-none backdrop-blur-0',
         ].join(' ')}
       >
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 py-3">
-          <div className="flex flex-wrap items-center justify-between w-full gap-2">
-            <div className="flex items-center shrink-0">
+        <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-3">
+          <div className="grid w-full items-center gap-3 grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto]">
+            <div className="flex items-center">
               <Logo size="xl" clickable={false} textColor="light" />
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto justify-end">
+            <nav className="hidden lg:flex items-center justify-center gap-8">
+              <button
+                type="button"
+                onClick={() => scrollToSection('como-funciona')}
+                className="bg-transparent border-0 p-0 text-sm font-medium text-slate-300/90 hover:text-white transition-colors"
+              >
+                Como funciona
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('areas')}
+                className="bg-transparent border-0 p-0 text-sm font-medium text-slate-300/90 hover:text-white transition-colors"
+              >
+                Áreas
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('beneficios')}
+                className="bg-transparent border-0 p-0 text-sm font-medium text-slate-300/90 hover:text-white transition-colors"
+              >
+                Benefícios
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('planos')}
+                className="bg-transparent border-0 p-0 text-sm font-medium text-slate-300/90 hover:text-white transition-colors"
+              >
+                Planos
+              </button>
+            </nav>
+            <div className="flex flex-wrap items-center gap-2 justify-self-end justify-end">
               <Button 
                 variant="outline" 
                 className="bg-white/5 text-white border-white/15 hover:border-white/25 hover:bg-white/10 text-xs sm:text-sm whitespace-nowrap px-2 sm:px-4"
@@ -402,7 +440,7 @@ export default function LandingPage() {
       </section>
 
       {/* Todas as Áreas do Direito */}
-      <section className="py-20 bg-slate-900/30">
+      <section id="areas" className="py-20 bg-slate-900/30">
         <div className="container mx-auto px-4">
           <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
@@ -575,7 +613,7 @@ export default function LandingPage() {
       </section>
 
       {/* O que você ganha na prática */}
-      <section className="py-20 bg-slate-900/30">
+      <section id="beneficios" className="py-20 bg-slate-900/30">
         <div className="container mx-auto px-4">
           <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4 flex items-center justify-center gap-3">
@@ -719,7 +757,7 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-slate-950">
+      <section id="como-funciona" className="py-20 bg-slate-950">
         <div className="container mx-auto px-4">
           <div data-reveal className="reveal-on-scroll text-center mb-16">
             <h2 className="text-4xl font-semibold tracking-tight text-white mb-4">
@@ -778,7 +816,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <PricingSection />
+      <div id="planos">
+        <PricingSection />
+      </div>
 
       {/* CTA Section */}
       <section className="relative overflow-hidden py-20 bg-slate-950">

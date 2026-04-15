@@ -48,17 +48,11 @@ export default function TrialEntry() {
   const [loading, setLoading] = useState(false);
   const [sendingEmailOtp, setSendingEmailOtp] = useState(false);
   const [verifyingEmailOtp, setVerifyingEmailOtp] = useState(false);
-  const [sendingSmsOtp, setSendingSmsOtp] = useState(false);
-  const [verifyingSmsOtp, setVerifyingSmsOtp] = useState(false);
   const [captchaToken, setCaptchaToken] = useState('');
   const [emailOtpCode, setEmailOtpCode] = useState('');
-  const [smsOtpCode, setSmsOtpCode] = useState('');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
-  const [smsOtpSent, setSmsOtpSent] = useState(false);
-  const [smsOtpVerified, setSmsOtpVerified] = useState(false);
   const [emailOtpToken, setEmailOtpToken] = useState('');
-  const [smsOtpToken, setSmsOtpToken] = useState('');
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -126,12 +120,8 @@ export default function TrialEntry() {
   const resetOtpState = () => {
     setEmailOtpSent(false);
     setEmailOtpVerified(false);
-    setSmsOtpSent(false);
-    setSmsOtpVerified(false);
     setEmailOtpCode('');
-    setSmsOtpCode('');
     setEmailOtpToken('');
-    setSmsOtpToken('');
   };
 
   const handleSendEmailOtp = async () => {
@@ -162,12 +152,8 @@ export default function TrialEntry() {
 
       setEmailOtpSent(true);
       setEmailOtpVerified(false);
-      setSmsOtpSent(false);
-      setSmsOtpVerified(false);
       setEmailOtpToken('');
-      setSmsOtpToken('');
       setEmailOtpCode('');
-      setSmsOtpCode('');
       toast.success('Código enviado para seu e-mail.');
 
       if (requiresCaptcha && window.turnstile && widgetIdRef.current) {
@@ -219,90 +205,11 @@ export default function TrialEntry() {
     }
   };
 
-  const handleSendSmsOtp = async () => {
-    if (!validateBaseFields()) return;
-    if (!emailOtpVerified || !emailOtpToken) {
-      toast.error('Valide primeiro o código enviado por e-mail.');
-      return;
-    }
-
-    setSendingSmsOtp(true);
-    try {
-      const response = await fetch('/api/trial/send-sms-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.replace(/\D/g, ''),
-          email_otp_token: emailOtpToken,
-          website: form.website,
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.error || 'Não foi possível enviar o código SMS.');
-      }
-
-      setSmsOtpSent(true);
-      setSmsOtpVerified(false);
-      setSmsOtpToken('');
-      setSmsOtpCode('');
-      toast.success('Código SMS enviado com sucesso.');
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao enviar código SMS.');
-    } finally {
-      setSendingSmsOtp(false);
-    }
-  };
-
-  const handleVerifySmsOtp = async () => {
-    if (!smsOtpSent) {
-      toast.error('Envie o código SMS primeiro.');
-      return;
-    }
-    if (!/^\d{4,8}$/.test(smsOtpCode.trim())) {
-      toast.error('Digite o código SMS recebido.');
-      return;
-    }
-
-    setVerifyingSmsOtp(true);
-    try {
-      const response = await fetch('/api/trial/verify-sms-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: form.phone.replace(/\D/g, ''),
-          code: smsOtpCode.trim(),
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload?.verification_token) {
-        throw new Error(payload?.error || 'Código SMS inválido.');
-      }
-
-      setSmsOtpToken(String(payload.verification_token));
-      setSmsOtpVerified(true);
-      toast.success('Telefone validado com sucesso.');
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao validar código SMS.');
-      setSmsOtpVerified(false);
-      setSmsOtpToken('');
-    } finally {
-      setVerifyingSmsOtp(false);
-    }
-  };
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!validateBaseFields()) return;
     if (!emailOtpVerified || !emailOtpToken) {
       toast.error('Valide o código enviado por e-mail para continuar.');
-      return;
-    }
-    if (!smsOtpVerified || !smsOtpToken) {
-      toast.error('Valide o código enviado por SMS para continuar.');
       return;
     }
 
@@ -323,7 +230,6 @@ export default function TrialEntry() {
           origin: originParam,
           website: form.website,
           email_otp_token: emailOtpToken,
-          sms_otp_token: smsOtpToken,
         }),
       });
 
@@ -494,58 +400,7 @@ export default function TrialEntry() {
               </div>
             )}
 
-            {emailOtpVerified && (
-              <div className="space-y-3 rounded-md border border-white/20 bg-slate-900/45 p-3">
-                <Button className="w-full" type="button" onClick={handleSendSmsOtp} disabled={sendingSmsOtp}>
-                  {sendingSmsOtp ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="ml-2">Enviando SMS...</span>
-                    </>
-                  ) : (
-                    'Enviar código por SMS'
-                  )}
-                </Button>
-
-                {smsOtpSent && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="sms_otp_code" className="text-slate-100">Código SMS</Label>
-                      <Input
-                        id="sms_otp_code"
-                        value={smsOtpCode}
-                        onChange={(event) => setSmsOtpCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
-                        placeholder="Digite o código recebido por SMS"
-                        className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
-                      />
-                    </div>
-                    <Button
-                      className="w-full"
-                      type="button"
-                      variant="outline"
-                      onClick={handleVerifySmsOtp}
-                      disabled={verifyingSmsOtp}
-                    >
-                      {verifyingSmsOtp ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="ml-2">Validando SMS...</span>
-                        </>
-                      ) : (
-                        'Validar código SMS'
-                      )}
-                    </Button>
-                    {smsOtpVerified ? (
-                      <p className="text-xs text-green-600">Telefone validado. Você já pode iniciar o teste.</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">Valide o código SMS para concluir.</p>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            <Button className="w-full" type="submit" disabled={loading || !emailOtpVerified || !smsOtpVerified}>
+            <Button className="w-full" type="submit" disabled={loading || !emailOtpVerified}>
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />

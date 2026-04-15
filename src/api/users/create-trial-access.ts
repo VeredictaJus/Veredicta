@@ -344,16 +344,15 @@ export const POST: Handler = async (req, res) => {
     const origin = String(body.origin || 'qr_code').trim().toLowerCase();
     const website = String(body.website || '').trim();
     const emailOtpToken = String(body.email_otp_token || '').trim();
-    const smsOtpToken = String(body.sms_otp_token || '').trim();
 
     if (website) {
       return res.status(400).json({ error: 'Solicitação inválida.' });
     }
 
-    if (!email || !fullName || !normalizedPhone || !emailOtpToken || !smsOtpToken) {
+    if (!email || !fullName || !normalizedPhone || !emailOtpToken) {
       return res
         .status(400)
-        .json({ error: 'full_name, email, phone, email_otp_token e sms_otp_token são obrigatórios' });
+        .json({ error: 'full_name, email, phone e email_otp_token são obrigatórios' });
     }
 
     await ensureFirebaseAdmin();
@@ -371,30 +370,14 @@ export const POST: Handler = async (req, res) => {
       return res.status(otpVerification.status).json({ error: otpVerification.error });
     }
 
-    const smsVerification = await consumeSmsOtpVerification(supabase, normalizedPhone, smsOtpToken);
-    if (!smsVerification.ok) {
-      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
-      return res.status(smsVerification.status).json({ error: smsVerification.error });
-    }
-
-    const [markEmailUsed, markSmsUsed] = await Promise.all([
-      supabase
-        .from('trial_email_otp')
-        .update({
-          used_for_trial: true,
-          used_for_trial_at: new Date().toISOString(),
-        })
-        .eq('id', otpVerification.otpId),
-      supabase
-        .from('trial_sms_otp')
-        .update({
-          used_for_trial: true,
-          used_for_trial_at: new Date().toISOString(),
-        })
-        .eq('id', smsVerification.otpId),
-    ]);
-    if (markEmailUsed.error) throw markEmailUsed.error;
-    if (markSmsUsed.error) throw markSmsUsed.error;
+    const { error: markEmailUsedError } = await supabase
+      .from('trial_email_otp')
+      .update({
+        used_for_trial: true,
+        used_for_trial_at: new Date().toISOString(),
+      })
+      .eq('id', otpVerification.otpId);
+    if (markEmailUsedError) throw markEmailUsedError;
 
     const rateLimited = await checkRateLimit(supabase, ipHash, emailHash, phoneHash);
     if (rateLimited) {

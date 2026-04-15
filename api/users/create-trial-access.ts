@@ -153,8 +153,17 @@ async function ensureTrialSecurityTables(supabase: ReturnType<typeof createClien
       firebase_uid text NOT NULL
     );`;
 
-  await supabase.rpc('execute_sql', { sql: createAttemptSql } as any).catch(() => {});
-  await supabase.rpc('execute_sql', { sql: createIdentitySql } as any).catch(() => {});
+  try {
+    await supabase.rpc('execute_sql', { sql: createAttemptSql } as any);
+  } catch {
+    // Ambientes sem execute_sql RPC podem ignorar esta etapa.
+  }
+
+  try {
+    await supabase.rpc('execute_sql', { sql: createIdentitySql } as any);
+  } catch {
+    // Ambientes sem execute_sql RPC podem ignorar esta etapa.
+  }
 }
 
 function isMissingRelation(error: any) {

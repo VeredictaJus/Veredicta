@@ -325,25 +325,25 @@ export default function TrialEntry() {
   return (
     <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
       <AuthBackground />
-      <Card className="w-full max-w-lg border-amber-200/45 bg-gradient-to-br from-amber-50/45 to-orange-50/25 shadow-[0_8px_24px_-18px_rgba(245,158,11,0.22)] dark:border-border/60 dark:bg-card/80 dark:bg-none dark:shadow-sm">
+      <Card className="w-full max-w-lg border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
         <CardHeader className="space-y-3">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <QrCode className="h-5 w-5 text-orange-600" />
             Seu acesso à Veredicta está liberado
           </CardTitle>
-          <CardDescription className="text-justify">
+          <CardDescription className="text-justify text-slate-200">
             Acesso liberado para envio da sua primeira demanda.
           </CardDescription>
-          <div className="rounded-md border border-orange-300/40 bg-orange-500/10 px-3 py-2">
-            <p className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+          <div className="rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
+            <p className="text-sm font-semibold text-orange-300">
               Primeira petição por nossa conta
             </p>
           </div>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4 text-slate-100" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="full_name">Nome</Label>
+              <Label htmlFor="full_name" className="text-slate-100">Nome</Label>
               <Input
                 id="full_name"
                 value={form.full_name}
@@ -351,10 +351,11 @@ export default function TrialEntry() {
                   setForm((prev) => ({ ...prev, full_name: event.target.value }));
                 }}
                 placeholder="Seu nome completo"
+                className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-slate-100">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -364,10 +365,11 @@ export default function TrialEntry() {
                   resetOtpState();
                 }}
                 placeholder="voce@escritorio.com"
+                className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
+              <Label htmlFor="phone" className="text-slate-100">Telefone</Label>
               <Input
                 id="phone"
                 value={form.phone}
@@ -376,6 +378,7 @@ export default function TrialEntry() {
                   resetOtpState();
                 }}
                 placeholder="(00) 00000-0000"
+                className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
               />
             </div>
             <input
@@ -400,14 +403,15 @@ export default function TrialEntry() {
             </Button>
 
             {emailOtpSent && (
-              <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="space-y-3 rounded-md border border-white/20 bg-slate-900/45 p-3">
                 <div className="space-y-2">
-                  <Label htmlFor="otp_code">Código de verificação</Label>
+                  <Label htmlFor="otp_code" className="text-slate-100">Código de verificação</Label>
                   <Input
                     id="otp_code"
                     value={emailOtpCode}
                     onChange={(event) => setEmailOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="Digite os 6 dígitos"
+                    className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
                   />
                 </div>
                 <Button
@@ -435,7 +439,7 @@ export default function TrialEntry() {
             )}
 
             {emailOtpVerified && (
-              <div className="space-y-3 rounded-md border border-border p-3">
+              <div className="space-y-3 rounded-md border border-white/20 bg-slate-900/45 p-3">
                 <Button className="w-full" type="button" onClick={handleSendSmsOtp} disabled={sendingSmsOtp}>
                   {sendingSmsOtp ? (
                     <>
@@ -450,12 +454,13 @@ export default function TrialEntry() {
                 {smsOtpSent && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="sms_otp_code">Código SMS</Label>
+                      <Label htmlFor="sms_otp_code" className="text-slate-100">Código SMS</Label>
                       <Input
                         id="sms_otp_code"
                         value={smsOtpCode}
                         onChange={(event) => setSmsOtpCode(event.target.value.replace(/\D/g, '').slice(0, 8))}
                         placeholder="Digite o código recebido por SMS"
+                        className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
                       />
                     </div>
                     <Button
@@ -494,7 +499,7 @@ export default function TrialEntry() {
                 'Acessar plataforma'
               )}
             </Button>
-            <p className="text-center text-xs text-muted-foreground">Acesso imediato. Sem compromisso.</p>
+            <p className="text-center text-xs text-slate-300">Acesso imediato. Sem compromisso.</p>
           </form>
         </CardContent>
       </Card>

@@ -6,6 +6,9 @@ import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'node:crypto';
 
+const FULL_NAME_MAX_LENGTH = 120;
+const EMAIL_MAX_LENGTH = 254;
+
 const require = createRequire(import.meta.url);
 const LOCAL_JSON_PATH = resolve(process.cwd(), 'src/config/firebaseAdmin.local.json');
 
@@ -363,6 +366,12 @@ export const POST: Handler = async (req, res) => {
         .status(400)
         .json({ error: 'full_name, email, phone e email_otp_token são obrigatórios' });
     }
+    if (fullName.length > FULL_NAME_MAX_LENGTH) {
+      return res.status(400).json({ error: `full_name deve ter no máximo ${FULL_NAME_MAX_LENGTH} caracteres` });
+    }
+    if (email.length > EMAIL_MAX_LENGTH) {
+      return res.status(400).json({ error: `email deve ter no máximo ${EMAIL_MAX_LENGTH} caracteres` });
+    }
 
     await ensureFirebaseAdmin();
     const supabase = getSupabaseServiceClient();
@@ -394,17 +403,34 @@ export const POST: Handler = async (req, res) => {
       return res.status(429).json({ error: 'Muitas tentativas. Aguarde alguns minutos para tentar novamente.' });
     }
 
-    const { data: identityRegistry, error: identityRegistryError } = await supabase
-      .from('trial_identity_registry')
-      .select('firebase_uid')
-      .eq('phone_hash', phoneHash)
-      .maybeSingle();
-    if (identityRegistryError && !isMissingRelation(identityRegistryError)) throw identityRegistryError;
-    if (identityRegistry?.firebase_uid) {
+    const [identityByPhone, identityByEmail] = await Promise.all([
+      supabase
+        .from('trial_identity_registry')
+        .select('firebase_uid')
+        .eq('phone_hash', phoneHash)
+        .maybeSingle(),
+      supabase
+        .from('trial_identity_registry')
+        .select('firebase_uid')
+        .eq('email_hash', emailHash)
+        .maybeSingle(),
+    ]);
+
+    if (identityByPhone.error && !isMissingRelation(identityByPhone.error)) throw identityByPhone.error;
+    if (identityByEmail.error && !isMissingRelation(identityByEmail.error)) throw identityByEmail.error;
+
+    if (identityByPhone.data?.firebase_uid) {
       await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
       return res
         .status(409)
         .json({ error: 'Este telefone já utilizou o acesso de teste. Finalize seu cadastro para continuar.' });
+    }
+
+    if (identityByEmail.data?.firebase_uid) {
+      await registerAttempt(supabase, ipHash, emailHash, phoneHash, false);
+      return res
+        .status(409)
+        .json({ error: 'Este e-mail já utilizou o acesso de teste. Finalize seu cadastro para continuar.' });
     }
 
     let userRecord: admin.auth.UserRecord;

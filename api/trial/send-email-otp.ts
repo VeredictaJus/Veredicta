@@ -3,6 +3,9 @@ import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { createHash, randomInt } from 'node:crypto';
 
+const FULL_NAME_MAX_LENGTH = 120;
+const EMAIL_MAX_LENGTH = 254;
+
 function getEnvVar(...names: string[]) {
   for (const name of names) {
     const value = process.env[name];
@@ -113,6 +116,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (website) return res.status(400).json({ error: 'Solicitação inválida.' });
     if (!email || !fullName) {
       return res.status(400).json({ error: 'email e full_name são obrigatórios' });
+    }
+    if (fullName.length > FULL_NAME_MAX_LENGTH) {
+      return res.status(400).json({ error: `full_name deve ter no máximo ${FULL_NAME_MAX_LENGTH} caracteres` });
+    }
+    if (email.length > EMAIL_MAX_LENGTH) {
+      return res.status(400).json({ error: `email deve ter no máximo ${EMAIL_MAX_LENGTH} caracteres` });
     }
 
     const remoteIp = extractIp(req);

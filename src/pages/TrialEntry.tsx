@@ -12,6 +12,8 @@ import { auth } from '@/lib/firebase';
 import AuthBackground from '@/components/ui/AuthBackground';
 
 const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
+const FULL_NAME_MAX_LENGTH = 120;
+const EMAIL_MAX_LENGTH = 254;
 
 function formatPhoneInput(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -105,6 +107,14 @@ export default function TrialEntry() {
   const validateBaseFields = () => {
     if (!form.full_name.trim() || !form.email.trim() || !form.phone.trim()) {
       toast.error('Preencha nome, email e telefone.');
+      return false;
+    }
+    if (form.full_name.trim().length > FULL_NAME_MAX_LENGTH) {
+      toast.error(`Nome deve ter no máximo ${FULL_NAME_MAX_LENGTH} caracteres.`);
+      return false;
+    }
+    if (form.email.trim().length > EMAIL_MAX_LENGTH) {
+      toast.error(`E-mail deve ter no máximo ${EMAIL_MAX_LENGTH} caracteres.`);
       return false;
     }
 
@@ -310,8 +320,9 @@ export default function TrialEntry() {
                 id="full_name"
                 value={form.full_name}
                 onChange={(event) => {
-                  setForm((prev) => ({ ...prev, full_name: event.target.value }));
+                  setForm((prev) => ({ ...prev, full_name: event.target.value.slice(0, FULL_NAME_MAX_LENGTH) }));
                 }}
+                maxLength={FULL_NAME_MAX_LENGTH}
                 placeholder="Seu nome completo"
                 className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
               />
@@ -323,9 +334,10 @@ export default function TrialEntry() {
                 type="email"
                 value={form.email}
                 onChange={(event) => {
-                  setForm((prev) => ({ ...prev, email: event.target.value }));
+                  setForm((prev) => ({ ...prev, email: event.target.value.slice(0, EMAIL_MAX_LENGTH) }));
                   resetOtpState();
                 }}
+                maxLength={EMAIL_MAX_LENGTH}
                 placeholder="voce@escritorio.com"
                 className="border-white/20 bg-slate-900/65 text-white placeholder:text-slate-400"
               />

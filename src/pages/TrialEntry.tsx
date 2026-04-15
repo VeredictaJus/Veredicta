@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { signInWithCustomToken } from 'firebase/auth';
 import { toast } from 'sonner';
 import { Loader2, QrCode } from 'lucide-react';
@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { auth } from '@/lib/firebase';
 import AuthBackground from '@/components/ui/AuthBackground';
+
+const logoImage = 'https://dmsodonmkffyvbuxtxec.supabase.co/storage/v1/object/public/assets/Design%20sem%20nome%20(15).png';
 
 declare global {
   interface Window {
@@ -326,6 +328,25 @@ export default function TrialEntry() {
     <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
       <AuthBackground />
       <div className="relative z-10 w-full max-w-lg">
+        <div className="mb-6 flex justify-center">
+          <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
+            <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
+              <img
+                src={logoImage}
+                alt="Veredicta"
+                className="h-12 w-auto object-contain"
+              />
+            </div>
+            <span className="mt-3 text-2xl font-medium text-white tracking-wide">
+              Vered
+              <span className="relative inline-block">
+                <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
+                <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
+              </span>
+              cta
+            </span>
+          </Link>
+        </div>
         <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
           <CardHeader className="space-y-3">
             <CardTitle className="flex items-center gap-2 text-white">

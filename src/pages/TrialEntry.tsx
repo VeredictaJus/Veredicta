@@ -325,23 +325,24 @@ export default function TrialEntry() {
   return (
     <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
       <AuthBackground />
-      <Card className="w-full max-w-lg border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
-        <CardHeader className="space-y-3">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <QrCode className="h-5 w-5 text-orange-600" />
-            Seu acesso à Veredicta está liberado
-          </CardTitle>
-          <CardDescription className="text-justify text-slate-200">
-            Acesso liberado para envio da sua primeira demanda.
-          </CardDescription>
-          <div className="rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
-            <p className="text-sm font-semibold text-orange-300">
-              Primeira petição por nossa conta
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4 text-slate-100" onSubmit={handleSubmit}>
+      <div className="relative z-10 w-full max-w-lg">
+        <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
+          <CardHeader className="space-y-3">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <QrCode className="h-5 w-5 text-orange-600" />
+              Seu acesso à Veredicta está liberado
+            </CardTitle>
+            <CardDescription className="text-justify text-slate-200">
+              Acesso liberado para envio da sua primeira demanda.
+            </CardDescription>
+            <div className="rounded-md border border-orange-300/40 bg-orange-500/16 px-3 py-2">
+              <p className="text-sm font-semibold text-orange-300">
+                Primeira petição por nossa conta
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4 text-slate-100" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="full_name" className="text-slate-100">Nome</Label>
               <Input
@@ -499,10 +500,11 @@ export default function TrialEntry() {
                 'Acessar plataforma'
               )}
             </Button>
-            <p className="text-center text-xs text-slate-300">Acesso imediato. Sem compromisso.</p>
-          </form>
-        </CardContent>
-      </Card>
+              <p className="text-center text-xs text-slate-300">Acesso imediato. Sem compromisso.</p>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

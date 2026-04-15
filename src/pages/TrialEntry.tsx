@@ -328,27 +328,27 @@ export default function TrialEntry() {
     <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
       <AuthBackground />
       <div className="relative z-10 w-full max-w-lg">
-        <div className="mb-6 flex justify-center">
-          <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
-            <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
-              <img
-                src={logoImage}
-                alt="Veredicta"
-                className="h-12 w-auto object-contain"
-              />
-            </div>
-            <span className="mt-3 text-2xl font-medium text-white tracking-wide">
-              Vered
-              <span className="relative inline-block">
-                <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
-                <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
-              </span>
-              cta
-            </span>
-          </Link>
-        </div>
         <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
           <CardHeader className="space-y-3">
+            <div className="flex justify-center pb-1">
+              <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
+                <div className="w-20 h-20 rounded-full border border-white/30 bg-white/12 backdrop-blur-xl backdrop-saturate-150 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] flex items-center justify-center">
+                  <img
+                    src={logoImage}
+                    alt="Veredicta"
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
+                <span className="mt-3 text-2xl font-medium text-white tracking-wide">
+                  Vered
+                  <span className="relative inline-block">
+                    <span style={{ textDecoration: 'none', fontFeatureSettings: '"cv01" 1' }}>i</span>
+                    <span className="absolute top-2 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-orange-400 rounded-full"></span>
+                  </span>
+                  cta
+                </span>
+              </Link>
+            </div>
             <CardTitle className="flex items-center gap-2 text-white">
               <QrCode className="h-5 w-5 text-orange-600" />
               Seu acesso à Veredicta está liberado

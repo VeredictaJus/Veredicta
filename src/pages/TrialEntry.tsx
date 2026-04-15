@@ -325,20 +325,18 @@ export default function TrialEntry() {
   };
 
   return (
-    <div className="auth-page relative min-h-screen flex items-center justify-center px-4">
+    <div className="auth-page relative min-h-screen overflow-y-auto px-4 py-6 md:py-10">
       <AuthBackground />
-      <div className="relative z-10 w-full max-w-lg">
+      <div className="relative z-10 mx-auto w-full max-w-lg">
         <Card className="w-full border-white/25 bg-slate-950/78 backdrop-blur-xl shadow-[0_18px_45px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)]">
           <CardHeader className="space-y-3 text-center items-center">
             <div className="flex justify-center pb-1">
               <Link to="/" className="flex flex-col items-center justify-center hover:opacity-85 transition-opacity">
-                <div className="w-20 h-20 rounded-full border border-white/20 bg-transparent shadow-[0_8px_24px_rgba(0,0,0,0.28)] flex items-center justify-center">
-                  <img
-                    src={logoImage}
-                    alt="Veredicta"
-                    className="h-12 w-auto object-contain"
-                  />
-                </div>
+                <img
+                  src={logoImage}
+                  alt="Veredicta"
+                  className="h-14 w-auto object-contain"
+                />
                 <span className="mt-3 text-2xl font-medium text-white tracking-wide">
                   Vered
                   <span className="relative inline-block">

@@ -272,7 +272,7 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
   return (
     <div className={`flex h-full space-x-4 ${className}`}>
       {/* Lista de Conversas */}
-      <div className="w-1/3 h-full">
+      <div className="h-full w-[360px] min-w-[320px] max-w-[42%]">
         <ConversationsList
           onSelectConversation={handleSelectConversation}
           onCreateConversation={() => setIsCreateDialogOpen(true)}

@@ -517,13 +517,14 @@ export default function ConversationsList({ onSelectConversation, onCreateConver
         </div>
         
         {/* Filters */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           {getAvailableFilters().map((filter) => (
             <Button
               key={filter.key}
               variant={filterType === filter.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterType(filter.key as any)}
+              className="whitespace-nowrap px-2 text-xs"
             >
               {filter.label}
             </Button>

@@ -299,7 +299,7 @@ export default function IntegratedChat({ className, selectedConversationId: exte
     <div className={`flex h-full space-x-3 min-h-0 ${className}`}>
       {/* Lista de Conversas - ocultar quando há conversa externa selecionada */}
       {!showFullChat && (
-        <div className="h-full w-[300px] min-w-[260px] max-w-[34%] overflow-hidden flex flex-col">
+        <div className="h-full w-[360px] min-w-[320px] max-w-[42%] overflow-hidden flex flex-col">
           <ConversationsList
             onSelectConversation={handleSelectConversation}
             onCreateConversation={() => setIsCreateDialogOpen(true)}

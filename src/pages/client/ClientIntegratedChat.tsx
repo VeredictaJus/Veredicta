@@ -272,7 +272,7 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
   return (
     <div className={`flex h-full space-x-4 ${className}`}>
       {/* Lista de Conversas */}
-      <div className="h-full w-[360px] min-w-[320px] max-w-[42%]">
+      <div className="h-full w-[360px] min-w-[320px]">
         <ConversationsList
           onSelectConversation={handleSelectConversation}
           onCreateConversation={() => setIsCreateDialogOpen(true)}
@@ -280,7 +280,7 @@ export default function ClientIntegratedChat({ className }: ClientIntegratedChat
       </div>
 
       {/* Janela do Chat */}
-      <div className="flex-1 h-full">
+      <div className="flex-1 h-full min-w-0">
         <ChatWindow
           conversationId={selectedConversationId || undefined}
           onClose={() => setSelectedConversationId(null)}
